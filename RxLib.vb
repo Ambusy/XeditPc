@@ -37,7 +37,7 @@ Public Class Rexx
     Private ncChar As String = "" ' added symbol at end-of-line
     Private sSrcPos, sSrcLine As Integer
     Private NrStepsExecuted As Integer = 0
-    Private EntriesInIntcode As Integer = 1 ' n° existing entries in IntCode
+    Private EntriesInIntcode As Integer = 1 ' nÂ° existing entries in IntCode
     Private CultInf As New CultureInfo("en-US", False)
     Public CurrRexxRun As RexxCompData ' storage to correctly execute one rexx program
     Friend Stack As New Collection ' execution currRexxRun.Stack
@@ -61,12 +61,16 @@ Public Class Rexx
     Private Const sAtoZlow As String = "abcdefghijklmnopqrstuvwxyz"
     Private Const s0to9 As String = "0123456789"
     Private Const s0to9pm As String = "0123456789+-"
-    Private Const sAtoZS As String = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz@$£#_"
-    Private Const sAtoZS_0to9 As String = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz@$£#_0123456789"
+    Private Const sAtoZS As String = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz@$Â£#_"
+    Private Const sAtoZS_0to9 As String = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz@$Â£#_0123456789"
     Private Const sAtoZ As String = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz"
     Private Const sAtoZ_0to9 As String = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789"
     Private Const ExtRoutineTagstring = "External Routine Parameters: "
     Private Const ExtRoutineParmSep = "0501040203"
+
+
+    Friend InputBx As New InputBoxDialog()
+
 
     Public Enum Symbols ' Rexx symbols
         addresym = 1
@@ -155,25 +159,25 @@ Public Class Rexx
         '                           code[].l = seqnr of parameter "P l"
         adr ' Address name          code[].a = idx of name
         cal ' call                  code[].a = idx of name to call, substituted by index in intcode after compile
-        '                           code[].l = n° of arguments in CALL
+        '                           code[].l = nÂ° of arguments in CALL
         ret ' return
         exi ' exit
         lbl ' label def.            code[].a = level for local vars
         '                           code[].l = ident | procsym
         cle ' call external rex     code[].a = idx of name to call
-        arg ' ARG and helpers.      code[].a = n° arguments in ARG
-        '                           code[].l = seq n° of the parameter  
+        arg ' ARG and helpers.      code[].a = nÂ° arguments in ARG
+        '                           code[].l = seq nÂ° of the parameter  
         upp ' uppercase             code[].a = 1: UPPER
         parp ' +n                   code[].a = +/-number
-        '                           code[].l = seq n° in ARG
+        '                           code[].l = seq nÂ° in ARG
         parc ' n abs.               code[].a = number
-        '                           code[].l = seq n° in ARG
+        '                           code[].l = seq nÂ° in ARG
         parv ' variable             code[].a = index in IdName
-        '                           code[].l = seq n° in ARG
+        '                           code[].l = seq nÂ° in ARG
         parl ' literal              code[].a = index in literalpool
-        '                           code[].l = seq n° in ARG
+        '                           code[].l = seq nÂ° in ARG
         parh ' (variable)           code[].a = index in IdName
-        '                           code[].l = seq n° in ARG
+        '                           code[].l = seq nÂ° in ARG
         pul ' pull (like ARG)
         pvr ' parse var (like ARG)
         pvl ' parse value (like ARG)
@@ -1206,7 +1210,7 @@ Public Class Rexx
             If cSymb <> Symbols.comma Then ' not an empty parameter
                 ProcessCallParm(NrValues, vi, NrValues)
                 Pars.Add(vi) ' position of parameter id in names
-                ParsN.Add(iCurrParSeqNr) ' seq n° of parm  
+                ParsN.Add(iCurrParSeqNr) ' seq nÂ° of parm  
             Else
                 Pars.Add(-1)
                 ParsN.Add(-1)
@@ -2881,7 +2885,7 @@ Public Class Rexx
                                 str = DirectCast(Streams.Item(ps(1)), aStream)
                                 Dim returnCount As Integer
                                 returnCount = 0 ' no lines found
-                                If tCnt = "C" Then ' count n° of lines
+                                If tCnt = "C" Then ' count nÂ° of lines
                                     rp = str.ReadPos
                                     Dim crlf As Integer
                                     While str.ReadPos < str.FileStr.Length()
@@ -3590,7 +3594,7 @@ Public Class Rexx
     Private Sub traceStr(ByRef SrcLine As String)
         AddLineToSaybuffer(SrcLine, False)
         If CurrRexxRun.InteractiveTracing = 1 Then
-            Dim s As String = InputBox(ComposeSayFromBuffer() + vbCrLf + "Interactive", "Enter statement or ?", "") + "      "
+            Dim s As String = myInputBox(ComposeSayFromBuffer() + vbCrLf + "Interactive", "Enter statement or ?", "") + "      "
             lSay = 0
             s = s.TrimStart
             Do While s.Trim <> ""
@@ -3608,7 +3612,7 @@ Public Class Rexx
                            "Enter G linenumber to resume execution at the given line" & vbCrLf & _
                            "  (Take care not to jump into loops or routines)" & vbCrLf & _
                            "Press only Enter to continue interactive trace" & vbCrLf)
-                    s = InputBox("Interactive", "Enter statement or ?", "")
+                    s = myInputBox("Interactive", "Enter statement or ?", "")
                 ElseIf sUpper.Length > 2 AndAlso (sUpper(0) = "B"c Or sUpper(0) = "C"c Or sUpper(0) = "G"c) Then
                     Dim nl As Integer
                     Try
@@ -3637,7 +3641,7 @@ Public Class Rexx
                             End If
                         End If
                     Next
-                    s = InputBox("Interactive", "Enter statement or ?", "")
+                    s = myInputBox("Interactive", "Enter statement or ?", "")
                 ElseIf sUpper.Length > 2 AndAlso (sUpper(0) = "L"c) Then
                     Dim il, nl, ml As Integer
                     Try
@@ -3661,7 +3665,7 @@ Public Class Rexx
                     For il = nl To ml
                         s = s & CStr(il) & ": " & GetSLin(il) & vbCrLf
                     Next
-                    s = InputBox(s & "Interactive", "Enter statement or ?", "")
+                    s = myInputBox(s & "Interactive", "Enter statement or ?", "")
                 Else
                     Dim wfn As String
                     wfn = CreateNameOfWorkfile()
@@ -3683,7 +3687,7 @@ Public Class Rexx
                     CurrRexxRun.InInterpret = False
                     CurrRexxRun.InInteractive = False
                     File.Delete(wfn)
-                    s = InputBox(s + vbCrLf + "Interactive debug", "Enter statement or ?", "")
+                    s = myInputBox(s + vbCrLf + "Interactive debug", "Enter statement or ?", "")
                 End If
             Loop
             lSay = 0
@@ -3789,7 +3793,7 @@ Public Class Rexx
         Dim MainParmIsRout As Boolean = False
         l1 = 0
         asmParse = DirectCast(CurrRexxRun.IntCode.Item(IntPp), AsmStatement)
-        If (asmParse.f = fct.arg) Then ' check n° arguments passed
+        If (asmParse.f = fct.arg) Then ' check nÂ° arguments passed
             CallStackElement = DirectCast(CurrRexxRun.CallStack(CurrRexxRun.CallStack.Count), CallElem)
             If Not (CurrRexxRun.CallStack.Count = 1 AndAlso CallStackElement.InternDepth = 0) Then ' caller and routine in same script?
                 asmCallingLine = DirectCast(CurrRexxRun.IntCode.Item(CInt(Stack.Item(Stack.Count()))), AsmStatement) ' cal statement  
@@ -3838,7 +3842,11 @@ Public Class Rexx
                         If lSay > 0 Then
                             AddLineToSaybuffer("", True)
                         End If
-                        m = InputBox(m, "REXX Pull", "")
+                        m = myInputBox(m, "REXX Pull", "")
+                        If myInputBoxCancelled Then
+                            ' cancelled
+                            CancRexx = True
+                        End If
                         AddLineToSaybuffer("--> " & m, False)
                     Else
                         RaiseEvent doPull(m)
@@ -4289,13 +4297,26 @@ Public Class Rexx
         End If
         Return value
     End Function
+    Private myInputBoxCancelled As Boolean
+    Friend Function myInputBox(Ask As String, Optional tit As String = "", Optional resp As String = "")
+        InputBx.InpTit = tit
+        InputBx.OutResp = resp
+        InputBx.InpSay = Ask
+        Dim s As String = ""
+        InputBx.ShowDialog()
+        myInputBoxCancelled = Not InputBx.OKBut
+        If InputBx.OKBut Then
+            s = InputBx.OutResp
+        End If
+        Return s
+    End Function
 End Class
 Friend Class LineOfSource
     Friend LineNr As Integer
     Friend Text As String
 End Class
 Friend Class CallElem
-    Friend ProcNum As Integer    ' n° in source of proc
+    Friend ProcNum As Integer    ' nÂ° in source of proc
     Friend InternDepth As Integer    ' internal call depth
     Friend Exposes As Collection ' strings of names to expose
 End Class
