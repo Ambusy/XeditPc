@@ -33,15 +33,10 @@ if ftype.1 = "RPGI" then do
 end
 "SET PF01 GETHELP"
 "SET CTRL-F DoLocate"
-"SET CTRL-E macro exp"
-"SET CTRL-M macro expi" /* remove optional (include) */
-"SET CTRL-D macro expd" /* remove clause */
-"SET CTRL-N macro expn" /* select next clause */
-"SET CTRL-TAB Macro expn"
 "SET CTRL-A SelAll"
 "SET CTRL-8 CInsCursor {" 
 "SET CTRL-9 CInsCursor }" 
 "SET ALT-9 FndBracket" 
-"SET CTRL-½ macro CtrlMin"   /* key - on italian keyboard */
-"SET CTRL-» macro CtrlPlus"  /* key + on italian keyboard */
+"SET CTRL-Â½ macro CtrlMin"   /* key - on italian keyboard */
+"SET CTRL-Â» macro CtrlPlus"  /* key + on italian keyboard */
 exit 
