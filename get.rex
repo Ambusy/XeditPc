@@ -1,4 +1,4 @@
-/* inserts a file at current line */
+/* inserts a file at current line. GET file [F firstline] [N number of lines] */
 trace n
 "EXTRACT /Curline/size/"
 if size.1 < curline.2 then ":" size.1
