@@ -1,5 +1,5 @@
 /* rexx */
-/* Prefix command: indicates the line to be copied by A or B line command */
+/* Prefix command: indicates the line to be copied by P or F line command */
 /* Command: Abbrev for Change */
 trace n
 parse arg p l n r .
