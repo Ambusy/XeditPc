@@ -10,4 +10,5 @@ do while rc = 0
   then rc = 1
   else "DOWN 1"
 end
-exit
+exit
+
