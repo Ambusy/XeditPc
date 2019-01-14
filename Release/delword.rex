@@ -1,4 +1,4 @@
-/* delword(text, index[, n° of words]) */
+/* delword (text, index[, n° words]) */
 delword:
   trace n
   parse arg txt, idx, lent 
@@ -29,7 +29,7 @@ delword:
         if cp = 0 then cp = 1 /* restart copying */
         inw = 1
         nw = nw + 1
-        if nw >= idx & nw <= idxl then do /* daelete word and intermediate blanks */
+        if nw >= idx & nw <= idxl then do /* delete word and intermediate blanks */
           cp = 0 /* don't copy */
         end
      end
