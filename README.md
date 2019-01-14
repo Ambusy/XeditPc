@@ -1,7 +1,9 @@
 # XeditPc
 Clone of the IBM® editor for VM-CMS of the 1980's
 
-A 90% copy of the original possibilities. Includes an interpretor for Rexx® to implement the command language.
+A 90% copy of the original possibilities. 
+
+Written in Visual Basic. Includes an interpreter for Rexx® to implement the Xedit-commands in Rexx, also written in VB.
 
 
 As a user, extract the "bin/release" folder somewhere on your disk and execute the XeditPc program. No need to install 
