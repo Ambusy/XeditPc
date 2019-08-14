@@ -472,13 +472,13 @@ opn:
     End Function
     Private Sub SetFormCaption()
         Dim i As Integer, s As String
-        i = InStrRev(CurrEdtSession.EditFileName, "\")
-        If i = 0 Then
-            s = CurrEdtSession.EditFileName
-        Else
-            s = Mid(CurrEdtSession.EditFileName, i + 1)
-        End If
         Try
+            i = InStrRev(CurrEdtSession.EditFileName, "\")
+            If i = 0 Then
+                s = CurrEdtSession.EditFileName
+            Else
+                s = Mid(CurrEdtSession.EditFileName, i + 1)
+            End If
             Me.Text = s
         Catch ex As Exception
         End Try
@@ -1567,7 +1567,7 @@ opn:
                         If Not dsScr.CurSrcRead Then ReadSourceInScrBuf(dsScr)
                         Dim nc As Integer = lRep
                         If nc > dsScr.CurLinSrc.Length Then nc = dsScr.CurLinSrc.Length
-                        DoCmd1("R " + dsScr.CurLinSrc.Substring(nc), False)
+                        DoCmd1("R " + StrDup(lRep, " "c) + dsScr.CurLinSrc, False)
                         MoveToSourceLine(RetLineNr) ' move to actual current line
                     Else
                         rc = 16
@@ -1590,7 +1590,7 @@ opn:
                                     If Not dsScr.CurSrcRead Then ReadSourceInScrBuf(dsScr)
                                     Dim nc As Integer = lRep
                                     If nc > dsScr.CurLinSrc.Length Then nc = dsScr.CurLinSrc.Length
-                                    DoCmd1("R " + dsScr.CurLinSrc.Substring(nc), False)
+                                    DoCmd1("R " + StrDup(lRep, " "c) + dsScr.CurLinSrc, False)
                                 End If
                             Next
                             CurrEdtSession.LineCommands.Remove(j)
@@ -4948,13 +4948,16 @@ FileDeleteErrorRes:
         If MouseScrLine > 0 And MouseScrLine <= LinesScreenVisible Then
             CurrEdtSession.NextCursorDisplayLine = MouseScrLine
         End If
+        dsScr = DirectCast(ScrList.Item(MouseScrLine), ScreenLine)
+        If dsScr.CurLinType = "C"c AndAlso MouseScrPos > dsScr.CharsOnScr Then
+            MouseScrPos = dsScr.CharsOnScr + 1 ' place cursor after last char on cmdline
+        End If
         CurrEdtSession.NextCursorDisplayColumn = MouseScrPos
         If Button = 1 And CurrEdtSession.Verif.Count() = 1 Then
             Dim vp As VerifyPair = DirectCast(CurrEdtSession.Verif.Item(1), VerifyPair)
             MacroClicked = True
             SetmSelect(False) ' wait for mousemove
             If MouseScrLine >= 1 And MouseScrLine <= LinesScreenVisible Then
-                dsScr = DirectCast(ScrList.Item(MouseScrLine), ScreenLine)
                 Logg("mouse d on " & CStr(dsScr.CurLinNr) & " " & dsScr.CurLinSrc)
                 If MouseScrPos >= 0 AndAlso MouseScrLine >= CurrEdtSession.SLines(1) AndAlso MouseScrLine <= CurrEdtSession.SLines(CurrEdtSession.nSLines) Then
                     If dsScr.CurLinType = "L"c Then
