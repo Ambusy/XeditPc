@@ -2,9 +2,10 @@
 /* insert abbreviated words */
 "EXTRACT /CURSOR/CURLINE/"
 cl = curline.2
-a.1 =  "P philosopher"
-a.2 =  "B blocking path"
-a.0=2
+a.1 =  "P Procedure"
+a.2 =  "B Begin"
+a.3 =  "E End"
+a.0=3
 a = ""
 do i=1 to a.0 
  a = a || a.i || "0D0A"X
