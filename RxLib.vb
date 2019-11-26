@@ -37,14 +37,14 @@ Public Class Rexx
     Private ncChar As String = "" ' added symbol at end-of-line
     Private sSrcPos, sSrcLine As Integer
     Private NrStepsExecuted As Integer = 0
-    Private EntriesInIntcode As Integer = 1 ' nÂ° existing entries in IntCode
+    Private EntriesInIntcode As Integer = 1 ' n° existing entries in IntCode
     Private CultInf As New CultureInfo("en-US", False)
     Public CurrRexxRun As RexxCompData ' storage to correctly execute one rexx program
     Friend Stack As New Collection ' execution currRexxRun.Stack
     Friend Shared SayLine(24) As String ' say buffer for all routines
     Friend Shared lSay, nSay As Integer
     Friend Shared RexxWords As New Collection ' symbols for compiler
-    Friend Shared RexxFunctions(43) As String ' builtin functions with parameter definitions
+    Friend Shared RexxFunctions(44) As String ' builtin functions with parameter definitions
     Friend Shared SymsStr(78) As String ' names of symbols for errors
     Friend Shared SysMessages As New Collection ' text of messages
     Public Shared QStack As New Collection ' Queue/Pull currRexxRun.Stack
@@ -61,8 +61,8 @@ Public Class Rexx
     Private Const sAtoZlow As String = "abcdefghijklmnopqrstuvwxyz"
     Private Const s0to9 As String = "0123456789"
     Private Const s0to9pm As String = "0123456789+-"
-    Private Const sAtoZS As String = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz@$Â£#_"
-    Private Const sAtoZS_0to9 As String = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz@$Â£#_0123456789"
+    Private Const sAtoZS As String = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz@$£#_"
+    Private Const sAtoZS_0to9 As String = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz@$£#_0123456789"
     Private Const sAtoZ As String = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz"
     Private Const sAtoZ_0to9 As String = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789"
     Private Const ExtRoutineTagstring = "External Routine Parameters: "
@@ -164,25 +164,25 @@ Public Class Rexx
         '                           code[].l = seqnr of parameter "P l"
         adr ' Address name          code[].a = idx of name
         cal ' call                  code[].a = idx of name to call, substituted by index in intcode after compile
-        '                           code[].l = nÂ° of arguments in CALL
+        '                           code[].l = n° of arguments in CALL
         ret ' return
         exi ' exit
         lbl ' label def.            code[].a = level for local vars
         '                           code[].l = ident | procsym
         cle ' call external rex     code[].a = idx of name to call
-        arg ' ARG and helpers.      code[].a = nÂ° arguments in ARG
-        '                           code[].l = seq nÂ° of the parameter  
+        arg ' ARG and helpers.      code[].a = n° arguments in ARG
+        '                           code[].l = seq n° of the parameter  
         upp ' uppercase             code[].a = 1: UPPER
         parp ' +n                   code[].a = +/-number
-        '                           code[].l = seq nÂ° in ARG
+        '                           code[].l = seq n° in ARG
         parc ' n abs.               code[].a = number
-        '                           code[].l = seq nÂ° in ARG
+        '                           code[].l = seq n° in ARG
         parv ' variable             code[].a = index in IdName
-        '                           code[].l = seq nÂ° in ARG
+        '                           code[].l = seq n° in ARG
         parl ' literal              code[].a = index in literalpool
-        '                           code[].l = seq nÂ° in ARG
+        '                           code[].l = seq n° in ARG
         parh ' (variable)           code[].a = index in IdName
-        '                           code[].l = seq nÂ° in ARG
+        '                           code[].l = seq n° in ARG
         pul ' pull (like ARG)
         pvr ' parse var (like ARG)
         pvl ' parse value (like ARG)
@@ -244,31 +244,37 @@ Public Class Rexx
         If Filename <> "In memory source" Then
             If InStr(RexxFileName, "\") = 0 Then
                 Logg("RexxPath = : " & RexxPath)
-                RexxPathElements = Split(RexxPath, ";"c)
                 Dim fnd As Boolean = False
-                For i = 0 To RexxPathElements.Length() - 1
-                    RexxPathElements(i) = RexxPathElements(i).Trim()
-                    If RexxPathElements(i) <> "" Then
-                        If RexxPathElements(i)(RexxPathElements(i).Length - 1) <> "\" Then
-                            RexxPathElements(i) += "\"
-                        End If
-                        If RexxPathElements(i)(0) = "%" Then
-                            Dim parts() As String = Split(RexxPathElements(i), "%"c)
-                            If parts.Length > 2 Then
-                                Dim s As String = Environment.GetEnvironmentVariable(parts(1))
-                                RexxPathElements(i) = s + parts(2)
+                If File.Exists(RexxFilePath + "\" + RexxFileName) Then
+                    RexxFileName = Path.GetFullPath(RexxFilePath + "\" + RexxFileName)
+                    Logg("found " + RexxFileName)
+                    fnd = True
+                Else
+                    RexxPathElements = Split(RexxPath, ";"c)
+                    For i = 0 To RexxPathElements.Length() - 1
+                        RexxPathElements(i) = RexxPathElements(i).Trim()
+                        If RexxPathElements(i) <> "" Then
+                            If RexxPathElements(i)(RexxPathElements(i).Length - 1) <> "\" Then
+                                RexxPathElements(i) += "\"
+                            End If
+                            If RexxPathElements(i)(0) = "%" Then
+                                Dim parts() As String = Split(RexxPathElements(i), "%"c)
+                                If parts.Length > 2 Then
+                                    Dim s As String = Environment.GetEnvironmentVariable(parts(1))
+                                    RexxPathElements(i) = s + parts(2)
+                                End If
+                            End If
+                            Logg("try : " + RexxPathElements(i) + RexxFileName)
+                            Logg("    : " + Path.GetFullPath(RexxPathElements(i) + RexxFileName))
+                            If File.Exists(RexxPathElements(i) + RexxFileName) Then
+                                RexxFileName = Path.GetFullPath(RexxPathElements(i) + RexxFileName)
+                                Logg("found " + RexxFileName)
+                                fnd = True
+                                Exit For
                             End If
                         End If
-                        Logg("try : " + RexxPathElements(i) + RexxFileName)
-                        Logg("    : " + Path.GetFullPath(RexxPathElements(i) + RexxFileName))
-                        If File.Exists(RexxPathElements(i) + RexxFileName) Then
-                            RexxFileName = Path.GetFullPath(RexxPathElements(i) + RexxFileName)
-                            Logg("found " + RexxFileName)
-                            fnd = True
-                            Exit For
-                        End If
-                    End If
-                Next
+                    Next
+                End If
                 If Not fnd Then
                     Logg("foundd " + ExecutablePath & RexxFileName)
                     RexxFileName = ExecutablePath & RexxFileName
@@ -1214,7 +1220,7 @@ Public Class Rexx
             If cSymb <> Symbols.comma Then ' not an empty parameter
                 ProcessCallParm(NrValues, vi, NrValues)
                 Pars.Add(vi) ' position of parameter id in names
-                ParsN.Add(iCurrParSeqNr) ' seq nÂ° of parm  
+                ParsN.Add(iCurrParSeqNr) ' seq n° of parm  
             Else
                 Pars.Add(-1)
                 ParsN.Add(-1)
@@ -1667,13 +1673,13 @@ Public Class Rexx
         If cChara = "'" Or cChara = """" Then
             Dim clChar As Char = cChara
             GetNextChar()
-            While cChara <> clChar
+            While cChara <> clChar AndAlso Not eofRexxFile
                 ccs = ccs & cChara
                 GetNextChar()
             End While
             GetNextChar()
         Else
-            While InStr(chars, cChara) > 0
+            While InStr(chars, cChara) > 0 AndAlso Not eofRexxFile
                 ccs = ccs & cChara
                 GetNextChar()
             End While
@@ -2147,6 +2153,7 @@ Public Class Rexx
         i = i + 1 : RexxFunctions(i) = "03SSS      REGEXP"
         i = i + 1 : RexxFunctions(i) = "01S        REVERSE"
         i = i + 1 : RexxFunctions(i) = "02SIS      RIGHT"
+        i = i + 1 : RexxFunctions(i) = "01RI       ROUND"
         i = i + 1 : RexxFunctions(i) = "01R        SIGN"
         i = i + 1 : RexxFunctions(i) = "02SSS      STREAM"
         i = i + 1 : RexxFunctions(i) = "01SSS      STRIP"
@@ -2289,7 +2296,7 @@ Public Class Rexx
 #If DEBUG Then
             asrc = "L:" + CStr(IntPp) + " " & DumpStr(asm) + " " + CStr(Stack.Count)
             Logg(asrc)
-            'Debug.WriteLine(asrc)
+            '  Debug.WriteLine(asrc)
 #End If
             Select Case cF
                 Case fct.lin
@@ -2797,8 +2804,12 @@ Public Class Rexx
                             Case "DELSTR"
                                 If Not pm(3) Then pi(3) = ps(1).Length() - pi(2) + 1
                                 m = Mid(ps(1), 1, pi(2) - 1) & Mid(ps(1), pi(2) + pi(3))
-                            Case "SIGN"
-                                If pr(1) = 0 Then
+                        Case "ROUND"
+                            If cL < 2 Then pi(2) = 0
+                            m = Math.Round(pr(1), pi(2))
+                            If Not DecimalSepPt Then m = Translate(m, ".,", ",.")
+                        Case "SIGN"
+                            If pr(1) = 0 Then
                                     m = "0"
                                 ElseIf pr(1) > 0 Then
                                     m = "1"
@@ -2956,7 +2967,7 @@ Public Class Rexx
                                     str = DirectCast(Streams.Item(ps(1)), aStream)
                                     Dim returnCount As Integer
                                     returnCount = 0 ' no lines found
-                                    If tCnt = "C" Then ' count nÂ° of lines
+                                    If tCnt = "C" Then ' count n° of lines
                                         rp = str.ReadPos
                                         Dim crlf As Integer
                                         While str.ReadPos < str.FileStr.Length()
@@ -3177,24 +3188,27 @@ Public Class Rexx
                         End If
                         '  End If
                 Case fct.exc ' external command
-                        m = FromStack()
-                        Logg("EXECUTE: " & m)
-                        If (CurrRexxRun.CAddress = "") Then CurrRexxRun.CAddress = CurrRexxRun.AddressS
-                        If (CurrRexxRun.CAddress = "") Then CurrRexxRun.CAddress = "XEDIT"
-                        Logg("""" & CurrRexxRun.CAddress.ToUpper(CultInf) & """")
-                        SaveRegs()
-                        Dim savRun As RexxCompData = CurrRexxRun
-                        Dim e As New RexxEvent
-                        RaiseEvent doCmd(CurrRexxRun.CAddress.ToUpper(CultInf), m, e)
-                        CurrRexxRun = savRun
+                    m = FromStack()
+                    Logg("EXECUTE: " & m)
+                    If (CurrRexxRun.CAddress = "") Then CurrRexxRun.CAddress = CurrRexxRun.AddressS
+                    If (CurrRexxRun.CAddress = "") Then CurrRexxRun.CAddress = "XEDIT"
+                    Logg("""" & CurrRexxRun.CAddress.ToUpper(CultInf) & """")
+                    Dim savLenStack = Stack.Count
+                    SaveRegs()
+                    Dim savRun As RexxCompData = CurrRexxRun
+                    Dim e As New RexxEvent
+                    RaiseEvent doCmd(CurrRexxRun.CAddress.ToUpper(CultInf), m, e)
+                    CurrRexxRun = savRun
+                    While Stack.Count > savLenStack
                         RestRegs()
-                        CurrRexxRun.Rc = e.rc
-                        StoreVar(CurrRexxRun.iRc, CStr(CurrRexxRun.Rc), k, en, n)
-                        If CurrRexxRun.Rc < 0 Then
-                            AddLineToSaybuffer("Cmd: " & m, False)
-                            AddLineToSaybuffer(" RC = " & CStr(CurrRexxRun.Rc), True)
-                        End If
-                        CurrRexxRun.CAddress = ""
+                    End While
+                    CurrRexxRun.Rc = e.rc
+                    StoreVar(CurrRexxRun.iRc, CStr(CurrRexxRun.Rc), k, en, n)
+                    If CurrRexxRun.Rc < 0 Then
+                        AddLineToSaybuffer("Cmd: " & m, False)
+                        AddLineToSaybuffer(" RC = " & CStr(CurrRexxRun.Rc), True)
+                    End If
+                    CurrRexxRun.CAddress = ""
                 Case fct.cle ' external rex
                         CommandLine = GetLit(cA)
                         ' compose parameterstring to be passed to routine to be split up by ARGS
@@ -3331,24 +3345,20 @@ Public Class Rexx
 #End If
     End Sub
     Private Sub SaveRegs()
+        ' Debug.WriteLine("Save regs " + IntPp.ToString + " " + Stack.Count.ToString)
         Stack.Add(CurrRexxRun.InteractiveTracing)
         Stack.Add(CurrRexxRun.TraceLevel)
         Stack.Add(CurrRexxRun.RuntimeVars.Count())
         Stack.Add(CurrRexxRun.ProcNum)
         Stack.Add(IntPp)
-#If DEBUG Then
-        Debug.WriteLine("save stack: pp=" & CStr(IntPp) + " cnt=" + CStr(Stack.Count))
-#End If
     End Sub
     Private Function RestRegs() As Short
         IntPp = CInt(FromStack())
-#If DEBUG Then
-        Debug.WriteLine("from stack: pp=" & CStr(IntPp) + " cnt=" + CStr(Stack.Count + 1))
-#End If
         CurrRexxRun.ProcNum = CShort(FromStack())
         Dim i As Short = CShort(FromStack())
         CurrRexxRun.TraceLevel = CShort(FromStack())
         CurrRexxRun.InteractiveTracing = CShort(FromStack())
+        'Debug.WriteLine("Rest regs " + IntPp.ToString + " " + Stack.Count.ToString)
         Return i
     End Function
     Private Function OpenStream(ByVal fn As String, ByVal rw As String) As String
@@ -3877,7 +3887,7 @@ Public Class Rexx
         Dim MainParmIsRout As Boolean = False
         l1 = 0
         asmParse = DirectCast(CurrRexxRun.IntCode.Item(IntPp), AsmStatement)
-        If (asmParse.f = fct.arg) Then ' check nÂ° arguments passed
+        If (asmParse.f = fct.arg) Then ' check n° arguments passed
             CallStackElement = DirectCast(CurrRexxRun.CallStack(CurrRexxRun.CallStack.Count), CallElem)
             If Not (CurrRexxRun.CallStack.Count = 1 AndAlso CallStackElement.InternDepth = 0) Then ' caller and routine in same script?
                 asmCallingLine = DirectCast(CurrRexxRun.IntCode.Item(CInt(Stack.Item(Stack.Count()))), AsmStatement) ' cal statement  
@@ -4421,7 +4431,7 @@ Friend Class LineOfSource
     Friend Text As String
 End Class
 Friend Class CallElem
-    Friend ProcNum As Integer    ' nÂ° in source of proc
+    Friend ProcNum As Integer    ' n° in source of proc
     Friend InternDepth As Integer    ' internal call depth
     Friend Exposes As Collection ' strings of names to expose
 End Class

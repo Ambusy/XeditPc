@@ -46,6 +46,7 @@ Module MainMod
     Public WrkMaxWritePos As Integer ' used up to pos
     Public RexxTrace As Boolean = False
     Public RexxPath As String = ""
+    Public RexxFilePath As String = ""
     Public ExecutablePath As String
 
     Public RecallCmds(10) As String  ' recall buffer

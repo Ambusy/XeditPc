@@ -485,8 +485,7 @@ opn:
     End Sub
     Friend Sub DoCmd(ByVal CommandLine As String, ByVal FromKb As Boolean)
         Dim orgCmd As String
-        '  If Not FormShown Then Return
-        Debug.WriteLine("DoCmd start " & CStr(FromKb) & " " & CommandLine)
+        'Debug.WriteLine("DoCmd start " & CStr(FromKb) & " " & CommandLine)
         Logg("DoCmd start " & CStr(FromKb) & " " & CommandLine)
         If FromKb Then
             SetFormCaption()
@@ -526,7 +525,7 @@ opn:
         Dim FirstWord, NextWord, strng, tmp As String, dsScr As ScreenLine = Nothing
         Dim i, j, l As Integer
         Logg("DoCmd1 start " & CommandLine)
-        Debug.WriteLine("cmd: " & CommandLine)
+        Debug.WriteLine("DoCmd start " & CStr(FromKb) & " " & CommandLine)
         If FormShown AndAlso Not CurrEdtSession.CaseMU Then
             CommandLine = CommandLine.ToUpper()
         End If
@@ -1036,13 +1035,14 @@ opn:
             ElseIf Abbrev(FirstWord, "SCOPE", 3) Then ' set SCOPE ALL/DISPLAY
                 Dim prvScope As Boolean = CurrEdtSession.ScopeAllDisplay
                 CurrEdtSession.ScopeAllDisplay = Not Abbrev(NxtWordFromStr(CommandLine, "DISPLAY"), "DISPLAY")
-                If prvScope <> CurrEdtSession.ScopeAllDisplay Then
-                    If CurrEdtSession.SessionInited Then RefrScrBuf()
+                If prvScope <> CurrEdtSession.ScopeAllDisplay AndAlso CurrEdtSession.SessionInited Then
+                    RefrScrBuf()
                 End If
             ElseIf Abbrev(FirstWord, "RECFM", 4) Then ' set RECFM F/V/FB/VB
                 CurrEdtSession.RecfmV = (NxtWordFromStr(CommandLine, "V").Substring(0, 1) = "V")
                 If Not CurrEdtSession.RecfmV Then
                     CurrEdtSession.InsOvertype = False
+                    If CurrEdtSession.EncodingType = "8"c Then CurrEdtSession.EncodingType = "A"c
                 End If
             ElseIf Abbrev(FirstWord, "LRECL", 2) Then ' set LRECL nnn
                 CurrEdtSession.Lrecl = CShort(Math.Max(1, CIntUserCor(NxtWordFromStr(CommandLine, "32767"))))
@@ -2068,13 +2068,13 @@ opn:
                         End If
                     End If
                 End While
-                If src = "S" Then
-                    i = Rxs.SourceNameIndexPosition(vr & "0", Rexx.tpSymbol.tpUnknown, cvr)
-                    Rxs.StoreVar(i, CStr(nr), k, en, n) ' new value
-                End If
-                FileClose(1)
             End If
-        End If
+            If src = "S" Then
+                i = Rxs.SourceNameIndexPosition(vr & "0", Rexx.tpSymbol.tpUnknown, cvr)
+                Rxs.StoreVar(i, CStr(nr), k, en, n) ' new value
+            End If
+            FileClose(1)
+            End If
     End Sub
     Private Function cmsState(ByRef fn As String) As Integer
         If File.Exists(fn) Then
@@ -3209,6 +3209,8 @@ FileDeleteErrorRes:
                 If CurrEdtSession.ScrOverlayed.Count = 0 Then ' show messages
                     n = CurrEdtSession.MsgLineNrT
                     If n > CurrEdtSession.Msgs.Count Then n = CurrEdtSession.Msgs.Count
+                    If CurrEdtSession.Msgs.Count > 0 Then
+                    End If
                     Logg("XeditPc_Paint ovl msg" & CStr(n))
                     For crLine = 1 To n
                         dsScr = DirectCast(ScrList.Item(CurrEdtSession.MsgLineNrF - 1 + crLine), ScreenLine) 'repaint msg line
@@ -3663,13 +3665,13 @@ FileDeleteErrorRes:
             dsScr.CurLinType = "C"c ' cmd
             dsScr.CurLinFixTp = True
             dsScr.CurLinNr = "=====>"
-            If Not IsNothing(dsScr.CurLinSrc) AndAlso dsScr.CurLinSrc.Length > 0 AndAlso dsScr.CurLinSrc.Trim()(0) = "&"c Then
+            If Not IsNothing(dsScr.CurLinSrc) AndAlso dsScr.CurLinSrc.Trim.Length > 0 AndAlso dsScr.CurLinSrc.Trim()(0) = "&"c Then
                 ' nop
             Else
                 dsScr.CurLinSrc = ""
             End If
         ElseIf CurrEdtSession.ReservedLines.Contains(CStr(ScrI)) Then
-            dsScr.CurLinType = "R"c ' TOP of file
+            dsScr.CurLinType = "R"c ' Reserved line
             dsScr.CurLinNr = ""
             dsScr.CurLinSrc = CStr(CurrEdtSession.ReservedLines.Item(CStr(ScrI)))
             dsScr.CurLinFixTp = True
@@ -4191,7 +4193,6 @@ FileDeleteErrorRes:
             If MacroRecording Then
                 Dim c As String = Chr(KeyCode)
                 MacroString += c.ToLower
-                ' Debug.WriteLine(MacroString)
             End If
             If KeyT <> "" Then
                 s = s & KeyT
@@ -4347,11 +4348,17 @@ FileDeleteErrorRes:
         RepaintAllScreenLines = True
         sI = nfiLineScr - CurrEdtSession.CurLineNr + 2 ' load from given sourceline skip top
         If CurrEdtSession.CmdLineNr > 0 Then sI += 1
+        Dim nMsgOverl = 0
         For i = 1 To LinesScreenVisible
             If allocList Then
                 dsScr = New ScreenLine()
             Else
                 dsScr = DirectCast(ScrList.Item(i), ScreenLine)
+            End If
+            If dsScr.CurLinType = "M" Then
+                nMsgOverl += 1
+                dsScr.CurRepaint = True
+                dsScr = DirectCast(CurrEdtSession.ScrOverlayed.Item(nMsgOverl), ScreenLine) ' build in saved sourceline
             End If
             GetTextOfScrline(dsScr, i, sI, True)
             If allocList Then ScrList.Add(dsScr)
@@ -4406,7 +4413,6 @@ FileDeleteErrorRes:
             If from <= CurrEdtSession.CurLineNr Then ' if current line is not moved, it's not possible to point before the first line!
                 dsScr = DirectCast(ScrList.Item(CurrEdtSession.CurLineNr), ScreenLine)
                 If dsScr.CurLinType = "T"c Then
-                    '    rc = 4
                     Exit For
                 End If
             End If
@@ -4421,9 +4427,6 @@ FileDeleteErrorRes:
                 InitDsScrStruct(dsScr, SourceI + 1)
             End If
             dsScr = DirectCast(ScrList.Item(CurrEdtSession.CurLineNr), ScreenLine)
-            'If dsScr.CurLinType = "T"c Then
-            '    rc = 4
-            'End If
         Next
         If deleted Then
             For i = ResIx.Count To 1 Step -1
@@ -4459,7 +4462,6 @@ FileDeleteErrorRes:
         For i = 1 To nL
             dsScr = DirectCast(ScrList.Item(CurrEdtSession.CurLineNr), ScreenLine)
             If dsScr.CurLinType = "B"c Then
-                ' rc = 4
                 Exit For
             End If
             dsScr = DirectCast(ScrList.Item(from), ScreenLine)
@@ -4470,9 +4472,6 @@ FileDeleteErrorRes:
             ScrList.Add(dsScr, , , ScrI) ' temp, will be replaced by first invisible line
             GetTextOfScrline(dsScr, ScrI, SourceI, True)
             dsScr = DirectCast(ScrList.Item(CurrEdtSession.CurLineNr), ScreenLine)
-            'If dsScr.CurLinType = "B"c Then
-            '    rc = 4
-            'End If
         Next
         If deleted Then
             For i = ResIx.Count To 1 Step -1
@@ -4945,9 +4944,14 @@ FileDeleteErrorRes:
         If MouseScrPos = 0 Then MouseScrPos = 1
         MouseScrLine = CShort(Math.Floor(CDbl(eventArgs.Y) / CurrEdtSession.RectHeight)) + 1S
         Logg("MouseDown " & CStr(MouseScrLine) & " " & CStr(MouseScrPos))
-        If MouseScrLine > 0 And MouseScrLine <= LinesScreenVisible Then
-            CurrEdtSession.NextCursorDisplayLine = MouseScrLine
+        If MouseScrLine < 1 Then
+            MouseScrLine = 1
+        Else
+            If MouseScrLine > LinesScreenVisible Then
+                MouseScrLine = LinesScreenVisible
+            End If
         End If
+        CurrEdtSession.NextCursorDisplayLine = MouseScrLine
         dsScr = DirectCast(ScrList.Item(MouseScrLine), ScreenLine)
         If dsScr.CurLinType = "C"c AndAlso MouseScrPos > dsScr.CharsOnScr Then
             MouseScrPos = dsScr.CharsOnScr + 1 ' place cursor after last char on cmdline
@@ -5633,7 +5637,10 @@ FileDeleteErrorRes:
         RepaintAllScreenLines = True
         ForcePaint()
     End Sub
+    Dim moWhAct As Boolean = False
     Private Sub XeditPc_MouseWheel(ByVal sender As Object, ByVal e As System.Windows.Forms.MouseEventArgs) Handles Me.MouseWheel, VSB.MouseWheel
+        If moWhAct Then Exit Sub
+        moWhAct = True
         Logg("mouse wheel start")
         ReshowMsgSrc(False)
         Dim s As String = ""
@@ -5653,6 +5660,7 @@ FileDeleteErrorRes:
         End If
         ForcePaint()
         Logg("mouse wheel end")
+        moWhAct = False
     End Sub
     Private Sub XeditPc_MouseClick(ByVal sender As Object, ByVal e As System.Windows.Forms.MouseEventArgs) Handles Me.MouseClick, VSB.MouseClick
         Dim Button As Integer = e.Button \ &H100000

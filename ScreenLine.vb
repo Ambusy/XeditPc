@@ -25,4 +25,18 @@ Public Class ScreenLine
         Me.CurRepaint = orig.CurRepaint
         Me.CharsOnScr = orig.CharsOnScr
     End Sub
+    Public Overrides Function ToString() As String
+        Dim s As String = ""
+        s = CurLinType & " " _
+       & CStr(CurLinFixTp) & " " _
+       & CurLinNr & " " _
+       & CurSrcNr.ToString & " " _
+       & CurNrLines.ToString & " " _
+       & CStr(CurLinModified) & " " _
+       & CStr(CurSrcRead) & " " _
+       & CStr(CurRepaint) & " " _
+       & CharsOnScr.ToString & " " _
+       & CurLinSrc & " "
+        Return s
+    End Function
 End Class
