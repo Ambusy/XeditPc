@@ -95,11 +95,9 @@ Public Class EdtSession
 
         Msgs.Clear()
         Msgs = Nothing
-        Debug.WriteLine("Msgs clear")
 
         ScrOverlayed.Clear()
         ScrOverlayed = Nothing
-        Debug.WriteLine("Msg Overlay clear")
 
         SourceList.Clear()
         SourceList = Nothing

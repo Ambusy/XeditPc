@@ -14,6 +14,7 @@ Public Class Rexx
     Private DecimalSepPt As Boolean ' . is decimal separator and not ,
     Private cSymb As Symbols ' current symbol
     Private cChara As Char ' first char after cSymb
+    Private prChara As Char ' char preceding cChara
     Private cId As String = "" ' current identifier
     Private DefVars As DefVariable ' current definition variable structure
     Private VariaRuns As VariabelRun ' current execution variable structure
@@ -1442,6 +1443,7 @@ Public Class Rexx
         If cSymb = Symbols.semicolon Then GetNextSymbol()
         If gLnr Then GenerateLinenumberIndication()
     End Sub
+    Dim LineTransit As Boolean = False
     Private Sub GetNextChar()
         If Not CurrRexxRun.InInterpret Then
             GetCh1(CurrRexxRun.Source)
@@ -1454,6 +1456,7 @@ Public Class Rexx
             cChara = CChar(ncChar)
             ncChar = ""
         Else
+            LineTransit = False
             CurrRexxRun.SrcPos = CurrRexxRun.SrcPos + 1
             Dim sr As LineOfSource = DirectCast(Source.Item(CurrRexxRun.SrcLine), LineOfSource)
             If CurrRexxRun.SrcPos >= sr.Text.Length Then
@@ -1465,15 +1468,17 @@ Public Class Rexx
                     CurrRexxRun.SrcPos = 0
                     sr = DirectCast(Source.Item(CurrRexxRun.SrcLine), LineOfSource)
                     cChara = sr.Text(CurrRexxRun.SrcPos)
+                    LineTransit = True
                 End If
             Else
                 cChara = sr.Text(CurrRexxRun.SrcPos)
             End If
-            If cChara = ","c AndAlso CurrRexxRun.SrcPos = sr.Text.Length - 1 Then
+            If cChara = ","c AndAlso CurrRexxRun.SrcPos = sr.Text.Length - 1 Then ' continuation char
                 CurrRexxRun.SrcLine = CurrRexxRun.SrcLine + 1
                 CurrRexxRun.SrcPos = 0
                 sr = DirectCast(Source.Item(CurrRexxRun.SrcLine), LineOfSource)
                 cChara = sr.Text(CurrRexxRun.SrcPos)
+                LineTransit = True
             End If
         End If
     End Sub
@@ -1530,7 +1535,11 @@ Public Class Rexx
                     GetNextChar()
                     While (cChara <> och And Not eofRexxFile)
                         cId = cId & cChara
+                        prChara = cChara
                         GetNextChar()
+                        If LineTransit AndAlso prChara = ";" Then
+                            SigError(120)
+                        End If
                     End While
                     If eofRexxFile Then SigError(120)
                     GetNextChar()

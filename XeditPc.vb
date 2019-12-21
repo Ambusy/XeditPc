@@ -32,22 +32,23 @@ Public Class XeditPc
         Dim i As Integer
         Logg("RunEdit start")
         Me.Cursor = System.Windows.Forms.Cursors.WaitCursor
-        Me.Text = "Xedit " & Application.ProductVersion & " " & Filename
+        If Not RexxCmdActive Then Me.Text = "Xedit " & Application.ProductVersion & " " & Filename
         RunEdit = 0
         found = False
         If Filename.Length() > 0 Then
             Filename = Path.GetFullPath(Filename)
             Logg("RunEdit Filename " & Filename)
             i = 0
-            For Each EdtSession In EdtSessions
+            For Each EdtSsn In EdtSessions
                 i = i + 1
-                If EdtSession.EditFileName.ToUpper() = Filename.ToUpper() Then
+                If EdtSsn.EditFileName.ToUpper() = Filename.ToUpper() Then
                     found = True
                     CurrEditSessionIx = i ' existing
+                    CurrEdtSession = EdtSsn
                     Logg("RunEdit Filename in ring")
                     Exit For
                 End If
-            Next EdtSession
+            Next EdtSsn
         Else ' next
             Logg("RunEdit Filename new")
             CurrEditSessionIx = CurrEditSessionIx + 1
@@ -69,7 +70,7 @@ Public Class XeditPc
                 CurrEdtSession.SeqOfFirstSourcelineOnScreen = 1
             End If
         End If
-        Me.Cursor = System.Windows.Forms.Cursors.Arrow
+        If Not RexxCmdActive Then Me.Cursor = System.Windows.Forms.Cursors.Arrow
         Logg("RunEdit end")
     End Function
     Private Sub InitEditFile(ByVal Filename As String)
@@ -471,20 +472,22 @@ opn:
         End If
     End Function
     Private Sub SetFormCaption()
-        Dim i As Integer, s As String
-        Try
-            i = InStrRev(CurrEdtSession.EditFileName, "\")
-            If i = 0 Then
-                s = CurrEdtSession.EditFileName
-            Else
-                s = Mid(CurrEdtSession.EditFileName, i + 1)
-            End If
-            Me.Text = s
-        Catch ex As Exception
-        End Try
+        If Not RexxCmdActive Then
+            Dim i As Integer, s As String
+            Try
+                i = InStrRev(CurrEdtSession.EditFileName, "\")
+                If i = 0 Then
+                    s = CurrEdtSession.EditFileName
+                Else
+                    s = Mid(CurrEdtSession.EditFileName, i + 1)
+                End If
+                Me.Text = s
+            Catch ex As Exception
+            End Try
+        End If
     End Sub
     Friend Sub DoCmd(ByVal CommandLine As String, ByVal FromKb As Boolean)
-        Dim orgCmd As String
+        Dim orgCmd As String = ""
         'Debug.WriteLine("DoCmd start " & CStr(FromKb) & " " & CommandLine)
         Logg("DoCmd start " & CStr(FromKb) & " " & CommandLine)
         If FromKb Then
@@ -1109,7 +1112,7 @@ opn:
                 End While
                 ii += 1
                 CurrEdtSession.Tabs(ii) = 32766
-                If FormShownOnce Then RepaintAllScreenLines = True
+                If FormShown Then RepaintAllScreenLines = True
             ElseIf Abbrev(FirstWord, "MSGMODE", 4) Then ' set MSGMODE ON/OFF
                 CurrEdtSession.MsgMode = (NxtWordFromStr(CommandLine, "OFF") = "ON")
             ElseIf Abbrev(FirstWord, "VERIFY") Then ' set VERIFY ON/OFF HEX
@@ -1191,7 +1194,9 @@ opn:
             ElseIf Abbrev(FirstWord, "FONTSIZE", 4) Then ' set FONTSIZE size
                 FontSizeOnForm = Math.Max(5, CIntUserCor(NxtWordFromStr(CommandLine, "8")))
                 RepaintAllScreenLines = True
-                Invalidate() ' to cancel bottom part after last full new line
+                If FormShown AndAlso Not RexxCmdActive Then
+                    Invalidate() ' to cancel bottom part after last full new line
+                End If
             ElseIf Abbrev(FirstWord, "POINT", 3) Then ' set POINT .labelF
                 Dim p As String = NxtWordFromStr(CommandLine, "")
                 If p.Length() > 0 AndAlso p(0) = "." Then
@@ -3076,14 +3081,16 @@ FileDeleteErrorRes:
 #End If
     Private Sub XeditPc_Activated(ByVal sender As Object, ByVal e As System.EventArgs) Handles Me.Activated
         Logg("XeditPc_Activated start")
-        RepaintAllScreenLines = True
-        Invalidate()
+        If Not RexxCmdActive Then
+            RepaintAllScreenLines = True
+            Invalidate()
+        End If
         ForcePaint()
         Logg("XeditPc_Activated end")
     End Sub
     Private Sub XeditPc_GotFocus(ByVal sender As Object, ByVal e As System.EventArgs) Handles Me.GotFocus
         Logg("XeditPc_GotFocus start")
-        If FormShownOnce Then
+        If FormShown Then
             RepaintAllScreenLines = True
             InvalidatedWin = True
             ForcePaint()
@@ -3091,8 +3098,8 @@ FileDeleteErrorRes:
         Logg("XeditPc_GotFocus end")
     End Sub
     Private Sub XeditPc_Paint(ByVal sender As Object, ByVal e As System.Windows.Forms.PaintEventArgs) Handles Me.Paint
-        If Not FormShown Then Return
-#If Not Debug Then
+        If Not FormShown Or RexxCmdActive Then Return
+#If Not DEBUG Then
         Try
 #End If
         Logg("XeditPc_Paint start")
@@ -3133,11 +3140,10 @@ FileDeleteErrorRes:
         CharsScreenVisible = CShort(CSng(ClientSize.Width - VSB.Width) / EditTextWidth) - 7S
         CharsScreenVisibleA = CharsScreenVisible
         If CurrEdtSession.ShowEol Then CharsScreenVisibleA -= 1
-        FormShownOnce = True
-        If InvalidatedWin Then ' we enter PAINT from a previous PAINT that invalidated parts of the window
+        If InvalidatedWin Then ' we enter PAINT from a previous PAINT that modified parts of the window data
             Logg("XeditPc_Paint paint again")
-            InvalidatedWin = False ' now we just have to paint the invalidated parts
-        Else ' First, see if any part of the screen is modified: if so, invalidate parts and invoke paint again
+            InvalidatedWin = False ' now we just have to paint those parts
+        Else ' First, see if any part of the screen is modified: if so, invalidate those parts and invoke paint again
             If ScrList.Count = 0 Then ' first time around, create and fill SCREEN list
                 Logg("XeditPc_Paint build new screenbuf")
                 Dim NrLine As Short = 1 ' first line with filename etc.
@@ -3253,9 +3259,9 @@ FileDeleteErrorRes:
                     RepaintLine(dsScr, crLine)
                 End If
             Next
-            If InvalidatedWin Then
+            If InvalidatedWin Then ' data to be painted has been hanged, start paint all over
                 ForcePaint()
-                InvalidatedWin = True
+                InvalidatedWin = True ' Forcepaint switched it off
                 Logg("XeditPc_Paint end invalidated" & CStr(n))
                 Exit Sub
             End If
@@ -3285,7 +3291,7 @@ FileDeleteErrorRes:
         Dim sbRs(6) As SolidBrush
         Dim flRs(6) As SolidBrush
         For crLine = 1 To LinesScreenVisible  ' repaint the screen
-#If Not Debug Then
+#If Not DEBUG Then
                 Try
 #End If
             TxtCurLin = ""
@@ -3467,7 +3473,7 @@ FileDeleteErrorRes:
                     TxtCurLinCr = TxtCurLin
                 End If
             End If
-#If Not Debug Then
+#If Not DEBUG Then
                 Catch ex As Exception
                     If MsgBox("ERROR displaying a line: " & ex.Message, MsgBoxStyle.OkCancel, "Internal Programming Error") = MsgBoxResult.Cancel Then
                         Me.Close()
@@ -3507,7 +3513,7 @@ FileDeleteErrorRes:
         CalcIxInSLines()
         CurrEdtSession.SessionInited = True
         Logg("XeditPc_Paint end")
-#If Not Debug Then
+#If Not DEBUG Then
         Catch ex As Exception
             MsgBox("ERROR displaying the screen. " & ex.Message, MsgBoxStyle.Critical, "Internal Programming Error")
         End Try
@@ -3829,7 +3835,7 @@ FileDeleteErrorRes:
     Private Sub XeditPc_Resize(ByVal sender As Object, ByVal e As System.EventArgs) Handles Me.Resize
         Dim dsscr As ScreenLine
         Logg("XeditPc_Resize")
-        If FormShownOnce Then
+        If FormShown Then
             Try
                 dsscr = DirectCast(ScrList.Item(CurrEdtSession.SLines(CurrEdtSession.nSLines)), ScreenLine)
                 dsscr.CurRepaint = True
@@ -3839,9 +3845,11 @@ FileDeleteErrorRes:
         ForcePaint()
     End Sub
     Private Sub ForcePaint()
-        Dim aRectangle As Rectangle
-        aRectangle = New Rectangle(1, 1, 1, 1)
-        Invalidate(aRectangle) ' only to force a PAINT command
+        If FormShown AndAlso Not RexxCmdActive Then
+            Dim aRectangle As Rectangle
+            aRectangle = New Rectangle(1, 1, 1, 1) ' just one pixel
+            Invalidate(aRectangle) ' needed only to force execution of PAINT event
+        End If
         InvalidatedWin = False ' And look for screen updates
     End Sub
     Private Function C2X(ByVal x As String) As String
@@ -3976,10 +3984,12 @@ FileDeleteErrorRes:
         Return Nothing
     End Function
     Private Sub RepaintLine(ByRef dsScr As ScreenLine, ByVal lineNr As Integer)
-        Dim aRectangle As Rectangle
-        Logg("RepaintLine " & CStr(lineNr))
-        aRectangle = New Rectangle(CInt(1), CInt((lineNr - 1) * RectHeight + 1), CInt(EditTextWidth * (CharsScreenVisible + 7)), CInt(EditTextHeight) + 1) ' x, y, w, h 
-        Invalidate(aRectangle)
+        If FormShown AndAlso Not RexxCmdActive Then
+            Logg("RepaintLine " & CStr(lineNr))
+            Dim aRectangle As Rectangle
+            aRectangle = New Rectangle(CInt(1), CInt((lineNr - 1) * RectHeight + 1), CInt(EditTextWidth * (CharsScreenVisible + 7)), CInt(EditTextHeight) + 1) ' x, y, w, h 
+            Invalidate(aRectangle)
+        End If
         dsScr.CurRepaint = True ' paint this line 
     End Sub
     Private Function LineIxOnScreen(ByVal lnr As Integer) As Integer
@@ -4344,7 +4354,9 @@ FileDeleteErrorRes:
     End Sub
     Private Sub FillScreenBuffer(ByVal nfiLineScr As Integer, ByVal allocList As Boolean)
         Dim dsScr, dsScrS As ScreenLine, i, sI As Integer
-        Invalidate() ' Paint all
+        If FormShown AndAlso Not RexxCmdActive Then
+            Invalidate() ' Paint all
+        End If
         RepaintAllScreenLines = True
         sI = nfiLineScr - CurrEdtSession.CurLineNr + 2 ' load from given sourceline skip top
         If CurrEdtSession.CmdLineNr > 0 Then sI += 1
@@ -5044,7 +5056,7 @@ FileDeleteErrorRes:
             End If
         End If
         If CurrEdtSession.mMouseDown Then
-            If Not FormShownOnce Then Exit Sub
+            If Not FormShown Then Exit Sub
             Dim vp As VerifyPair = DirectCast(CurrEdtSession.Verif.Item(1), VerifyPair)
             MouseScrPos = CShort(eventArgs.X / CurrEdtSession.EditTextWidth) - 6S
             If MouseScrPos < 0 Then MouseScrPos = 1
@@ -5905,9 +5917,7 @@ FileDeleteErrorRes:
     Sub DoTimer()
         Dim fn As String
         RepaintAllScreenLines = True
-        ' DoChangeUndoLines = True
         DecimalSepPt = CultureInfo.CurrentCulture.NumberFormat.NumberDecimalSeparator = "."
-        ' end of global variables
         Me.Cursor = System.Windows.Forms.Cursors.WaitCursor
         fn = ExecutablePath
         Logg("Main vers. 15 mar 2015 DirectoryPath " & fn)
@@ -5927,7 +5937,6 @@ FileDeleteErrorRes:
         Else
             Me.Close()
         End If
-        ' ScrList.Clear()
     End Sub
     Private Sub Timer1_Tick(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles Timer1.Tick
         Timer1.Enabled = False

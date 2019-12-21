@@ -2,7 +2,8 @@ Imports VB = Microsoft.VisualBasic
 #Const CreLogFile = False
 
 Module MainMod
-    Public FormShown As Boolean = False
+    Public FormShown As Boolean = False ' Initial form after startup has been shown: paint is now possible
+    'Public FormShownOnce As Boolean   ' form has been painted, at least partial, but maybe not completely
     Public ResponseFromMsg As Integer
     Public QuitPgm As Boolean ' User stopped pgm, or catastrofic error encountered
     Public UserCancelledCmd As Boolean ' User stopped command 
@@ -15,7 +16,6 @@ Module MainMod
     Public SysMessages As New Collection
     Public DecimalSepPt As Boolean ' . is decimal separator and not ,
     Public FontSizeOnForm As Integer = 8
-    Public FormShownOnce As Boolean   ' if false, i'm still creating the form 
     Public RepaintAllScreenLines As Boolean ' repaint all lines?
 
     Public EdtSessions As New Collection
