@@ -78,7 +78,7 @@ if BestFrom <> 9999999 then do
 end
 else do
    ':' pn
-   'SET PENDING BLOCK A' 
+   'SET PENDING BLOCK F' 
 end
 "SET LINEND ON" linend.2
 ":" line.1
