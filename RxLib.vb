@@ -1862,12 +1862,16 @@ Public Class Rexx
     End Sub
     Sub dumpVars()
         Debug.WriteLine("Defined")
+        Dim n As Int16 = 0
         For Each V As DefVariable In CurrRexxRun.IdName
-            Debug.WriteLine("'" & V.Id & "' " & V.Kind)
+            n += 1
+            Debug.WriteLine(CStr(n) + " '" & V.Id & "' " & V.Kind)
         Next
         Debug.WriteLine("Runtime")
+        n = 0
         For Each V As VariabelRun In CurrRexxRun.RuntimeVars
-            Debug.WriteLine("'" & V.Id & "' " & V.Level & " |" & V.IdValue & "|")
+            n += 1
+            Debug.WriteLine(CStr(n) + " '" & V.Id & "' " & V.Level & " |" & V.IdValue & "|")
         Next
     End Sub
 #End If
@@ -2252,6 +2256,7 @@ Public Class Rexx
         If NxtWordFromStr = "" Then If Not IsNothing(Def) Then NxtWordFromStr = Def
         NxtWordFromStr = NxtWordFromStr.ToUpper(CultInf)
     End Function
+    Dim LineExecuting As Integer = 0
     Private Sub ExecuteIntCode(ByRef CommandParm As String)
         Dim asm As New AsmStatement
         Dim asmp1 As New AsmStatement
@@ -2305,7 +2310,7 @@ Public Class Rexx
 #If DEBUG Then
             asrc = "L:" + CStr(IntPp) + " " & DumpStr(asm) + " " + CStr(Stack.Count)
             Logg(asrc)
-            '  Debug.WriteLine(asrc)
+            Debug.WriteLine(asrc)
 #End If
             Select Case cF
                 Case fct.lin
@@ -2315,6 +2320,7 @@ Public Class Rexx
                         CurrRexxRun.InteractiveTracing = 1
                         CurrRexxRun.TraceLevel = 3
                     End If
+                    LineExecuting = cL
                     If (CurrRexxRun.TraceLevel > 2) Then traceLin(cL)
                 Case fct.lod
                     Select Case cL
@@ -2496,8 +2502,8 @@ Public Class Rexx
                         For i = 1 To cL
                             asmp1 = DirectCast(CurrRexxRun.IntCode.Item(IntPp + i), AsmStatement) ' fct.cll statement
                             If asmp1.a <> -1 Then ' not empty
-                                VariaRuns = GetNm(asmp1.a, n, en, k)
-                                m = VariaRuns.IdValue
+                            VariaRuns = GetNmFunc(asmp1.a, n, en, k)
+                            m = VariaRuns.IdValue
                                 pm(i) = True
                             Else
                                 m = ""
@@ -3546,16 +3552,20 @@ Public Class Rexx
         RexxName = VarName
         ExeName = SubstIndices(VarName)
         GetVar = VarName.ToUpper
+        'Dim dbg As String
         k = VarIndex(ExeName, False) ' don't create if not exists
         If k > 0 Then
             Dim rtv As VariabelRun = DirectCast(CurrRexxRun.RuntimeVars(k), VariabelRun)
             GetVar = rtv.IdValue
+            ' dbg = "lod " + ExeName + " |" + rtv.IdValue + "| x: " + CStr(k)
         Else
             Dim i As Integer = VarName.IndexOf("."c)
             If i > -1 And i <> VarName.Length() - 1 Then
                 VarPosition = SourceNameIndexPosition(VarName.Substring(0, i + 1), tpSymbol.tpVariable, DefVars)
                 If VarPosition > 0 Then
-                    GetVar = GetVar(VarPosition, (ExeName), (RexxName)) ' stem
+                    Dim valu As String = GetVar(VarPosition, (ExeName), (RexxName)) ' stem
+                    GetVar = valu
+                    'dbg = "lod " + ExeName + " |" + valu + "| x: " + CStr(k)
                 End If
             Else
                 If CurrRexxRun.sigNovalue Then
@@ -3573,7 +3583,6 @@ Public Class Rexx
 #End If
         End If
         Logg("Get: " & RexxName & "=|" & GetVar & "|")
-
     End Function
     Private Function SubstIndices(VarName As String) As String
         Dim i, k As Integer
@@ -3605,6 +3614,7 @@ Public Class Rexx
         ExeName = SubstIndices(VarName)
         k = VarIndex(ExeName, True) ' create if not exists
         Var = DirectCast(CurrRexxRun.RuntimeVars(k), VariabelRun)
+        'Dim dbg As String = "sto " + VarName + " " + CStr(Var.Level) + " : |" + VarValue + "| " + " x:" + CStr(k)
         Var.IdValue = VarValue
         VarExePosition = k
         If (CurrRexxRun.TraceLevel >= 3) Then
@@ -3618,14 +3628,14 @@ Public Class Rexx
         End If
         Logg("Assign: " & VarName & "=|" & VarValue & "|")
     End Sub
-    Private Function VarIndex(VarName As String, Create As Boolean, Optional RunLvlSpec As Integer = -1) As Integer
+    Private Function VarIndex(VarName As String, Create As Boolean, Optional RunLvlSpec As Integer = -1, Optional InFunctions As Boolean = False) As Integer
         Dim Retval As Integer = 0
         Dim RunLvl As Integer = RunLvlSpec
         If RunLvl = -1 Then RunLvl = CurrRexxRun.CallStack.Count - 1
         If RunLvl = -1 Then RunLvl = 0
 
         Dim RunLvlp As Integer = RunLvl
-        If Not Create Then
+        If Not Create And Not InFunctions Then
             If VarName.Length > 2 AndAlso VarName(1) = " "c AndAlso RunLvl > 0 Then
                 RunLvlp -= 1
             End If
@@ -3676,8 +3686,21 @@ Public Class Rexx
             Return DirectCast(CurrRexxRun.RuntimeVars(k), VariabelRun)
         End If
     End Function
+    Private Function GetNmFunc(ByVal a As Integer, ByRef n As String, ByRef en As String, ByRef k As Integer) As VariabelRun
+        DefVars = DirectCast(CurrRexxRun.IdName.Item(a), DefVariable)
+        k = VarIndex(DefVars.Id, False, -1, True) ' don't create if not exists
+        If k = 0 Then
+            Return Nothing
+        Else
+            Return DirectCast(CurrRexxRun.RuntimeVars(k), VariabelRun)
+        End If
+    End Function
     Private Sub RunError(ByRef n As Integer, ByRef s As String)
-        If MsgBox(SysMsg(200 + n) + " " + s, MsgBoxStyle.OkCancel) = MsgBoxResult.Cancel Then
+        Dim se As String = ""
+        If LineExecuting > 0 Then
+            se = CStr(LineExecuting) + " " + GetSLin(LineExecuting)
+        End If
+        If MsgBox(SysMsg(200 + n) + " '" + s + "'" + vbCrLf + se, MsgBoxStyle.OkCancel) = MsgBoxResult.Cancel Then
             RaiseEvent doCancel()
             CancRexx = True
         End If
