@@ -3898,6 +3898,8 @@ Public Class Rexx
                 previousPar = fct.parh
                 GetNextSymbol()
                 If (cSymb <> Symbols.rparen) Then SigError(119)
+            Else
+                SigError(119)
             End If
             GetNextSymbol()
         End While
@@ -4439,7 +4441,8 @@ Public Class Rexx
                 Dim enc As System.Text.Encoding = New System.Text.UnicodeEncoding(False, True, True)
                 value = enc.GetString(buf)
             Else
-                value = System.Text.Encoding.Default.GetString(buf)
+                value = System.Text.Encoding.UTF8.GetString(buf)
+                ' value = System.Text.Encoding.Default.GetString(buf)
             End If
         End If
         Return value
