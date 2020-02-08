@@ -8,17 +8,17 @@ Imports System.Runtime.InteropServices
 
 ' Review the values of the assembly attributes
 
-<Assembly: AssemblyTitle("XeditPc")> 
-<Assembly: AssemblyDescription("IBM's mainframe Editor for Windows (for .Net 3.5)")> 
+<Assembly: AssemblyTitle("XeditPc")>
+<Assembly: AssemblyDescription("IBM's mainframe Editor rewritten for Windows")>
 <Assembly: AssemblyCompany("AMBusy")> 
-<Assembly: AssemblyProduct("XeditPc")> 
-<Assembly: AssemblyCopyright("Copyright  ©  2007  -  2017     AMBusy @ Gmail.com")> 
+<Assembly: AssemblyProduct("XeditPc")>
+<Assembly: AssemblyCopyright("Copyright  ©  2007  -  2020     AMBusy @ Gmail.com")>
 <Assembly: AssemblyTrademark("IBM is trademark of Int. Buss. Machines")> 
 
 <Assembly: ComVisible(False)>
 
 'The following GUID is for the ID of the typelib if this project is exposed to COM
-<Assembly: Guid("3323ee4c-814a-4944-9d00-f9e18ba923e5")> 
+<Assembly: Guid("3323ee4c-814a-4944-9d00-f9e18ba923e5")>
 
 ' Version information for an assembly consists of the following four values:
 '
@@ -31,5 +31,5 @@ Imports System.Runtime.InteropServices
 ' by using the '*' as shown below:
 ' <Assembly: AssemblyVersion("1.0.*")> 
 
-<Assembly: AssemblyVersion("2.2.1.9")> 
-<Assembly: AssemblyFileVersion("2.2.1.9")> 
+<Assembly: AssemblyVersion("2.2.1.14")>
+<Assembly: AssemblyFileVersion("2.2.1.14")>
