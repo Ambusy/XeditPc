@@ -64,7 +64,7 @@ Public Class XeditPc
             CurrEditSessionIx = EdtSessions.Count()
             ProcessCommandOptions(CommandLine)
             If Not QuitPgm Then
-                InitEditFile(Filename)
+                ReadEditFile(Filename)
                 ' FormShown = true
                 SetFormCaption()
                 CurrEdtSession.SeqOfFirstSourcelineOnScreen = 1
@@ -73,12 +73,11 @@ Public Class XeditPc
         If Not RexxCmdActive Then Me.Cursor = System.Windows.Forms.Cursors.Arrow
         Logg("RunEdit end")
     End Function
-    Private Sub InitEditFile(ByVal Filename As String)
+    Private Sub ReadEditFile(ByVal Filename As String)
         '   read each line and store characteristics in the current sourcelist
         Dim ssd As SourceLine
-        Dim ch As Integer, vCh As Integer
+        Dim nxCh As Integer, ch As Integer, vCh As Integer
         Dim iFile, lFile As Long
-        Dim IsUnicodeh As Boolean = False
         Dim nSkip As Integer
 reopenFile:
         Logg("InitEditFile start " & Filename)
@@ -91,20 +90,33 @@ reopenFile:
             ssd = New SourceLine
             ssd.SrcFileIx = "E"c
             ssd.SrcStart = 1
+            nxCh = 0
             nSkip = 0
             For iFile = 1 To lFile
-                ch = CurrEdtSession.EditFile.ReadByte()
+                ch = nxCh
+                If iFile <= lFile Then ' read one char in ahead buffer. ch + nxCh form one unicode char
+                    nxCh = CurrEdtSession.EditFile.ReadByte()
+                Else
+                    nxCh = 0 ' eof
+                End If
+                If iFile = 1 Then '  Create ahead buffer
+                    ch = nxCh
+                    If lFile > 1 Then
+                        nxCh = CurrEdtSession.EditFile.ReadByte()
+                    Else
+                        nxCh = 0
+                    End If
+                End If
                 If nSkip > 0 Then
                     nSkip -= 1
                 Else
-                    If iFile = 1 AndAlso CurrEdtSession.EncodingType <> "A"c AndAlso ch = 255 Then
-                        IsUnicodeh = True
-                    ElseIf iFile = 2 AndAlso IsUnicodeh AndAlso ch = 254 Then
+                    If iFile = 1 AndAlso CurrEdtSession.EncodingType <> "A"c AndAlso ch = 255 AndAlso nxCh = 254 Then
                         CurrEdtSession.IsUnicode = True
                         CurrEdtSession.EncodingType = "U"c
                         ssd.SrcStart = 3
+                        nSkip = 1
                     ElseIf CurrEdtSession.RecfmV Then
-                        If (ch = 10 Or ch = 13) Then
+                        If (ch = 10 Or ch = 13) AndAlso (nxCh = 0 Or CurrEdtSession.EncodingType <> "U"c) Then
                             If ch = 13 Then CurrEdtSession.FileUsesEndlineLF = True
                             If ch = 10 Then CurrEdtSession.FileUsesEndlineCR = True
                             If (vCh = 10 Or vCh = 13) Then
@@ -494,7 +506,7 @@ opn:
             SetFormCaption()
             Me.Cursor = System.Windows.Forms.Cursors.WaitCursor
         End If
-#If Not Debug Then
+#If Not DEBUG Then
         Try
 #End If
         orgCmd = CommandLine
@@ -510,7 +522,7 @@ opn:
             End If
         End If
         DoCmd1(CommandLine, FromKb)
-#If Not Debug Then
+#If Not DEBUG Then
         Catch E As Exception ' might be an error
             Logg("DoCmd catch " & E.GetBaseException.ToString)
             rc = 256
@@ -572,7 +584,17 @@ opn:
             Next
             RepaintAllScreenLines = True
         ElseIf Abbrev(FirstWord, "UP", 1) OrElse Abbrev(FirstWord, "DOWN", 2) Then
-            i = NxtNumFromStr(CommandLine, "1")
+            NextWord = NxtWordFromStr(CommandLine)
+            If NextWord = "*" Then
+                dsScr = DirectCast(ScrList.Item(CurrEdtSession.CurLineNr), ScreenLine)
+                If FirstWord.Substring(0, 1) = "U" Then
+                    i = dsScr.CurSrcNr + 1
+                Else
+                    i = CurrEdtSession.SourceList.Count - dsScr.CurSrcNr + 1
+                End If
+            Else
+                i = NxtNumFromStr(NextWord, "1")
+            End If
             If FirstWord.Substring(0, 1) = "U" Then
                 While i > 0
                     ShiftScreenDown(CurrEdtSession.SLines(1), 1, True)
@@ -994,7 +1016,7 @@ opn:
             If CancelCmd Then Exit Sub
         ElseIf Abbrev(FirstWord, "PLAY", 4) Then
             Dim MacroFile As String = NxtWordFromStr(CommandLine, "")
-            If MacroFile.Length() < 5 OrElse MacroFile.Substring(MacroFile.Length() - 3, 4).ToUpper() <> ".TXT" Then
+            If MacroFile.Length() < 5 OrElse Not MacroFile.ToUpper.EndsWith(".TXT") Then
                 MacroFile += ".txt"
             End If
             If Not MacroFile.Contains("\") Then
@@ -1456,6 +1478,11 @@ opn:
             rc = cmsRename(CommandLine)
         ElseIf FirstWord = "ERASE" Then
             rc = cmsDelete(CommandLine)
+        ElseIf FirstWord = "MAKEBUF" Then
+            Makebufs.Add(Rexx.QStack.Count)
+            rc = Makebufs.Count
+        ElseIf FirstWord = "DROPBUF" Then
+            DropBuf(CommandLine)
         ElseIf FirstWord = "PRINT" Then
             PrintFile(CommandLine)
         ElseIf Abbrev(FirstWord, "RESET", 3) Then
@@ -1790,6 +1817,19 @@ opn:
         cmsRename = rc
         Logg("cmsRename end " & CStr(rc))
     End Function
+    Private Sub DropBuf(ByVal cmd As String)
+        If cmd = "" Then
+            cmd = "1"
+        End If
+        Dim nb As Integer = Convert.ToInt32(cmd)
+        For i As Integer = nb To Makebufs.Count
+            Dim pq As Integer = Convert.ToInt32(Makebufs.Item(Makebufs.Count))
+            Makebufs.Remove(Makebufs.Count)
+            Do While Rexx.QStack.Count > pq
+                Rexx.QStack.Remove(1)
+            Loop
+        Next
+    End Sub
     Private Sub Globalv(ByVal cmd As String)
         Dim fnd, w, selectName As String
         Static fiTime As Boolean
@@ -2079,7 +2119,7 @@ opn:
                 Rxs.StoreVar(i, CStr(nr), k, en, n) ' new value
             End If
             FileClose(1)
-            End If
+        End If
     End Sub
     Private Function cmsState(ByRef fn As String) As Integer
         If File.Exists(fn) Then
@@ -2736,7 +2776,7 @@ opn:
     End Sub
     Private Sub SaveFile(ByVal Filename As String, ByRef SaveAs As Boolean)
         '   save each line and it's characteristics in the current sourcelist
-#If Not Debug Then
+#If Not DEBUG Then
         Try
 #End If
         Dim tFileName As String
@@ -2801,9 +2841,8 @@ FileDeleteErrorRes:
             End If
             l = ssd.SrcLength
             If Not CurrEdtSession.RecfmV Then
-                If l > CurrEdtSession.Lrecl Then l = CurrEdtSession.Lrecl
+                If l > CurrEdtSession.Lrecl Then l = CurrEdtSession.Lrecl 'truncate line
             End If
-
             If CurrEdtSession.RecfmV Then
                 If CurrEdtSession.FileUsesEndlineLF Then l += 1
                 If CurrEdtSession.FileUsesEndlineCR Then l += 1
@@ -2818,7 +2857,7 @@ FileDeleteErrorRes:
                 l += 2
             End If
             Dim buf(l - 1) As Byte
-            EditRdFile = ReadFile(ssd.SrcFileIx)
+            EditRdFile = FileWithData(ssd.SrcFileIx)
             If ssd.SrcStart = 0 Then
                 ssd.SrcStart = 1
             End If
@@ -2894,12 +2933,12 @@ FileDeleteErrorRes:
             End If
         End If
         Logg("SaveFile end")
-#If Not Debug Then
+#If Not DEBUG Then
         Catch ex As Exception
         End Try
 #End If
     End Sub
-    Private Function ReadFile(ByVal t As Char) As FileStream
+    Private Function FileWithData(ByVal t As Char) As FileStream
         If t = "E" Then
             Return CurrEdtSession.EditFile
         Else
@@ -3066,7 +3105,7 @@ FileDeleteErrorRes:
         CurrEdtSession.UndoLineP = 0
         CurrEdtSession.UndoPosP = 0
     End Sub
-#If Debug Or Tracen Then
+#If DEBUG Or tracen Then
     Public Sub DumpScr() ' for testing only : display  the actual screenbuffer
         Dim i As Integer, dsScr As ScreenLine, s As String
         i = 0
@@ -3292,7 +3331,7 @@ FileDeleteErrorRes:
         Dim flRs(6) As SolidBrush
         For crLine = 1 To LinesScreenVisible  ' repaint the screen
 #If Not DEBUG Then
-                Try
+        Try
 #End If
             TxtCurLin = ""
             dsScr = DirectCast(ScrList.Item(crLine), ScreenLine)
@@ -3423,14 +3462,6 @@ FileDeleteErrorRes:
                     End If
                 End If
                 StrToShow = StrToShow.TrimEnd()
-                Dim VerifyStr As String = ""
-                For iv As Integer = 0 To 31
-                    VerifyStr = VerifyStr + Chr(iv)
-                Next
-                VerifyStr = VerifyStr + Chr(127) + Chr(129) + Chr(141) + Chr(143) + Chr(144) + Chr(157)
-                For VerLn = 0 To VerifyStr.Length - 1
-                    StrToShow = StrToShow.Replace(VerifyStr(VerLn), Chr(149))
-                Next
                 dsScr.CharsOnScr = CShort(StrToShow.Length())
                 CalcSelectedLineParts(dsScr, StrToShow, Bsl, Sel, Asl)
                 Dim PntPiece As Integer = 1
@@ -3655,12 +3686,16 @@ FileDeleteErrorRes:
             Else
                 s = s & " F"
             End If
-            If CurrEdtSession.IsUnicode Then
-                s = s & " UC"
-            End If
             Dim vp As VerifyPair
             vp = DirectCast(CurrEdtSession.Verif.Item(1), VerifyPair)
-            s = s & " " & CStr(CurrEdtSession.Lrecl) & " TRUNC=" & CStr(CurrEdtSession.Trunc) & " SIZE=" & CStr(CurrEdtSession.SourceList.Count) & " LINE=" & CStr(CurrEdtSession.NextCursorDisplayLine) & " COLUMN=" & CStr(CurrEdtSession.NextCursorDisplayColumn - 1 + vp.VerFrom) & " ALT=" & CStr(CurrEdtSession.chgCount)
+            s = s & " " & CStr(CurrEdtSession.Lrecl)
+            If CurrEdtSession.EncodingType = "U"c Then
+                s = s & " Unicode"
+            End If
+            If CurrEdtSession.EncodingType = "8"c Then
+                s = s & " UTF8"
+            End If
+            s = s & " TRUNC=" & CStr(CurrEdtSession.Trunc) & " SIZE=" & CStr(CurrEdtSession.SourceList.Count) & " LINE=" & CStr(CurrEdtSession.NextCursorDisplayLine) & " COLUMN=" & CStr(CurrEdtSession.NextCursorDisplayColumn - 1 + vp.VerFrom) & " ALT=" & CStr(CurrEdtSession.chgCount)
             dsScr.CurLinSrc = s
         ElseIf Not CurrEdtSession.MsgOverlay And ScrI >= CurrEdtSession.MsgLineNrF And ScrI <= (CurrEdtSession.MsgLineNrF + CurrEdtSession.MsgLineNrT - 1) Then
             dsScr.CurLinType = "M"c ' Message
@@ -3756,28 +3791,53 @@ FileDeleteErrorRes:
         ssd = DirectCast(CurrEdtSession.SourceList.Item(fCl.CurSrcNr), SourceLine)
         fCl.CurLinSrc = ReadOneSourceLine(ssd)
     End Sub
+    Dim WarnUtf8 As Boolean = False
     Private Function ReadOneSourceLine(ByVal ssd As SourceLine) As String
         Dim value As String = ""
         If ssd.SrcLength > -1 Then
             Dim buf(ssd.SrcLength - 1) As Byte
-            EditRdFile = ReadFile(ssd.SrcFileIx)
+            EditRdFile = FileWithData(ssd.SrcFileIx)
             EditRdFile.Seek(ssd.SrcStart - 1, SeekOrigin.Begin)
             EditRdFile.Read(buf, 0, ssd.SrcLength)
             If CurrEdtSession.EncodingType = "U"c Then
                 Dim enc As System.Text.Encoding = New System.Text.UnicodeEncoding(False, True, True)
                 value = enc.GetString(buf)
             ElseIf CurrEdtSession.EncodingType = "8"c Then
-                Dim enc As System.Text.Encoding = New System.Text.UTF8Encoding()
-                value = enc.GetString(buf)
-                Dim l2 As Integer = 0
-                For VerLn = 0 To value.Length - 1
-                    Dim byteArray As Byte() = BitConverter.GetBytes(value(VerLn))
-                    If byteArray.Length = 2 AndAlso byteArray(0) = 253 AndAlso byteArray(1) = 255 Then
-                        value = System.Text.Encoding.Default.GetString(buf)
-                        Exit For
+                Dim isUtf As Boolean = True
+                Dim inUtf As Boolean = False
+                For i As Integer = 0 To buf.Length - 2
+                    If Not inUtf AndAlso buf(i) > 127 Then
+                        If buf(i + 1) < 128 Then 'invalid UTF8. probably Ascii with accented letters
+                            isUtf = False
+                            If Not WarnUtf8 Then
+                                WarnUtf8 = True
+                                DoCmd1("MSG " & SysMsg(24), False)
+                            End If
+                            Exit For
+                        Else
+                            inUtf = True
+                        End If
+                    ElseIf inUtf AndAlso buf(i) < 128 Then
+                        inUtf = False
                     End If
                 Next
+                If isUtf Then
+                    Dim enc As System.Text.Encoding = New System.Text.UTF8Encoding()
+                    value = enc.GetString(buf)
+                Else
+                    For i As Integer = 0 To buf.Length - 1
+                        If buf(i) < 32 Then
+                            buf(i) = 149
+                        End If
+                    Next
+                    value = System.Text.Encoding.Default.GetString(buf)
+                End If
             Else
+                For i As Integer = 0 To buf.Length - 1
+                    If buf(i) < 32 Or buf(i) = 127 Or buf(i) = 129 Or buf(i) = 141 Or buf(i) = 143 Or buf(i) = 144 Or buf(i) = 152 Or buf(i) = 157 Then
+                        buf(i) = 149
+                    End If
+                Next
                 value = System.Text.Encoding.Default.GetString(buf)
             End If
         End If
@@ -3930,9 +3990,9 @@ FileDeleteErrorRes:
                 Dim nBytes As Integer = 1
                 Dim buf() As Byte
                 If CurrEdtSession.EncodingType = "U"c Then
-                    Dim u16LE As System.Text.Encoding = System.Text.Encoding.Unicode
-                    nBytes = u16LE.GetByteCount(dsScr.CurLinSrc)
-                    buf = u16LE.GetBytes(dsScr.CurLinSrc)
+                    Dim uniLE As System.Text.Encoding = System.Text.Encoding.Unicode
+                    nBytes = uniLE.GetByteCount(dsScr.CurLinSrc)
+                    buf = uniLE.GetBytes(dsScr.CurLinSrc)
                 ElseIf CurrEdtSession.EncodingType = "8"c Then
                     Dim u8LE As System.Text.Encoding = System.Text.Encoding.UTF8
                     nBytes = u8LE.GetByteCount(dsScr.CurLinSrc)
@@ -4782,11 +4842,13 @@ FileDeleteErrorRes:
             Select Case KeyAscii
                 Case 32 To 255
                     Dim c As Char = Chr(KeyAscii)
-                    Dim s As String = c
-                    If "()+^%~{}[]".IndexOf(c) > 0 Then
-                        s = "{" & c & "}"
+                    If MacroRecording Then
+                        Dim s As String = c
+                        If "()+^%~{}[]".IndexOf(c) > 0 Then
+                            s = "{" & c & "}"
+                        End If
+                        MacroString += s
                     End If
-                    If MacroRecording Then MacroString += s
                     KeyAlreadyProcessed = True
                     If Not CurrEdtSession.CaseMU Or vp.VerHex Then
                         If KeyAscii >= 97 And KeyAscii <= 122 Then
@@ -5631,7 +5693,7 @@ FileDeleteErrorRes:
             SaveFileDialog1.ShowDialog()
             MacroFile = SaveFileDialog1.FileName
             If MacroFile <> "" Then
-                ' Write each directory name to a file.
+                ' Write to a file.
                 Try
                     Using sw As StreamWriter = New StreamWriter(MacroFile)
                         sw.Write(MacroString)
