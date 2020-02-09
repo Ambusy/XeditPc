@@ -3402,7 +3402,6 @@ FileDeleteErrorRes:
                             Else
                                 VerCurStr = ""
                                 VerTextPos = VerF
-                                ' Dim jp As Integer = 0
                                 Dim Chr As Char
                                 dsScr.TabPosIns = True
                                 For iVL As Integer = 1 To VerLn
@@ -3462,6 +3461,13 @@ FileDeleteErrorRes:
                     End If
                 End If
                 StrToShow = StrToShow.TrimEnd()
+                Dim buf() As Byte = System.Text.Encoding.Default.GetBytes(StrToShow)
+                For i As Integer = 0 To buf.Length - 1 ' remove unprintables
+                    If buf(i) < 32 Or buf(i) = 127 Or buf(i) = 129 Or buf(i) = 131 Or buf(i) = 136 Or buf(i) = 144 Or buf(i) = 152 Then
+                        buf(i) = 149
+                    End If
+                Next
+                StrToShow = System.Text.Encoding.Default.GetString(buf)
                 dsScr.CharsOnScr = CShort(StrToShow.Length())
                 CalcSelectedLineParts(dsScr, StrToShow, Bsl, Sel, Asl)
                 Dim PntPiece As Integer = 1
@@ -3824,20 +3830,10 @@ FileDeleteErrorRes:
                 If isUtf Then
                     Dim enc As System.Text.Encoding = New System.Text.UTF8Encoding()
                     value = enc.GetString(buf)
-                Else
-                    For i As Integer = 0 To buf.Length - 1
-                        If buf(i) < 32 Then
-                            buf(i) = 149
-                        End If
-                    Next
+                Else ' change to ascii encoding
                     value = System.Text.Encoding.Default.GetString(buf)
                 End If
             Else
-                For i As Integer = 0 To buf.Length - 1
-                    If buf(i) < 32 Or buf(i) = 127 Or buf(i) = 129 Or buf(i) = 141 Or buf(i) = 143 Or buf(i) = 144 Or buf(i) = 152 Or buf(i) = 157 Then
-                        buf(i) = 149
-                    End If
-                Next
                 value = System.Text.Encoding.Default.GetString(buf)
             End If
         End If
