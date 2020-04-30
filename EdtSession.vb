@@ -2,14 +2,14 @@ Public Class EdtSession
     Public EditFileName As String
     Public EditFile As FileStream
     Public BakfileAlreadyCreated As Boolean ' Created .BAK (on first SAVE only)
-    Public NextCursorDisplayColumn, PrevEditPosScr, prevPressPos As Short ' of cursor
-    Public NextCursorDisplayLine, PrevEditLineScr, prevPressLine As Integer ' of cursor
+    Public CursorDisplayColumn, PrevEditPosScr, prevPressPos As Short ' of cursor
+    Public CursorDisplayLine, PrevEditLineScr, prevPressLine As Integer ' of cursor
     Public CmdLineNr, MsgLineNrF, MsgLineNrT, CurLineNr As Short ' from SET CMDLINE MSGLINE CURLINE 
     Public Msgs, ScrOverlayed As New Collection ' messages/source to be displayed
     Public MsgOverlay As Boolean ' Msg in overlay?
-    Public NrBeforeCurL As Short ' nr of lines of source BEFORE curline
-    Public nSLines As Short ' Nr of source dependent lines on screen
-    Public SLines(255) As Short
+    'Public NrBeforeCurL As Short ' nr of lines of source BEFORE curline
+    Public nSrcOnScrn As Short ' Nr of source dependent lines on screen
+    Public SrcOnScrn(255) As Short ' indices in Srclist of lines on screen that contain sources (excl title, fixed lines, etc)
     Public Tabs(255) As Short
     Public FileChanged As Boolean ' file has changed?
     Public SessionInited As Boolean ' file has passed init phase and has been shown?

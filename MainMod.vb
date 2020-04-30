@@ -1,4 +1,4 @@
-Imports VB = Microsoft.VisualBasic
+﻿Imports VB = Microsoft.VisualBasic
 #Const CreLogFile = False
 
 Module MainMod
@@ -27,7 +27,7 @@ Module MainMod
     Public CurLnLineLr As Integer ' source linenr on current line of last user-command, for UNDO
 
     Public LinesScreenVisible As Short
-    Public CharsScreenVisible, pCharsScreenVisible As Short
+    Public CharsOnScreen, pCharsScreenVisible As Short
     Public EditTextHeight, EditTextWidth As Single
     Public RectHeight As Integer ' height of one line of sourcerectangle
 
@@ -39,7 +39,7 @@ Module MainMod
     Public MacroState As Integer
     Public MacroClicked As Boolean
 
-    Public ScrList As New Collection
+    Public ScrList As New Collection 'contents of actual screen
     Public EditRdFile As FileStream ' file to read from (wrkfile or original file)
     Public EditFileWrk As FileStream ' workfile (if opened)
     Public WrkFileName As String ' name
@@ -51,7 +51,7 @@ Module MainMod
 
     Public RecallCmds(10) As String  ' recall buffer
     Public RecallPick As Integer  ' actual recalled command
-    Public RecallNrCalled As Integer  ' n� RECALL without Enter
+    Public RecallNrCalled As Integer  ' n° RECALL without Enter
     Public RecallIxAdd As Integer  ' last added command
     Public RecallIxMax As Integer ' nr of cmd's already in buffer
     Public RecalledCmd As Integer ' ix of last cmd that was "recalled"?
@@ -64,6 +64,8 @@ Module MainMod
     Public nInsp As Integer = 0 ' indentation of trace
     Friend Pasting As Boolean ' True if inserting a block of lines.
     Friend CommandLine As String
+    Public nMakebufs As Integer = 0
+    Public Makebufs As New Collection
     ' <Global.System.Diagnostics.DebuggerStepThroughAttribute()> _
     <Conditional("CreLogFile")> _
     Public Sub LoggO()
@@ -75,7 +77,7 @@ Module MainMod
         logFile.Close()
     End Sub
     ' <Global.System.Diagnostics.DebuggerStepThroughAttribute()> _
-    <Conditional("CreLogFile")> _
+    <Conditional("CreLogFile")>
     Public Sub Logg(ByVal s As String)
         If logFile Is Nothing Then Return
         Dim i As Integer

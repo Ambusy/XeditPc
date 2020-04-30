@@ -1,8 +1,8 @@
-Imports VB6 = Microsoft.VisualBasic
+ï»¿Imports VB6 = Microsoft.VisualBasic
 Imports System.Globalization
 Imports System.IO
 Imports System.Text.RegularExpressions
-#Const CreRexxLog = False
+#Const CreRexxLogFile = False
 
 Public Class Rexx
     Dim RexxRuns As New Collection
@@ -38,7 +38,7 @@ Public Class Rexx
     Private ncChar As String = "" ' added symbol at end-of-line
     Private sSrcPos, sSrcLine As Integer
     Private NrStepsExecuted As Integer = 0
-    Private EntriesInIntcode As Integer = 1 ' n° existing entries in IntCode
+    Private EntriesInIntcode As Integer = 1 ' nr existing entries in IntCode
     Private CultInf As New CultureInfo("en-US", False)
     Public CurrRexxRun As RexxCompData ' storage to correctly execute one rexx program
     Friend Stack As New Collection ' execution currRexxRun.Stack
@@ -62,8 +62,8 @@ Public Class Rexx
     Private Const sAtoZlow As String = "abcdefghijklmnopqrstuvwxyz"
     Private Const s0to9 As String = "0123456789"
     Private Const s0to9pm As String = "0123456789+-"
-    Private Const sAtoZS As String = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz@$£#_"
-    Private Const sAtoZS_0to9 As String = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz@$£#_0123456789"
+    Private Const sAtoZS As String = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz@$Â£#_"
+    Private Const sAtoZS_0to9 As String = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz@$Â£#_0123456789"
     Private Const sAtoZ As String = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz"
     Private Const sAtoZ_0to9 As String = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789"
     Private Const ExtRoutineTagstring = "External Routine Parameters: "
@@ -165,25 +165,25 @@ Public Class Rexx
         '                           code[].l = seqnr of parameter "P l"
         adr ' Address name          code[].a = idx of name
         cal ' call                  code[].a = idx of name to call, substituted by index in intcode after compile
-        '                           code[].l = n° of arguments in CALL
+        '                           code[].l = nr of arguments in CALL
         ret ' return
         exi ' exit
         lbl ' label def.            code[].a = level for local vars
         '                           code[].l = ident | procsym
         cle ' call external rex     code[].a = idx of name to call
-        arg ' ARG and helpers.      code[].a = n° arguments in ARG
-        '                           code[].l = seq n° of the parameter  
+        arg ' ARG and helpers.      code[].a = nr arguments in ARG
+        '                           code[].l = seq nr of the parameter  
         upp ' uppercase             code[].a = 1: UPPER
         parp ' +n                   code[].a = +/-number
-        '                           code[].l = seq n° in ARG
+        '                           code[].l = seq nr in ARG
         parc ' n abs.               code[].a = number
-        '                           code[].l = seq n° in ARG
+        '                           code[].l = seq nr in ARG
         parv ' variable             code[].a = index in IdName
-        '                           code[].l = seq n° in ARG
+        '                           code[].l = seq nr in ARG
         parl ' literal              code[].a = index in literalpool
-        '                           code[].l = seq n° in ARG
+        '                           code[].l = seq nr in ARG
         parh ' (variable)           code[].a = index in IdName
-        '                           code[].l = seq n° in ARG
+        '                           code[].l = seq nr in ARG
         pul ' pull (like ARG)
         pvr ' parse var (like ARG)
         pvl ' parse value (like ARG)
@@ -201,14 +201,14 @@ Public Class Rexx
         tpVariable
         tpConstant
     End Enum
-#If CreRexxLog Then
+#If CreRexxLogFile Then
     Dim fn As String = System.IO.Path.GetTempFileName
     Friend logFile As StreamWriter = File.CreateText(fn & ".Rexx.Log.txt") ' new name for each execution
 #Else
     Friend logFile As StreamWriter
 #End If
     Friend IndentSpace As Integer = 0
-    <Conditional("CreRexxLog")> _
+    <Conditional("CreRexxLogFile")>
     Friend Sub Logg(ByVal s As String)
         Dim i As Integer
         i = s.IndexOf(" "c)
@@ -228,6 +228,46 @@ Public Class Rexx
             End If
         End If
     End Sub
+    Function ExistsProgramFile(RexxFileName As String) As String
+        Dim fnd As Boolean
+        If File.Exists(RexxFilePath + "\" + RexxFileName) Then
+            RexxFileName = Path.GetFullPath(RexxFilePath + "\" + RexxFileName)
+            Logg("found " + RexxFileName)
+            fnd = True
+        Else
+            RexxPathElements = Split(RexxPath, ";"c)
+            For i = 0 To RexxPathElements.Length() - 1
+                RexxPathElements(i) = RexxPathElements(i).Trim()
+                If RexxPathElements(i) <> "" Then
+                    If RexxPathElements(i)(RexxPathElements(i).Length - 1) <> "\" Then
+                        RexxPathElements(i) += "\"
+                    End If
+                    If RexxPathElements(i)(0) = "%" Then
+                        Dim parts() As String = Split(RexxPathElements(i), "%"c)
+                        If parts.Length > 2 Then
+                            Dim s As String = Environment.GetEnvironmentVariable(parts(1))
+                            RexxPathElements(i) = s + parts(2)
+                        End If
+                    End If
+                    Logg("try : " + RexxPathElements(i) + RexxFileName)
+                    Logg("    : " + Path.GetFullPath(RexxPathElements(i) + RexxFileName))
+                    If File.Exists(RexxPathElements(i) + RexxFileName) Then
+                        RexxFileName = Path.GetFullPath(RexxPathElements(i) + RexxFileName)
+                        Logg("found " + RexxFileName)
+                        fnd = True
+                        Exit For
+                    End If
+                End If
+            Next
+        End If
+        If Not fnd Then ' default path
+            Logg("foundd " + ExecutablePath & RexxFileName)
+            RexxFileName = ExecutablePath & RexxFileName
+        End If
+
+        Return RexxFileName
+
+    End Function
     Public Function CompileRexxScript(ByVal Filename As String) As Integer
         Dim k, i, j, cLn As Integer
         Dim asm As New AsmStatement
@@ -241,45 +281,11 @@ Public Class Rexx
         End If
         RcComp = 0
         RexxFileName = Filename
-        If Right(RexxFileName, 4).ToUpper(CultInf) <> ".REX" Then RexxFileName = RexxFileName & ".REX"
         If Filename <> "In memory source" Then
+            If Right(RexxFileName, 4).ToUpper(CultInf) <> ".REX" Then RexxFileName = RexxFileName & ".REX"
             If InStr(RexxFileName, "\") = 0 Then
                 Logg("RexxPath = : " & RexxPath)
-                Dim fnd As Boolean = False
-                If File.Exists(RexxFilePath + "\" + RexxFileName) Then
-                    RexxFileName = Path.GetFullPath(RexxFilePath + "\" + RexxFileName)
-                    Logg("found " + RexxFileName)
-                    fnd = True
-                Else
-                    RexxPathElements = Split(RexxPath, ";"c)
-                    For i = 0 To RexxPathElements.Length() - 1
-                        RexxPathElements(i) = RexxPathElements(i).Trim()
-                        If RexxPathElements(i) <> "" Then
-                            If RexxPathElements(i)(RexxPathElements(i).Length - 1) <> "\" Then
-                                RexxPathElements(i) += "\"
-                            End If
-                            If RexxPathElements(i)(0) = "%" Then
-                                Dim parts() As String = Split(RexxPathElements(i), "%"c)
-                                If parts.Length > 2 Then
-                                    Dim s As String = Environment.GetEnvironmentVariable(parts(1))
-                                    RexxPathElements(i) = s + parts(2)
-                                End If
-                            End If
-                            Logg("try : " + RexxPathElements(i) + RexxFileName)
-                            Logg("    : " + Path.GetFullPath(RexxPathElements(i) + RexxFileName))
-                            If File.Exists(RexxPathElements(i) + RexxFileName) Then
-                                RexxFileName = Path.GetFullPath(RexxPathElements(i) + RexxFileName)
-                                Logg("found " + RexxFileName)
-                                fnd = True
-                                Exit For
-                            End If
-                        End If
-                    Next
-                End If
-                If Not fnd Then
-                    Logg("foundd " + ExecutablePath & RexxFileName)
-                    RexxFileName = ExecutablePath & RexxFileName
-                End If
+                RexxFileName = ExistsProgramFile(RexxFileName)
             End If
         End If
         Dim Interpreting As Boolean = False  ' first file
@@ -290,9 +296,9 @@ Public Class Rexx
         If RcComp = 0 And Not Interpreting Then
             CurrRexxRun = Nothing
             For Each rs As RexxCompData In RexxRuns
-                If RexxFileName = rs.fileName Then
+                If Not rs.InExecution AndAlso RexxFileName = rs.fileName Then
                     CurrRexxRun = rs
-                    Logg("Already compiled " & RexxFileName)
+                    Logg("Already compiled and not active" & RexxFileName)
                     If Filename <> "In memory source" Then
                         If System.IO.File.GetLastWriteTime(RexxFileName) > rs.fileTstamp OrElse rs.CompRc <> 0 Then
                             Logg("Recompile " & RexxFileName)
@@ -338,7 +344,6 @@ Public Class Rexx
                 End If
                 CurrRexxRun = Nothing
                 RcIi = 999 ' stop
-
             Else
                 If RcIi = -1 Then
                     CurrRexxRun.UseStamp = Now()
@@ -361,9 +366,9 @@ Public Class Rexx
                     CurrRexxRun.fileTstamp = System.IO.File.GetLastWriteTime(RexxFileName)
                 End If
             End If
+            CallDepth += 1
+            If CallDepth = 1 Then CancRexx = False
             If RcComp = 0 Then
-                CallDepth += 1
-                If CallDepth = 1 Then CancRexx = False
                 If Not Interpreting Then ' if not an INTERPRET
                     Logg("Comp file " & RexxFileName)
                     nErr = 0
@@ -463,8 +468,7 @@ Public Class Rexx
                             Next
                         End If
                         If asm.a = 0 Then ' routine not found yet
-                            Dim fn As String = ExecutablePath
-                            fn = fn & DefVars.Id & ".rex"
+                            Dim fn As String = ExistsProgramFile(DefVars.Id & ".REX")
                             If File.Exists(fn) Then ' is an external rexx routine
                                 asm.a = StoreLiteral(fn)
                                 asm.f = fct.cle
@@ -478,9 +482,9 @@ Public Class Rexx
                     End If
                 Next
             End If
-            If RcIi <> 999 Then CurrRexxRun.CompRc = RcComp
             CallDepth -= 1
-#If CreRexxLog Then
+            If RcIi <> 999 Then CurrRexxRun.CompRc = RcComp
+#If CreRexxLogFile Then
             Logg("Generated code:")
             Dim sts As Integer = 1
             If Interpreting Then
@@ -1212,7 +1216,7 @@ Public Class Rexx
         Pars.Clear()
         If cSymb = Symbols.lparen Then
             GetNextSymbol()
-            CloseSym = Symbols.rparen
+            closeSym = Symbols.rparen
         Else
             closeSym = Symbols.semicolon
         End If
@@ -1221,7 +1225,7 @@ Public Class Rexx
             If cSymb <> Symbols.comma Then ' not an empty parameter
                 ProcessCallParm(NrValues, vi, NrValues)
                 Pars.Add(vi) ' position of parameter id in names
-                ParsN.Add(iCurrParSeqNr) ' seq n° of parm  
+                ParsN.Add(iCurrParSeqNr) ' seq nr of parm  
             Else
                 Pars.Add(-1)
                 ParsN.Add(-1)
@@ -1639,15 +1643,15 @@ Public Class Rexx
                         GetNextChar()
                     End If
                 End If
-                ElseIf RexxWords.Contains(cChara) Then
-                    cRwrd = DirectCast(RexxWords.Item(cChara), RexxWord)
-                    cSymb = cRwrd.Sym
-                    GetNextChar()
-                Else
-                    cSymb = Symbols.ident
-                    SigError(103)
-                    GetNextChar()
-                End If
+            ElseIf RexxWords.Contains(cChara) Then
+                cRwrd = DirectCast(RexxWords.Item(cChara), RexxWord)
+                cSymb = cRwrd.Sym
+                GetNextChar()
+            Else
+                cSymb = Symbols.ident
+                SigError(103)
+                GetNextChar()
+            End If
             CharAftId = cChara
             If (cSymb = Symbols.comopen) Then
                 inCmt = True
@@ -1893,7 +1897,7 @@ Public Class Rexx
 #If DEBUG Then
             Debug.Print(s)
 #End If
-#If CreRexxLog Then
+#If CreRexxLogFile Then
             Logg("say """ & s & """")
 #End If
             Dim m2 As String
@@ -1940,23 +1944,23 @@ Public Class Rexx
         CurrRexxRun.TxtValue.Add(literal)
         StoreLiteral = CurrRexxRun.TxtValue.Count()
     End Function
-    Public Function SourceNameIndexPosition(ByVal Name As String, ByVal Kind As tpSymbol, ByRef DefVars As DefVariable) As Integer
+    Public Function SourceNameIndexPosition(ByVal Name As String, ByVal Kind As tpSymbol, ByRef Variable As DefVariable) As Integer
         ' position of variable in list of defined sourcenames
         Dim i As Integer
         SourceNameIndexPosition = 0
         i = 0
-        For Each DefVars In CurrRexxRun.IdName
+        For Each Variable In CurrRexxRun.IdName
             SourceNameIndexPosition = SourceNameIndexPosition + 1
-            If DefVars.Id = Name Then
+            If Variable.Id = Name Then
                 i = 1
                 Exit For
             End If
-        Next DefVars
+        Next Variable
         If i = 0 Then
-            DefVars = New DefVariable
-            DefVars.Id = Name
-            DefVars.Kind = Kind
-            CurrRexxRun.IdName.Add(DefVars)
+            Variable = New DefVariable
+            Variable.Id = Name
+            Variable.Kind = Kind
+            CurrRexxRun.IdName.Add(Variable)
             SourceNameIndexPosition = CurrRexxRun.IdName.Count()
         End If
     End Function
@@ -1967,7 +1971,9 @@ Public Class Rexx
             If CallDepth = 1 Then
                 CurrRexxRun.TraceLevel = 0
             End If
+            CurrRexxRun.InExecution = True
             ExecuteIntCode(params)
+            CurrRexxRun.InExecution = False
             If CancRexx Then CallDepth = 1 ' abort all
             If CallDepth = 1 And lSay > 0 Then
                 AddLineToSaybuffer("", True)
@@ -2279,7 +2285,7 @@ Public Class Rexx
         Dim nParMin As Integer
         Dim nParMax As Integer
         Dim ExtRoutine As Boolean = False
-#If Not Debug Then
+#If Not DEBUG Then
         Try
 #End If
         en = ""
@@ -2297,6 +2303,8 @@ Public Class Rexx
             StoreVar(CurrRexxRun.iRc, "0", 0, "", "")
             IntPp = 1
             CurrRexxRun.ProcNum = 0 ' not if in interpret !!!!!
+            CurrRexxRun.sigNovalue = False
+            CurrRexxRun.InteractiveTracing = 0
             If CommandParm.StartsWith(ExtRoutineTagstring) Then
                 ExtRoutine = True
             End If
@@ -2310,7 +2318,7 @@ Public Class Rexx
 #If DEBUG Then
             asrc = "L:" + CStr(IntPp) + " " & DumpStr(asm) + " " + CStr(Stack.Count)
             Logg(asrc)
-            Debug.WriteLine(asrc)
+            'Debug.WriteLine(asrc)
 #End If
             Select Case cF
                 Case fct.lin
@@ -2468,867 +2476,849 @@ Public Class Rexx
                     m = FromStack()
                     StoreVar(cA, m, k, en, n)
                 Case fct.jmp
+                    If (CurrRexxRun.TraceLevel > 2) Then
+                        TracePLin(cA)
+                    End If
+                    IntPp = cA - 1
+                Case fct.jcf
+                    m = FromStack()
+                    If m <> "1" Then
                         If (CurrRexxRun.TraceLevel > 2) Then
                             TracePLin(cA)
                         End If
                         IntPp = cA - 1
-                Case fct.jcf
-                        m = FromStack()
-                        If m <> "1" Then
-                            If (CurrRexxRun.TraceLevel > 2) Then
-                                TracePLin(cA)
-                            End If
-                            IntPp = cA - 1
-                        End If
+                    End If
                 Case fct.jct
-                        m = FromStack()
-                        If m = "1" Then
-                            If (CurrRexxRun.TraceLevel > 2) Then
-                                TracePLin(cA)
-                            End If
-                            IntPp = cA - 1
+                    m = FromStack()
+                    If m = "1" Then
+                        If (CurrRexxRun.TraceLevel > 2) Then
+                            TracePLin(cA)
                         End If
+                        IntPp = cA - 1
+                    End If
                 Case fct.jbr ' builtin routines
-                        nParMin = CShort(Left(RexxFunctions(cA), 2))
-                        nParMax = nParMin
-                        While nParMax <= 10 And Mid(RexxFunctions(cA), 3 + nParMax, 1) <> " "
-                            nParMax = nParMax + 1
-                        End While
-                        For i = 1 To nParMax
-                            pm(i) = False
-                            pi(i) = 0
-                            pr(i) = 0
-                        Next
-                        For i = 1 To cL
-                            asmp1 = DirectCast(CurrRexxRun.IntCode.Item(IntPp + i), AsmStatement) ' fct.cll statement
-                            If asmp1.a <> -1 Then ' not empty
+                    nParMin = CShort(Left(RexxFunctions(cA), 2))
+                    nParMax = nParMin
+                    While nParMax <= 10 And Mid(RexxFunctions(cA), 3 + nParMax, 1) <> " "
+                        nParMax = nParMax + 1
+                    End While
+                    For i = 1 To nParMax
+                        pm(i) = False
+                        pi(i) = 0
+                        pr(i) = 0
+                    Next
+                    For i = 1 To cL
+                        asmp1 = DirectCast(CurrRexxRun.IntCode.Item(IntPp + i), AsmStatement) ' fct.cll statement
+                        If asmp1.a <> -1 Then ' not empty
                             VariaRuns = GetNmFunc(asmp1.a, n, en, k)
                             m = VariaRuns.IdValue
-                                pm(i) = True
+                            pm(i) = True
+                        Else
+                            m = ""
+                            pm(i) = False
+                        End If
+                        Select Case Mid(RexxFunctions(cA), 2 + i, 1)
+                            Case "S"
+                                ps(i) = m
+                            Case "I"
+                                If pm(i) Then pi(i) = StrInt(m)
+                            Case "R"
+                                If pm(i) Then pr(i) = StrFl(m)
+                        End Select
+                    Next
+                    IntPp = IntPp + cL
+                    m = ""
+                    Select Case Mid(RexxFunctions(cA), 12)
+                        Case "SUBSTR"
+                            If pi(2) < 1 Then pi(2) = 1
+                            If pi(3) < 0 Then pi(3) = 0
+                            If cL = 3 Then
+                                m = Mid(ps(1), pi(2), pi(3)).PadRight(pi(3), " "c)
                             Else
-                                m = ""
-                                pm(i) = False
+                                m = Mid(ps(1), pi(2))
                             End If
-                            Select Case Mid(RexxFunctions(cA), 2 + i, 1)
-                                Case "S"
-                                    ps(i) = m
-                                Case "I"
-                                    If pm(i) Then pi(i) = StrInt(m)
-                                Case "R"
-                                    If pm(i) Then pr(i) = StrFl(m)
-                            End Select
-                        Next
-                        IntPp = IntPp + cL
-                        m = ""
-                        Select Case Mid(RexxFunctions(cA), 12)
-                            Case "SUBSTR"
-                                If pi(2) < 1 Then pi(2) = 1
-                                If pi(3) < 0 Then pi(3) = 0
-                                If cL = 3 Then
-                                    m = Mid(ps(1), pi(2), pi(3)).PadRight(pi(3), " "c)
+                        Case "LEFT"
+                            If ps(1).Length() >= pi(2) Then
+                                m = Left(ps(1), pi(2))
+                            Else
+                                If pm(3) Then
+                                    m = ps(1).PadRight(pi(2), ps(3)(0))
                                 Else
-                                    m = Mid(ps(1), pi(2))
+                                    m = ps(1).PadRight(pi(2), " "c)
                                 End If
-                            Case "LEFT"
-                                If ps(1).Length() >= pi(2) Then
-                                    m = Left(ps(1), pi(2))
+                            End If
+                        Case "RIGHT"
+                            If ps(1).Length() >= pi(2) Then
+                                m = Right(ps(1), pi(2))
+                            Else
+                                If pm(3) Then
+                                    m = ps(1).PadLeft(pi(2), ps(3)(0))
                                 Else
-                                    If pm(3) Then
-                                        m = ps(1).PadRight(pi(2), ps(3)(0))
+                                    m = ps(1).PadLeft(pi(2), " "c)
+                                End If
+                            End If
+                        Case "LENGTH"
+                            m = CStr(ps(1).Length())
+                        Case "COPIES"
+                            m = ""
+                            For i = 1 To pi(2)
+                                m = m & ps(1)
+                            Next
+                        Case "STRIP"
+                            m = ps(1)
+                            If cL < 2 Then ps(2) = "B"
+                            If cL < 3 Then ps(3) = " "
+                            If ps(2) = "L" Or ps(2) = "B" Then
+                                While m.Length() > 0 And Left(m, 1) = ps(3)
+                                    m = Mid(m, 2)
+                                End While
+                            End If
+                            If ps(2) = "T" Or ps(2) = "B" Then
+                                While m.Length() > 0 And Right(m, 1) = ps(3)
+                                    m = Left(m, m.Length() - 1)
+                                End While
+                            End If
+                        Case "INDEX"
+                            m = CStr(InStr(ps(1), ps(2)))
+                        Case "POS"
+                            If cL < 3 Then pi(3) = 1
+                            m = CStr(InStr(pi(3), ps(2), ps(1)))
+                        Case "COMPARE"
+                            If cL < 3 Then ps(3) = " "
+                            m = "0"
+                            If ps(1) <> ps(2) Then
+                                l1 = ps(1).Length()
+                                l2 = ps(2).Length()
+                                l3 = 0
+                                For i = 1 To Math.Max(l1, l2)
+                                    If i <= l1 And i <= l2 Then
+                                        If Mid(ps(1), i, 1) <> Mid(ps(2), i, 1) Then l3 = i
+                                    ElseIf i <= l1 Then
+                                        If Mid(ps(1), i, 1) <> ps(3) Then l3 = i
                                     Else
-                                        m = ps(1).PadRight(pi(2), " "c)
+                                        If Mid(ps(2), i, 1) <> ps(3) Then l3 = i
                                     End If
-                                End If
-                            Case "RIGHT"
-                                If ps(1).Length() >= pi(2) Then
-                                    m = Right(ps(1), pi(2))
-                                Else
-                                    If pm(3) Then
-                                        m = ps(1).PadLeft(pi(2), ps(3)(0))
-                                    Else
-                                        m = ps(1).PadLeft(pi(2), " "c)
-                                    End If
-                                End If
-                            Case "LENGTH"
-                                m = CStr(ps(1).Length())
-                            Case "COPIES"
-                                m = ""
-                                For i = 1 To pi(2)
-                                    m = m & ps(1)
-                                Next
-                            Case "STRIP"
-                                m = ps(1)
-                                If cL < 2 Then ps(2) = "B"
-                                If cL < 3 Then ps(3) = " "
-                                If ps(2) = "L" Or ps(2) = "B" Then
-                                    While m.Length() > 0 And Left(m, 1) = ps(3)
-                                        m = Mid(m, 2)
-                                    End While
-                                End If
-                                If ps(2) = "T" Or ps(2) = "B" Then
-                                    While m.Length() > 0 And Right(m, 1) = ps(3)
-                                        m = Left(m, m.Length() - 1)
-                                    End While
-                                End If
-                            Case "INDEX"
-                                m = CStr(InStr(ps(1), ps(2)))
-                            Case "POS"
-                                If cL < 3 Then pi(3) = 1
-                                m = CStr(InStr(pi(3), ps(2), ps(1)))
-                            Case "COMPARE"
-                                If cL < 3 Then ps(3) = " "
-                                m = "0"
-                                If ps(1) <> ps(2) Then
-                                    l1 = ps(1).Length()
-                                    l2 = ps(2).Length()
-                                    l3 = 0
-                                    For i = 1 To Math.Max(l1, l2)
-                                        If i <= l1 And i <= l2 Then
-                                            If Mid(ps(1), i, 1) <> Mid(ps(2), i, 1) Then l3 = i
-                                        ElseIf i <= l1 Then
-                                            If Mid(ps(1), i, 1) <> ps(3) Then l3 = i
-                                        Else
-                                            If Mid(ps(2), i, 1) <> ps(3) Then l3 = i
-                                        End If
-                                        If l3 <> 0 Then
-                                            m = CStr(l3)
-                                            Exit For
-                                        End If
-                                    Next
-                                End If
-                            Case "VERIFY" ' (toVerify,verification,M/No match,start)
-                                If cL < 4 Then pi(4) = 1
-                                m = "0"
-                                If Not pm(3) OrElse ps(3).ToUpper(CultInf) <> "M" Then ps(3) = "N"
-                                For i = pi(4) To ps(1).Length()  ' N is like in Pl/1
-                                    j = InStr(1, ps(2), Mid(ps(1), i, 1))
-                                    If (j = 0 And ps(3) = "N") Or (j > 0 And ps(3) = "M") Then
-                                        m = CStr(i)
+                                    If l3 <> 0 Then
+                                        m = CStr(l3)
                                         Exit For
                                     End If
                                 Next
-                            Case "WORD" ' word(s,n)
-                                m = Word(ps(1), pi(2))
-                            Case "WORDS"
-                                m = CStr(Words(ps(1)))
-                            Case "QUEUED"
-                                m = CStr(QStack.Count())
-                            Case "EXTERNALS"
+                            End If
+                        Case "VERIFY" ' (toVerify,verification,M/No match,start)
+                            If cL < 4 Then pi(4) = 1
+                            m = "0"
+                            If Not pm(3) OrElse ps(3).ToUpper(CultInf) <> "M" Then ps(3) = "N"
+                            For i = pi(4) To ps(1).Length()  ' N is like in Pl/1
+                                j = InStr(1, ps(2), Mid(ps(1), i, 1))
+                                If (j = 0 And ps(3) = "N") Or (j > 0 And ps(3) = "M") Then
+                                    m = CStr(i)
+                                    Exit For
+                                End If
+                            Next
+                        Case "WORD" ' word(s,n)
+                            m = Word(ps(1), pi(2))
+                        Case "WORDS"
+                            m = CStr(Words(ps(1)))
+                        Case "QUEUED"
+                            m = CStr(QStack.Count())
+                        Case "EXTERNALS"
+                            m = "0"
+                        Case "XRANGE"
+                            If cL < 1 OrElse Not pm(1) Then ps(1) = Chr(0)
+                            If cL < 2 OrElse Not pm(2) Then ps(2) = Chr(255)
+                            m = xRange(Asc(ps(1)), Asc(ps(2)))
+                        Case "ABS"
+                            m = CStr(System.Math.Abs(pr(1)))
+                        Case "X2B"
+                            m = C2B(X2C(ps(1)))
+                        Case "B2X"
+                            m = C2X(B2C(ps(1)))
+                        Case "X2C"
+                            m = X2C(ps(1))
+                        Case "C2X"
+                            m = C2X(ps(1))
+                        Case "ABBREV"
+                            If cL < 3 Then pi(3) = ps(2).Length()
+                            If Left(ps(1), pi(3)) = Left(ps(2), pi(3)) Then
+                                m = "1"
+                            Else
                                 m = "0"
-                            Case "XRANGE"
-                                If cL < 1 OrElse Not pm(1) Then ps(1) = Chr(0)
-                                If cL < 2 OrElse Not pm(2) Then ps(2) = Chr(255)
-                                m = xRange(Asc(ps(1)), Asc(ps(2)))
-                            Case "ABS"
-                                m = CStr(System.Math.Abs(pr(1)))
-                            Case "X2B"
-                                m = C2B(X2C(ps(1)))
-                            Case "B2X"
-                                m = C2X(B2C(ps(1)))
-                            Case "X2C"
-                                m = X2C(ps(1))
-                            Case "C2X"
-                                m = C2X(ps(1))
-                            Case "ABBREV"
-                                If cL < 3 Then pi(3) = ps(2).Length()
-                                If Left(ps(1), pi(3)) = Left(ps(2), pi(3)) Then
-                                    m = "1"
-                                Else
-                                    m = "0"
-                                End If
-                            Case "TRANSLATE"
-                                If cL < 2 Then
-                                    ps(2) = sAtoZcap
-                                    ps(3) = sAtoZlow
-                                Else
-                                    If cL < 2 Then ps(2) = xRange(0, 255)
-                                    If Not pm(3) Then ps(3) = ""
-                                End If
-                                If cL < 4 Then ps(4) = " "
-                                While ps(2).Length() < ps(3).Length() : ps(2) = ps(2) & ps(4) : End While
-                                m = Translate(ps(1), ps(3), ps(2))
-                            Case "TRUNC"
-                                If cL < 2 Then pi(2) = 0
-                                num2 = pr(1)
-                                For i = 1 To pi(2)
-                                    num2 = num2 * 10
-                                Next
-                                num2 = Fix(num2)
-                                For i = 1 To pi(2)
-                                    num2 = num2 / 10
-                                Next
-                                m = CStr(num2).Replace(","c, "."c)
-                                If pm(2) AndAlso pi(2) > 0 Then
+                            End If
+                        Case "TRANSLATE"
+                            If cL < 2 Then
+                                ps(2) = sAtoZcap
+                                ps(3) = sAtoZlow
+                            Else
+                                If cL < 2 Then ps(2) = xRange(0, 255)
+                                If Not pm(3) Then ps(3) = ""
+                            End If
+                            If cL < 4 Then ps(4) = " "
+                            While ps(2).Length() < ps(3).Length() : ps(2) = ps(2) & ps(4) : End While
+                            m = Translate(ps(1), ps(3), ps(2))
+                        Case "TRUNC"
+                            If cL < 2 Then pi(2) = 0
+                            num2 = pr(1)
+                            For i = 1 To pi(2)
+                                num2 = num2 * 10
+                            Next
+                            num2 = Fix(num2)
+                            For i = 1 To pi(2)
+                                num2 = num2 / 10
+                            Next
+                            m = CStr(num2).Replace(","c, "."c)
+                            If pm(2) AndAlso pi(2) > 0 Then
+                                i = InStr(m, ".")
+                                If i = 0 Then
+                                    m = m & ".0"
                                     i = InStr(m, ".")
-                                    If i = 0 Then
-                                        m = m & ".0"
-                                        i = InStr(m, ".")
-                                    End If
-                                    i = m.Length() - i
-                                    If i < pi(2) Then
-                                        m = m & "".PadRight(pi(2) - i, "0"c)
-                                    End If
                                 End If
-                            Case "TIME"
-                                Dim tv As String = Format(TimeOfDay, "HH:mm:ss")
-                                Dim hh, mm, ss As Integer
-                                hh = CInt(tv.Substring(0, 2))
-                                mm = CInt(tv.Substring(3, 2))
-                                ss = CInt(tv.Substring(6, 2))
-                                If cL = 0 Then
-                                    m = tv
-                                Else
-                                    Dim RstTimer As Double
-                                    Select Case ps(1).ToUpper(CultInf)
-                                        Case "C"
-                                            Dim tvs As String = Format(TimeOfDay, "hh:mm:ss")
-                                            If hh > 12 Then
-                                                m = tvs.Substring(0, 5) & "pm"
-                                            Else
-                                                m = tvs.Substring(0, 5) & "am"
-                                            End If
-                                        Case "E"
-                                            m = Translate(CStr(CDbl(CStr(VB6.Timer())) - RstTimer), ",", ".")
-                                        Case "H"
-                                            m = Format(TimeOfDay, "HH")
-                                        Case "L"
-                                            num2 = VB6.Timer()
-                                            num2 = (num2 - Fix(num2)) * 1000.0#
-                                            i = CInt(Fix(num2))
-                                            m = VB6.Format(TimeOfDay, "HH:mm:ss") & "." & CStr(i)
-                                        Case "M"
-                                            m = CStr(hh * 60 + mm)
-                                        Case "N"
-                                            m = tv
-                                        Case "R"
-                                            m = Translate(CStr(CDbl(CStr(VB6.Timer())) - RstTimer), ",", ".")
-                                            RstTimer = VB6.Timer()
-                                        Case "S"
-                                            m = CStr((hh * 60 + mm) * 60 + ss)
-                                    End Select
+                                i = m.Length() - i
+                                If i < pi(2) Then
+                                    m = m & "".PadRight(pi(2) - i, "0"c)
                                 End If
-                            Case "DATE"
-                                If cL = 0 Then
-                                    m = Format(Today, "d MMMM yyyy")
-                                Else
-                                    Select Case ps(1).ToUpper(CultInf)
-                                        Case "B"
-                                            m = CStr(DateDiff(VB6.DateInterval.Day, System.DateTime.FromOADate(0), Now))
-                                        Case "C"
-                                            m = CStr(DateDiff(VB6.DateInterval.Day, DateSerial(0, 1, 1), Now))
-                                        Case "D"
-                                            m = CStr(DateDiff(VB6.DateInterval.Day, DateSerial(Year(Now), 1, 1), Now))
-                                        Case "E"
-                                            m = Format(Today, "dd/MM/yy")
-                                        Case "J"
-                                            m = CStr(CInt(Format(Today, "yy")) * 1000 + DateDiff(VB6.DateInterval.Day, DateSerial(Year(Now), 1, 1), Now))
-                                        Case "L"
-                                            m = Format(Today, "d MMMM yyyy")
-                                        Case "M"
-                                            m = Format(Today, "MMMM")
-                                        Case "N"
-                                            m = Format(Today, "dd MMM yyyy")
-                                        Case "O"
-                                            m = Format(Today, "yy/MM/dd")
-                                        Case "S"
-                                            m = Format(Today, "yyyyMMdd")
-                                        Case "U"
-                                            m = Format(Today, "MM/dd/yy")
-                                        Case "W"
-                                            m = Format(Today, "dddd")
-                                    End Select
-                                End If
-                            Case "FORMAT"
-                                If pm(2) Then
-                                    s = "0".PadLeft(pi(2), "#"c)
-                                    l1 = pi(2)
-                                Else
-                                    m = CStr(pr(1))
-                                    If Not DecimalSepPt Then m = Translate(m, ".,", ",.")
-                                    i = InStr(m, ".")
-                                    If i > 0 Then
-                                        l1 = i - 1
-                                    Else
-                                        l1 = m.Length()
-                                    End If
-                                    s = "0".PadLeft(l1, "#"c)
-                                End If
-                                If pm(3) Then
-                                    If pi(3) > 0 Then
-                                        s = s & "." & "".PadRight(pi(3), "0"c)
-                                        l1 = l1 + 1 + pi(3)
-                                    End If
-                                Else
-                                    m = CStr(pr(1))
-                                    If Not DecimalSepPt Then m = Translate(m, ".,", ",.")
-                                    i = InStr(m, ".")
-                                    If i > 0 Then
-                                        i = m.Length() - i
-                                        l1 = l1 + 1 + i
-                                        s = s & "." & "".PadRight(i, "0"c)
-                                    End If
-                                End If
-                                If pr(1) < 0 Then l1 += 1
-                                m = Format(pr(1), s).Replace(","c, "."c)
-                                m = Right(Space(l1) & m, l1)
-                            Case "INSERT"
-                                If Not pm(3) Then pi(3) = 0
-                                If Not pm(4) Then pi(4) = ps(1).Length()
-                                If Not pm(5) Then ps(5) = " "
-                                While ps(1).Length() < pi(4) : ps(1) = ps(1) & ps(5) : End While ' str to insert
-                                While ps(2).Length() < pi(3) : ps(2) = ps(2) & ps(5) : End While ' base str
-                                m = Mid(ps(2), 1, pi(3)) & ps(1) & Mid(ps(2), pi(3) + 1)
-                            Case "OVERLAY"
-                                If Not pm(3) Then pi(3) = 1
-                                If Not pm(4) Then pi(4) = ps(1).Length()
-                                If Not pm(5) Then ps(5) = " "
-                                While ps(1).Length() < pi(4) : ps(1) = ps(1) & ps(5) : End While ' str to overlay
-                                While ps(2).Length() < (pi(3) + pi(4) - 1) : ps(2) = ps(2) & ps(5) : End While ' base str
-                                m = Mid(ps(2), 1, pi(3) - 1) & ps(1) & Mid(ps(2), pi(3) + pi(4))
-                            Case "RANDOM"
-                                Select Case cL
-                                    Case 0
-                                        pi(1) = 0
-                                        pi(2) = 999
-                                    Case 1
-                                        pi(2) = pi(1)
-                                        pi(1) = 0
-                                    Case 2, 3
-                                        If Not pm(1) Then pi(1) = 0
-                                        If Not pm(2) Then pi(2) = 999
+                            End If
+                        Case "TIME"
+                            Dim tv As String = Format(TimeOfDay, "HH:mm:ss")
+                            Dim hh, mm, ss As Integer
+                            hh = CInt(tv.Substring(0, 2))
+                            mm = CInt(tv.Substring(3, 2))
+                            ss = CInt(tv.Substring(6, 2))
+                            If cL = 0 Then
+                                m = tv
+                            Else
+                                Dim RstTimer As Double
+                                Select Case ps(1).ToUpper(CultInf)
+                                    Case "C"
+                                        Dim tvs As String = Format(TimeOfDay, "hh:mm:ss")
+                                        If hh > 12 Then
+                                            m = tvs.Substring(0, 5) & "pm"
+                                        Else
+                                            m = tvs.Substring(0, 5) & "am"
+                                        End If
+                                    Case "E"
+                                        m = Translate(CStr(CDbl(CStr(VB6.Timer())) - RstTimer), ",", ".")
+                                    Case "H"
+                                        m = Format(TimeOfDay, "HH")
+                                    Case "L"
+                                        num2 = VB6.Timer()
+                                        num2 = (num2 - Fix(num2)) * 1000.0#
+                                        i = CInt(Fix(num2))
+                                        m = VB6.Format(TimeOfDay, "HH:mm:ss") & "." & CStr(i)
+                                    Case "M"
+                                        m = CStr(hh * 60 + mm)
+                                    Case "N"
+                                        m = tv
+                                    Case "R"
+                                        m = Translate(CStr(CDbl(CStr(VB6.Timer())) - RstTimer), ",", ".")
+                                        RstTimer = VB6.Timer()
+                                    Case "S"
+                                        m = CStr((hh * 60 + mm) * 60 + ss)
                                 End Select
-                                If Not pm(3) Then
-                                    num2 = Rnd()
+                            End If
+                        Case "DATE"
+                            If cL = 0 Then
+                                m = Format(Today, "d MMMM yyyy")
+                            Else
+                                Select Case ps(1).ToUpper(CultInf)
+                                    Case "B"
+                                        m = CStr(DateDiff(VB6.DateInterval.Day, System.DateTime.FromOADate(0), Now))
+                                    Case "C"
+                                        m = CStr(DateDiff(VB6.DateInterval.Day, DateSerial(0, 1, 1), Now))
+                                    Case "D"
+                                        m = CStr(DateDiff(VB6.DateInterval.Day, DateSerial(Year(Now), 1, 1), Now))
+                                    Case "E"
+                                        m = Format(Today, "dd/MM/yy")
+                                    Case "J"
+                                        m = CStr(CInt(Format(Today, "yy")) * 1000 + DateDiff(VB6.DateInterval.Day, DateSerial(Year(Now), 1, 1), Now))
+                                    Case "L"
+                                        m = Format(Today, "d MMMM yyyy")
+                                    Case "M"
+                                        m = Format(Today, "MMMM")
+                                    Case "N"
+                                        m = Format(Today, "dd MMM yyyy")
+                                    Case "O"
+                                        m = Format(Today, "yy/MM/dd")
+                                    Case "S"
+                                        m = Format(Today, "yyyyMMdd")
+                                    Case "U"
+                                        m = Format(Today, "MM/dd/yy")
+                                    Case "W"
+                                        m = Format(Today, "dddd")
+                                End Select
+                            End If
+                        Case "FORMAT"
+                            If pm(2) Then
+                                s = "0".PadLeft(pi(2), "#"c)
+                                l1 = pi(2)
+                            Else
+                                m = CStr(pr(1))
+                                If Not DecimalSepPt Then m = Translate(m, ".,", ",.")
+                                i = InStr(m, ".")
+                                If i > 0 Then
+                                    l1 = i - 1
                                 Else
-                                    num2 = Rnd(pi(3))
+                                    l1 = m.Length()
                                 End If
-                                num2 = num2 * (pi(1) - pi(2)) + pi(2)
-                                m = CStr(Int(num2))
-                            Case "LASTPOS"
-                                If Not pm(3) Then pi(3) = ps(2).Length()
-                                ps(2) = Mid(ps(2), 1, pi(3))
-                                m = CStr(InStrRev(ps(2), ps(1)))
-                            Case "REVERSE"
-                                m = ps(1)
-                                l1 = m.Length()
-                                For i = 1 To CInt(l1 / 2)
-                                    s = Mid(m, l1 - i + 1, 1)
-                                    Mid(m, l1 - i + 1, 1) = Mid(m, i, 1)
-                                    Mid(m, i, 1) = s
-                                Next
-                            Case "DELSTR"
-                                If Not pm(3) Then pi(3) = ps(1).Length() - pi(2) + 1
-                                m = Mid(ps(1), 1, pi(2) - 1) & Mid(ps(1), pi(2) + pi(3))
+                                s = "0".PadLeft(l1, "#"c)
+                            End If
+                            If pm(3) Then
+                                If pi(3) > 0 Then
+                                    s = s & "." & "".PadRight(pi(3), "0"c)
+                                    l1 = l1 + 1 + pi(3)
+                                End If
+                            Else
+                                m = CStr(pr(1))
+                                If Not DecimalSepPt Then m = Translate(m, ".,", ",.")
+                                i = InStr(m, ".")
+                                If i > 0 Then
+                                    i = m.Length() - i
+                                    l1 = l1 + 1 + i
+                                    s = s & "." & "".PadRight(i, "0"c)
+                                End If
+                            End If
+                            If pr(1) < 0 Then l1 += 1
+                            m = Format(pr(1), s).Replace(","c, "."c)
+                            m = Right(Space(l1) & m, l1)
+                        Case "INSERT"
+                            If Not pm(3) Then pi(3) = 0
+                            If Not pm(4) Then pi(4) = ps(1).Length()
+                            If Not pm(5) Then ps(5) = " "
+                            While ps(1).Length() < pi(4) : ps(1) = ps(1) & ps(5) : End While ' str to insert
+                            While ps(2).Length() < pi(3) : ps(2) = ps(2) & ps(5) : End While ' base str
+                            m = Mid(ps(2), 1, pi(3)) & ps(1) & Mid(ps(2), pi(3) + 1)
+                        Case "OVERLAY"
+                            If Not pm(3) Then pi(3) = 1
+                            If Not pm(4) Then pi(4) = ps(1).Length()
+                            If Not pm(5) Then ps(5) = " "
+                            While ps(1).Length() < pi(4) : ps(1) = ps(1) & ps(5) : End While ' str to overlay
+                            While ps(2).Length() < (pi(3) + pi(4) - 1) : ps(2) = ps(2) & ps(5) : End While ' base str
+                            m = Mid(ps(2), 1, pi(3) - 1) & ps(1) & Mid(ps(2), pi(3) + pi(4))
+                        Case "RANDOM"
+                            Select Case cL
+                                Case 0
+                                    pi(1) = 0
+                                    pi(2) = 999
+                                Case 1
+                                    pi(2) = pi(1)
+                                    pi(1) = 0
+                                Case 2, 3
+                                    If Not pm(1) Then pi(1) = 0
+                                    If Not pm(2) Then pi(2) = 999
+                            End Select
+                            If Not pm(3) Then
+                                num2 = Rnd()
+                            Else
+                                num2 = Rnd(pi(3))
+                            End If
+                            num2 = num2 * (pi(1) - pi(2)) + pi(2)
+                            m = CStr(Int(num2))
+                        Case "LASTPOS"
+                            If Not pm(3) Then pi(3) = ps(2).Length()
+                            ps(2) = Mid(ps(2), 1, pi(3))
+                            m = CStr(InStrRev(ps(2), ps(1)))
+                        Case "REVERSE"
+                            m = ps(1)
+                            l1 = m.Length()
+                            For i = 1 To CInt(l1 / 2)
+                                s = Mid(m, l1 - i + 1, 1)
+                                Mid(m, l1 - i + 1, 1) = Mid(m, i, 1)
+                                Mid(m, i, 1) = s
+                            Next
+                        Case "DELSTR"
+                            If Not pm(3) Then pi(3) = ps(1).Length() - pi(2) + 1
+                            m = Mid(ps(1), 1, pi(2) - 1) & Mid(ps(1), pi(2) + pi(3))
                         Case "ROUND"
                             If cL < 2 Then pi(2) = 0
                             m = Math.Round(pr(1), pi(2))
                             If Not DecimalSepPt Then m = Translate(m, ".,", ",.")
                         Case "SIGN"
                             If pr(1) = 0 Then
-                                    m = "0"
-                                ElseIf pr(1) > 0 Then
-                                    m = "1"
+                                m = "0"
+                            ElseIf pr(1) > 0 Then
+                                m = "1"
+                            Else
+                                m = "-1"
+                            End If
+                        Case "DATATYPE"
+                            If cL = 1 Then
+                                If IsNum(ps(1)) Then
+                                    m = "NUM"
                                 Else
-                                    m = "-1"
+                                    m = "CHAR"
                                 End If
-                            Case "DATATYPE"
-                                If cL = 1 Then
-                                    If IsNum(ps(1)) Then
-                                        m = "NUM"
-                                    Else
-                                        m = "CHAR"
-                                    End If
-                                Else
-                                    m = "1"
-                                    Select Case ps(2).ToUpper(CultInf)
-                                        Case "A", "B", "L", "M", "U", "X"
-                                            s = ""
-                                            ps(2) = ps(2).ToUpper(CultInf)
-                                            If ps(2) = "A" Then s = sAtoZ_0to9
-                                            If ps(2) = "M" Then s = sAtoZ
-                                            If ps(2) = "B" Then s = "01 "
-                                            If ps(2) = "L" Then s = "abcdefghijklmnopqrstuvwxyz"
-                                            If ps(2) = "U" Then s = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
-                                            If ps(2) = "X" Then s = "ABCDEF0123456789 "
-                                            If ps(1).Length() = 0 Then m = "0"
-                                            For i = 1 To ps(1).Length()
-                                                If InStr(1, s, Mid(ps(1), i, 1)) = 0 Then
-                                                    m = "0"
-                                                    Exit For
-                                                End If
-                                            Next
-                                        Case "N"
-                                            If Not IsNum(ps(1)) Then
+                            Else
+                                m = "1"
+                                Select Case ps(2).ToUpper(CultInf)
+                                    Case "A", "B", "L", "M", "U", "X"
+                                        s = ""
+                                        ps(2) = ps(2).ToUpper(CultInf)
+                                        If ps(2) = "A" Then s = sAtoZ_0to9
+                                        If ps(2) = "M" Then s = sAtoZ
+                                        If ps(2) = "B" Then s = "01 "
+                                        If ps(2) = "L" Then s = "abcdefghijklmnopqrstuvwxyz"
+                                        If ps(2) = "U" Then s = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+                                        If ps(2) = "X" Then s = "ABCDEF0123456789 "
+                                        If ps(1).Length() = 0 Then m = "0"
+                                        For i = 1 To ps(1).Length()
+                                            If InStr(1, s, Mid(ps(1), i, 1)) = 0 Then
                                                 m = "0"
+                                                Exit For
                                             End If
-                                        Case "W"
-                                            If IsNum(ps(1)) Then
-                                                If NumY <> CInt(NumY) Then
-                                                    m = "0"
-                                                End If
-                                            Else
+                                        Next
+                                    Case "N"
+                                        If Not IsNum(ps(1)) Then
+                                            m = "0"
+                                        End If
+                                    Case "W"
+                                        If IsNum(ps(1)) Then
+                                            If NumY <> CInt(NumY) Then
                                                 m = "0"
-                                            End If
-                                    End Select
-                                End If
-                            Case "VALUE"
-                                CurrRexxRun.IdExpose = DirectCast(CurrRexxRun.IdExposeStk.Item(CurrRexxRun.ProcNum + 1), Collection)
-                                If Not pm(3) Then
-                                i = SourceNameIndexPosition(ps(1).ToUpper(CultInf), tpSymbol.tpUnknown, DefVars)
-                                m = GetVar(i, en, n)
-                                    If cL > 1 Then
-                                        StoreVar(i, ps(2), k, en, n) ' new value
-                                    End If
-                                Else
-                                    m = Environ(ps(1))
-                                    If IsNothing(m) Then m = ""
-                                    If pm(2) Then Environ(ps(1) & "=" & ps(2))
-                                End If
-                            Case "STREAM"
-                                Dim str As New aStream
-                                Try
-                                    If ps(2) = "S" Or ps(2) = "D" Then ' give info
-                                        If Streams.Contains(ps(1)) Then
-                                            str = DirectCast(Streams.Item(ps(1)), aStream)
-                                            If str.ErrMsg = "" Then
-                                                m = "READY"
-                                            Else
-                                                m = "NOTREADY "
-                                                If ps(2) = "D" Then m = m & str.ErrMsg
                                             End If
                                         Else
-                                            m = "NOTREADY"
+                                            m = "0"
                                         End If
-                                    Else ' exec command
-                                        m = Word(ps(3), 1)
-                                        Select Case m
-                                            Case "OPEN"
-                                                Dim rw As String = "RW"
-                                                m = Word(ps(3), 2)
-                                                If m = "READ" Or m = "WRITE" Then
-                                                    rw = m.Substring(0, 1)
-                                                    m = Word(ps(3), 3) ' TEXT or BINARY
-                                                End If
-                                                m = OpenStream(ps(1), rw)
-                                            Case "CLOSE"
-                                                m = CloseStream(ps(1))
-                                            Case "SEEK"
-                                                Dim ofs As Integer
-                                                str = DirectCast(Streams.Item(ps(1)), aStream)
-                                                str.ErrMsg = ""
-                                                m = Word(ps(3), 2)
-                                                ofs = CInt(m.Substring(1))
-                                                If m(0) = "="c Then
-                                                    str.FileStr.Seek(ofs, SeekOrigin.Begin)
-                                                ElseIf m(0) = "<"c Then
-                                                    str.FileStr.Seek(str.FileStr.Length - ofs, SeekOrigin.Begin)
-                                                ElseIf m(0) = "-"c Then
-                                                    str.FileStr.Seek(str.FileStr.Position - ofs, SeekOrigin.Begin)
-                                                ElseIf m(0) = "+"c Then
-                                                    str.FileStr.Seek(str.FileStr.Position + ofs, SeekOrigin.Begin)
-                                                End If
-                                                str.ReadPos = str.FileStr.Position
-                                                str.WritePos = str.FileStr.Position
-                                                m = CStr(str.ReadPos)
-                                            Case "QUERY"
-                                                m2 = Word(ps(3), 2)
-                                                Select Case m2
-                                                    Case "EXIST"
-                                                        If File.Exists(ps(1)) Then
-                                                            m = Path.GetFullPath(ps(1))
-                                                        Else
-                                                            m = ""
-                                                            str.ErrMsg = "FILE NOT FOUND"
-                                                        End If
-                                                    Case "SIZE"
-                                                        If File.Exists(ps(1)) Then
-                                                            Dim inforf As System.IO.FileInfo
-                                                            inforf = My.Computer.FileSystem.GetFileInfo(ps(1))
-                                                            m = CStr(inforf.Length)
-                                                        Else
-                                                            m = "ERROR"
-                                                            str.ErrMsg = "FILE NOT FOUND"
-                                                        End If
-                                                    Case "DATETIME"
-                                                        If File.Exists(ps(1)) Then
-                                                            Dim inforf As System.IO.FileInfo
-                                                            inforf = My.Computer.FileSystem.GetFileInfo(ps(1))
-                                                            m = CStr(inforf.LastWriteTime)
-                                                        Else
-                                                            m = "ERROR"
-                                                            str.ErrMsg = "FILE NOT FOUND"
-                                                        End If
-                                                End Select
-                                        End Select
-                                    End If
-                                Catch e As Exception
-                                    m = "ERROR"
-                                    str.ErrMsg = e.Message
-                                End Try
-                            Case "LINES"
-                                Dim str As New aStream, rp As Long
-                                If Not Streams.Contains(ps(1)) Then
-                                    m = OpenStream(ps(1), "R")
-                                Else
-                                    m = ""
+                                End Select
+                            End If
+                        Case "VALUE"
+                            CurrRexxRun.IdExpose = DirectCast(CurrRexxRun.IdExposeStk.Item(CurrRexxRun.ProcNum + 1), Collection)
+                            If Not pm(3) Then
+                                i = SourceNameIndexPosition(ps(1).ToUpper(CultInf), tpSymbol.tpUnknown, DefVars)
+                                m = GetVar(i, en, n)
+                                If cL > 1 Then
+                                    StoreVar(i, ps(2), k, en, n) ' new value
                                 End If
-                                If m <> "ERROR" Then
-                                    Dim tCnt As String
-                                    If pm(2) Then
-                                        tCnt = ps(2)
+                            Else
+                                m = Environ(ps(1))
+                                If IsNothing(m) Then m = ""
+                                If pm(2) Then Environ(ps(1) & "=" & ps(2))
+                            End If
+                        Case "STREAM"
+                            Dim str As New aStream
+                            Try
+                                If ps(2) = "S" Or ps(2) = "D" Then ' give info
+                                    If Streams.Contains(ps(1)) Then
+                                        str = DirectCast(Streams.Item(ps(1)), aStream)
+                                        If str.ErrMsg = "" Then
+                                            m = "READY"
+                                        Else
+                                            m = "NOTREADY "
+                                            If ps(2) = "D" Then m = m & str.ErrMsg
+                                        End If
                                     Else
-                                        tCnt = "C" ' C=Count N=Report EOF
+                                        m = "NOTREADY"
                                     End If
-                                    str = DirectCast(Streams.Item(ps(1)), aStream)
-                                    Dim returnCount As Integer
-                                    returnCount = 0 ' no lines found
-                                    If tCnt = "C" Then ' count n° of lines
-                                        rp = str.ReadPos
-                                        Dim crlf As Integer
-                                        While str.ReadPos < str.FileStr.Length()
-                                            s = StreamReadLine(str, crlf)
-                                            str.ReadPos += s.Length() + crlf
-                                            returnCount = returnCount + 1
-                                            If CancRexx Then
-                                                Exit While
+                                Else ' exec command
+                                    m = Word(ps(3), 1)
+                                    Select Case m
+                                        Case "OPEN"
+                                            Dim rw As String = "RW"
+                                            m = Word(ps(3), 2)
+                                            If m = "READ" Or m = "WRITE" Then
+                                                rw = m.Substring(0, 1)
+                                                m = Word(ps(3), 3) ' TEXT or BINARY
                                             End If
-                                        End While
-                                        str.ReadPos = rp
-                                    Else ' 1 if still input te be read
-                                        If str.ReadPos < str.FileStr.Length() Then
-                                            returnCount = 1
-                                        End If
-                                    End If
-                                    m = CStr(returnCount)
-                                Else
-                                    m = "0"
+                                            m = OpenStream(ps(1), rw)
+                                        Case "CLOSE"
+                                            m = CloseStream(ps(1))
+                                        Case "SEEK"
+                                            Dim ofs As Integer
+                                            str = DirectCast(Streams.Item(ps(1)), aStream)
+                                            str.ErrMsg = ""
+                                            m = Word(ps(3), 2)
+                                            ofs = CInt(m.Substring(1))
+                                            If m(0) = "="c Then
+                                                str.FileStr.Seek(ofs, SeekOrigin.Begin)
+                                            ElseIf m(0) = "<"c Then
+                                                str.FileStr.Seek(str.FileStr.Length - ofs, SeekOrigin.Begin)
+                                            ElseIf m(0) = "-"c Then
+                                                str.FileStr.Seek(str.FileStr.Position - ofs, SeekOrigin.Begin)
+                                            ElseIf m(0) = "+"c Then
+                                                str.FileStr.Seek(str.FileStr.Position + ofs, SeekOrigin.Begin)
+                                            End If
+                                            str.ReadPos = str.FileStr.Position
+                                            str.WritePos = str.FileStr.Position
+                                            m = CStr(str.ReadPos)
+                                        Case "QUERY"
+                                            m2 = Word(ps(3), 2)
+                                            Select Case m2
+                                                Case "EXIST"
+                                                    If File.Exists(ps(1)) Then
+                                                        m = Path.GetFullPath(ps(1))
+                                                    Else
+                                                        m = ""
+                                                        str.ErrMsg = "FILE NOT FOUND"
+                                                    End If
+                                                Case "SIZE"
+                                                    If File.Exists(ps(1)) Then
+                                                        Dim inforf As System.IO.FileInfo
+                                                        inforf = My.Computer.FileSystem.GetFileInfo(ps(1))
+                                                        m = CStr(inforf.Length)
+                                                    Else
+                                                        m = "ERROR"
+                                                        str.ErrMsg = "FILE NOT FOUND"
+                                                    End If
+                                                Case "DATETIME"
+                                                    If File.Exists(ps(1)) Then
+                                                        Dim inforf As System.IO.FileInfo
+                                                        inforf = My.Computer.FileSystem.GetFileInfo(ps(1))
+                                                        m = CStr(inforf.LastWriteTime)
+                                                    Else
+                                                        m = "ERROR"
+                                                        str.ErrMsg = "FILE NOT FOUND"
+                                                    End If
+                                            End Select
+                                    End Select
                                 End If
-                            Case "LINEIN"
-                                If Not Streams.Contains(ps(1)) Then
-                                    m = OpenStream(ps(1), "R")
+                            Catch e As Exception
+                                m = "ERROR"
+                                str.ErrMsg = e.Message
+                            End Try
+                        Case "LINES"
+                            Dim str As New aStream, rp As Long
+                            If Not Streams.Contains(ps(1)) Then
+                                m = OpenStream(ps(1), "R")
+                            Else
+                                m = ""
+                            End If
+                            If m <> "ERROR" Then
+                                Dim tCnt As String
+                                If pm(2) Then
+                                    tCnt = ps(2)
                                 Else
-                                    m = ""
+                                    tCnt = "C" ' C=Count N=Report EOF
                                 End If
-                                If m <> "ERROR" Then
-                                    Dim str As aStream, crlf As Integer, nLns As Integer
-                                    str = DirectCast(Streams.Item(ps(1)), aStream)
-                                    If pm(2) Then GotoStreamLine(str, pi(2)) ' start at line
-                                    If pm(3) Then
-                                        nLns = pi(3)
-                                    Else
-                                        nLns = 1
-                                    End If
-                                    m = ""
-                                    For i = 1 To nLns
-                                        If i > 1 Then m = m & vbCrLf
+                                str = DirectCast(Streams.Item(ps(1)), aStream)
+                                Dim returnCount As Integer
+                                returnCount = 0 ' no lines found
+                                If tCnt = "C" Then ' count nr of lines
+                                    rp = str.ReadPos
+                                    Dim crlf As Integer
+                                    While str.ReadPos < str.FileStr.Length()
                                         s = StreamReadLine(str, crlf)
-                                        m = m & s
                                         str.ReadPos += s.Length() + crlf
+                                        returnCount = returnCount + 1
                                         If CancRexx Then
-                                            Exit For
+                                            Exit While
                                         End If
-                                    Next
-                                End If
-                            Case "LINEOUT"
-                                If Not Streams.Contains(ps(1)) Then
-                                    m = OpenStream(ps(1), "W")
-                                Else
-                                    m = ""
-                                End If
-                                If m <> "ERROR" Then
-                                    Dim str As aStream
-                                    str = DirectCast(Streams.Item(ps(1)), aStream)
-                                    If Not pm(2) And Not pm(3) Then
-                                        m = CloseStream(ps(1))
-                                    Else
-                                        If pm(3) Then
-                                            GotoStreamLine(str, pi(3)) ' start at line
-                                            str.WritePos = str.ReadPos
-                                        End If
-                                        m = StreamWriteLine(str, ps(2), True)
-                                        str.WritePos += ps(2).Length() + 2
+                                    End While
+                                    str.ReadPos = rp
+                                Else ' 1 if still input te be read
+                                    If str.ReadPos < str.FileStr.Length() Then
+                                        returnCount = 1
                                     End If
                                 End If
-                            Case "CHARS"
-                                If Not Streams.Contains(ps(1)) Then
-                                    m = OpenStream(ps(1), "R")
+                                m = CStr(returnCount)
+                            Else
+                                m = "0"
+                            End If
+                        Case "LINEIN"
+                            If Not Streams.Contains(ps(1)) Then
+                                m = OpenStream(ps(1), "R")
+                            Else
+                                m = ""
+                            End If
+                            If m <> "ERROR" Then
+                                Dim str As aStream, crlf As Integer, nLns As Integer
+                                str = DirectCast(Streams.Item(ps(1)), aStream)
+                                If pm(2) Then GotoStreamLine(str, pi(2)) ' start at line
+                                If pm(3) Then
+                                    nLns = pi(3)
                                 Else
-                                    m = ""
+                                    nLns = 1
                                 End If
-                                If m <> "ERROR" Then
-                                    Dim str As aStream
-                                    str = DirectCast(Streams.Item(ps(1)), aStream)
-                                    m = CStr(str.FileStr.Length - str.FileStr.Position)
-                                End If
-                            Case "CHARIN"
-                                If Not Streams.Contains(ps(1)) Then
-                                    m = OpenStream(ps(1), "R")
-                                Else
-                                    m = ""
-                                End If
-                                If m <> "ERROR" Then
-                                    Dim str As aStream, mc As Integer
-                                    str = DirectCast(Streams.Item(ps(1)), aStream)
-                                    If pm(2) Then
-                                        str.ReadPos = pi(2) - 1
+                                m = ""
+                                For i = 1 To nLns
+                                    If i > 1 Then m = m & vbCrLf
+                                    s = StreamReadLine(str, crlf)
+                                    m = m & s
+                                    str.ReadPos += s.Length() + crlf
+                                    If CancRexx Then
+                                        Exit For
                                     End If
+                                Next
+                            End If
+                        Case "LINEOUT"
+                            If Not Streams.Contains(ps(1)) Then
+                                m = OpenStream(ps(1), "W")
+                            Else
+                                m = ""
+                            End If
+                            If m <> "ERROR" Then
+                                Dim str As aStream
+                                str = DirectCast(Streams.Item(ps(1)), aStream)
+                                If Not pm(2) And Not pm(3) Then
+                                    m = CloseStream(ps(1))
+                                Else
                                     If pm(3) Then
-                                        mc = pi(3)
+                                        GotoStreamLine(str, pi(3)) ' start at line
+                                        str.WritePos = str.ReadPos
+                                    End If
+                                    m = StreamWriteLine(str, ps(2), True)
+                                    str.WritePos += ps(2).Length() + 2
+                                End If
+                            End If
+                        Case "CHARS"
+                            If Not Streams.Contains(ps(1)) Then
+                                m = OpenStream(ps(1), "R")
+                            Else
+                                m = ""
+                            End If
+                            If m <> "ERROR" Then
+                                Dim str As aStream
+                                str = DirectCast(Streams.Item(ps(1)), aStream)
+                                m = CStr(str.FileStr.Length - str.FileStr.Position)
+                            End If
+                        Case "CHARIN"
+                            If Not Streams.Contains(ps(1)) Then
+                                m = OpenStream(ps(1), "R")
+                            Else
+                                m = ""
+                            End If
+                            If m <> "ERROR" Then
+                                Dim str As aStream, mc As Integer
+                                str = DirectCast(Streams.Item(ps(1)), aStream)
+                                If pm(2) Then
+                                    str.ReadPos = pi(2) - 1
+                                End If
+                                If pm(3) Then
+                                    mc = pi(3)
+                                Else
+                                    mc = 1
+                                End If
+                                str.FileStr.Position = str.ReadPos
+                                m = StreamReadChar(str, mc)
+                                str.ReadPos += m.Length()
+                            End If
+                        Case "CHAROUT"
+                            If Not Streams.Contains(ps(1)) Then
+                                m = OpenStream(ps(1), "W")
+                            Else
+                                m = ""
+                            End If
+                            If m <> "ERROR" Then
+                                Dim str As aStream, mc As Integer
+                                str = DirectCast(Streams.Item(ps(1)), aStream)
+                                If Not pm(2) And Not pm(3) Then
+                                    m = CloseStream(ps(1))
+                                Else
+                                    If pm(3) Then
+                                        str.WritePos = pi(3) - 1
+                                    End If
+                                    If pm(4) Then
+                                        mc = pi(4)
                                     Else
                                         mc = 1
                                     End If
-                                    str.FileStr.Position = str.ReadPos
-                                    m = StreamReadChar(str, mc)
-                                    str.ReadPos += m.Length()
+                                    m = StreamWriteLine(str, ps(2).Substring(0, mc), False)
+                                    str.WritePos += mc
                                 End If
-                            Case "CHAROUT"
-                                If Not Streams.Contains(ps(1)) Then
-                                    m = OpenStream(ps(1), "W")
-                                Else
-                                    m = ""
+                            End If
+                        Case "REGEXP"
+                            Dim mc As MatchCollection
+                            Dim rVar As String = ps(1)
+                            Dim rData As String = ps(2)
+                            Dim rExpr As String = ps(3)
+                            Dim cvr As DefVariable = Nothing
+                            Dim regExpre As New Regex(rExpr)
+                            mc = regExpre.Matches(rData)
+                            Dim nv As Integer = 0
+                            For Each mt As Match In mc
+                                If mt.Value.Length > 0 Then
+                                    nv += 1
+                                    i = SourceNameIndexPosition(rVar & "." & CStr(nv), Rexx.tpSymbol.tpUnknown, cvr)
+                                    StoreVar(i, mt.Value, k, en, n) ' new value
                                 End If
-                                If m <> "ERROR" Then
-                                    Dim str As aStream, mc As Integer
-                                    str = DirectCast(Streams.Item(ps(1)), aStream)
-                                    If Not pm(2) And Not pm(3) Then
-                                        m = CloseStream(ps(1))
-                                    Else
-                                        If pm(3) Then
-                                            str.WritePos = pi(3) - 1
-                                        End If
-                                        If pm(4) Then
-                                            mc = pi(4)
-                                        Else
-                                            mc = 1
-                                        End If
-                                        m = StreamWriteLine(str, ps(2).Substring(0, mc), False)
-                                        str.WritePos += mc
-                                    End If
-                                End If
-                            Case "REGEXP"
-                                Dim mc As MatchCollection
-                                Dim rVar As String = ps(1)
-                                Dim rData As String = ps(2)
-                                Dim rExpr As String = ps(3)
-                                Dim cvr As DefVariable = Nothing
-                                Dim regExpre As New Regex(rExpr)
-                                mc = regExpre.Matches(rData)
-                                Dim nv As Integer = 0
-                                For Each mt As Match In mc
-                                    If mt.Value.Length > 0 Then
-                                        nv += 1
-                                        i = SourceNameIndexPosition(rVar & "." & CStr(nv), Rexx.tpSymbol.tpUnknown, cvr)
-                                        StoreVar(i, mt.Value, k, en, n) ' new value
-                                    End If
-                                Next
-                                i = SourceNameIndexPosition(rVar & ".0", Rexx.tpSymbol.tpUnknown, cvr)
-                                StoreVar(i, CStr(nv), k, en, n) ' new value
-                                If nv > 0 Then
-                                    m = "1"
-                                Else
-                                    m = "0"
-                                End If
-                        End Select
-                        StoreVar(CurrRexxRun.iRes, m, k, en, n) ' result
-                Case fct.say
-                        If CurrRexxRun.InInteractive Then
-                            MsgBox(FromStack, MsgBoxStyle.OkOnly, "say")
-                        Else
-                            AddLineToSaybuffer(FromStack, False)
-                        End If
-                Case fct.adr
-                        n = GetLit(cA)
-                        If (cL > 0) Then CurrRexxRun.AddressS = n
-                        CurrRexxRun.CAddress = n
-                Case fct.cal
-                        If (CurrRexxRun.TraceLevel >= 2) Then
-                            TracePLin(cA)
-                        End If
-                        SaveRegs()
-                        IntPp = cA
-                        asm = DirectCast(CurrRexxRun.IntCode.Item(IntPp), AsmStatement) ' intpp -> lin, intPp+1 -> lbl
-                        If asm.f = fct.lin Then
-                            IntPp += 1
-                            asm = DirectCast(CurrRexxRun.IntCode.Item(IntPp), AsmStatement) ' intpp -> lin, intPp+1 -> lbl
-                        End If
-                        rtSym = DirectCast(asm.l, Symbols)
-                        If (rtSym = Symbols.procsym) Then
-                            CurrRexxRun.CallLevel += 1
-                            CurrRexxRun.ProcNum = asm.a
-                            Dim cse As New CallElem
-                            cse.ProcNum = asm.a
-                            cse.Exposes = DirectCast(CurrRexxRun.IdExposeStk(asm.a + 1), Collection)
-                            cse.InternDepth = 0
-                            CurrRexxRun.CallStack.Add(cse)
-                        Else
-                            Dim cse As CallElem = DirectCast(CurrRexxRun.CallStack(CurrRexxRun.CallStack.Count), CallElem)
-                            cse.InternDepth += 1
-                        End If
-                        asm = DirectCast(CurrRexxRun.IntCode.Item(IntPp - 1), AsmStatement)
-                        If asm.f = fct.lin Then ' also trace previous sourceline
-                            IntPp -= 1
-                        End If
-                Case fct.exi, fct.ret ' exit/return
-                        Dim cse As CallElem = DirectCast(CurrRexxRun.CallStack(CurrRexxRun.CallStack.Count), CallElem)
-                        If (CurrRexxRun.CallStack.Count = 1 AndAlso cse.InternDepth = 0) OrElse cF = fct.exi Then
-                            If ExtRoutine Then ' result from external routine may be alphanumeric
-                                m = GetVar((CurrRexxRun.iRes), en, n)
-                                CurrRexxRun.Result = m
-                                CurrRexxRun.Rc = 0
+                            Next
+                            i = SourceNameIndexPosition(rVar & ".0", Rexx.tpSymbol.tpUnknown, cvr)
+                            StoreVar(i, CStr(nv), k, en, n) ' new value
+                            If nv > 0 Then
+                                m = "1"
                             Else
-                                m = GetVar((CurrRexxRun.iRes), en, n)
-                                CurrRexxRun.Rc = CInt(StrFl(m))
+                                m = "0"
                             End If
-                            IntPp = CurrRexxRun.IntCode.Count()
+                    End Select
+                    StoreVar(CurrRexxRun.iRes, m, k, en, n) ' result
+                Case fct.say
+                    If CurrRexxRun.InInteractive Then
+                        MsgBox(FromStack, MsgBoxStyle.OkOnly, "say")
+                    Else
+                        AddLineToSaybuffer(FromStack, False)
+                    End If
+                Case fct.adr
+                    n = GetLit(cA)
+                    If (cL > 0) Then CurrRexxRun.AddressS = n
+                    CurrRexxRun.CAddress = n
+                Case fct.cal
+                    If (CurrRexxRun.TraceLevel >= 2) Then
+                        TracePLin(cA)
+                    End If
+                    SaveRegs()
+                    IntPp = cA
+                    asm = DirectCast(CurrRexxRun.IntCode.Item(IntPp), AsmStatement) ' intpp -> lin, intPp+1 -> lbl
+                    If asm.f = fct.lin Then
+                        IntPp += 1
+                        asm = DirectCast(CurrRexxRun.IntCode.Item(IntPp), AsmStatement) ' intpp -> lin, intPp+1 -> lbl
+                    End If
+                    rtSym = DirectCast(asm.l, Symbols)
+                    If (rtSym = Symbols.procsym) Then
+                        CurrRexxRun.CallLevel += 1
+                        CurrRexxRun.ProcNum = asm.a
+                        Dim cse As New CallElem
+                        cse.ProcNum = asm.a
+                        cse.Exposes = DirectCast(CurrRexxRun.IdExposeStk(asm.a + 1), Collection)
+                        cse.InternDepth = 0
+                        CurrRexxRun.CallStack.Add(cse)
+                    Else
+                        Dim cse As CallElem = DirectCast(CurrRexxRun.CallStack(CurrRexxRun.CallStack.Count), CallElem)
+                        cse.InternDepth += 1
+                    End If
+                    asm = DirectCast(CurrRexxRun.IntCode.Item(IntPp - 1), AsmStatement)
+                    If asm.f = fct.lin Then ' also trace previous sourceline
+                        IntPp -= 1
+                    End If
+                Case fct.exi, fct.ret ' exit/return
+                    Dim cse As CallElem = DirectCast(CurrRexxRun.CallStack(CurrRexxRun.CallStack.Count), CallElem)
+                    If (CurrRexxRun.CallStack.Count = 1 AndAlso cse.InternDepth = 0) OrElse cF = fct.exi Then
+                        If ExtRoutine Then ' result from external routine may be alphanumeric
+                            m = GetVar((CurrRexxRun.iRes), en, n)
+                            CurrRexxRun.Result = m
+                            CurrRexxRun.Rc = 0
                         Else
-                            i = RestRegs()
-                            cse.InternDepth -= 1
-                            If cse.InternDepth < 0 Then ' return to calling block
-                                CurrRexxRun.CallStack.Remove(CurrRexxRun.CallStack.Count())
-                                CurrRexxRun.CallLevel -= 1
-                                Dim nDel As Integer = 0
-                                Dim nVar As Integer = CurrRexxRun.RuntimeVars.Count() - i
-                                For j = 1 To nVar
-                                    Dim rtv As VariabelRun = DirectCast(CurrRexxRun.RuntimeVars(i + j - nDel), VariabelRun)
-                                    If rtv.Level > CurrRexxRun.CallLevel Then
-                                        CurrRexxRun.RuntimeVars.Remove(i + j - nDel)
-                                        nDel += 1
-                                    Else
-                                        rtv.ArrayIndex -= nDel
-                                    End If
-                                Next
-                            End If
-                            asm = DirectCast(CurrRexxRun.IntCode.Item(IntPp), AsmStatement)
-                            IntPp = IntPp + asm.l
+                            m = GetVar((CurrRexxRun.iRes), en, n)
+                            CurrRexxRun.Rc = CInt(StrFl(m))
                         End If
+                        IntPp = CurrRexxRun.IntCode.Count()
+                    Else
+                        i = RestRegs()
+                        cse.InternDepth -= 1
+                        If cse.InternDepth < 0 Then ' return to calling block
+                            CurrRexxRun.CallStack.Remove(CurrRexxRun.CallStack.Count())
+                            CurrRexxRun.CallLevel -= 1
+                            Dim nDel As Integer = 0
+                            Dim nVar As Integer = CurrRexxRun.RuntimeVars.Count() - i
+                            For j = 1 To nVar
+                                Dim rtv As VariabelRun = DirectCast(CurrRexxRun.RuntimeVars(i + j - nDel), VariabelRun)
+                                If rtv.Level > CurrRexxRun.CallLevel Then
+                                    CurrRexxRun.RuntimeVars.Remove(i + j - nDel)
+                                    nDel += 1
+                                Else
+                                    rtv.ArrayIndex -= nDel
+                                End If
+                            Next
+                        End If
+                        asm = DirectCast(CurrRexxRun.IntCode.Item(IntPp), AsmStatement)
+                        IntPp = IntPp + asm.l
+                    End If
                         '  End If
                 Case fct.exc ' external command
                     m = FromStack()
                     Logg("EXECUTE: " & m)
-                    If (CurrRexxRun.CAddress = "") Then CurrRexxRun.CAddress = CurrRexxRun.AddressS
-                    If (CurrRexxRun.CAddress = "") Then CurrRexxRun.CAddress = "XEDIT"
-                    Logg("""" & CurrRexxRun.CAddress.ToUpper(CultInf) & """")
-                    Dim savLenStack = Stack.Count
-                    SaveRegs()
-                    Dim savRun As RexxCompData = CurrRexxRun
-                    Dim e As New RexxEvent
-                    RaiseEvent doCmd(CurrRexxRun.CAddress.ToUpper(CultInf), m, e)
-                    CurrRexxRun = savRun
-                    While Stack.Count > savLenStack
-                        RestRegs()
-                    End While
-                    CurrRexxRun.Rc = e.rc
-                    StoreVar(CurrRexxRun.iRc, CStr(CurrRexxRun.Rc), k, en, n)
-                    If CurrRexxRun.Rc < 0 Then
-                        AddLineToSaybuffer("Cmd: " & m, False)
-                        AddLineToSaybuffer(" RC = " & CStr(CurrRexxRun.Rc), True)
-                    End If
-                    CurrRexxRun.CAddress = ""
+                    DoExc(m)
                 Case fct.cle ' external rex
-                        CommandLine = GetLit(cA)
-                        ' compose parameterstring to be passed to routine to be split up by ARGS
-                        m = ExtRoutineTagstring
-                        m2 = ""
-                        For i = 1 To cL
-                            asmp1 = DirectCast(CurrRexxRun.IntCode.Item(IntPp + i), AsmStatement)
-                            VariaRuns = GetNm(asmp1.a, n, en, k)
-                            m = m & m2 & VariaRuns.IdValue
-                            m2 = X2C(ExtRoutineParmSep)
-                        Next
-                        CommandPrm = m
-                        SaveRegs()
-                        Dim savCurrRexxRun As RexxCompData = CurrRexxRun
-                        CurrRexxRun = New RexxCompData
-                        Dim rc As Integer
-                        Dim result As String = ""
-                        rc = CompileRexxScript(CommandLine)
-                        If rc = 0 Then
-                            rc = ExecuteRexxScript(CommandPrm)
-                            result = CurrRexxRun.Result
-                        End If
-                        CurrRexxRun = savCurrRexxRun
-                        savCurrRexxRun = Nothing
-                        RestRegs()
-                        StoreVar(CurrRexxRun.iRc, CStr(rc), k, en, n)
-                        StoreVar(CurrRexxRun.iRes, result, k, en, n)
-                        NrStepsExecuted += 1000 'to respond quicker to interrupts
-                        IntPp = IntPp + cL
+                    CommandLine = GetLit(cA)
+                    ' compose parameterstring to be passed to routine to be split up by ARGS
+                    m = ExtRoutineTagstring
+                    m2 = ""
+                    For i = 1 To cL
+                        asmp1 = DirectCast(CurrRexxRun.IntCode.Item(IntPp + i), AsmStatement)
+                        VariaRuns = GetNm(asmp1.a, n, en, k)
+                        m = m & m2 & VariaRuns.IdValue
+                        m2 = X2C(ExtRoutineParmSep)
+                    Next
+                    CommandPrm = m
+                    SaveRegs()
+                    Dim savCurrRexxRun As RexxCompData = CurrRexxRun
+                    CurrRexxRun = New RexxCompData
+                    Dim rc As Integer
+                    Dim result As String = ""
+                    rc = CompileRexxScript(CommandLine)
+                    If rc = 0 Then
+                        rc = ExecuteRexxScript(CommandPrm)
+                        result = CurrRexxRun.Result
+                    End If
+                    CurrRexxRun = savCurrRexxRun
+                    savCurrRexxRun = Nothing
+                    RestRegs()
+                    StoreVar(CurrRexxRun.iRc, CStr(rc), k, en, n)
+                    StoreVar(CurrRexxRun.iRes, result, k, en, n)
+                    NrStepsExecuted += 1000 'to respond quicker to interrupts
+                    IntPp = IntPp + cL
                 Case fct.tra
-                        If CurrRexxRun.InteractiveTracing <> 1 Then
-                            CurrRexxRun.InteractiveTracing = cL
-                            If (CurrRexxRun.TraceLevel <= 2 And cA > 2) Or CurrRexxRun.InteractiveTracing = 1 Then
-                                CurrRexxRun.TraceLevel = cA
-                                i = SrcLstLin
-                                traceLin(i)
-                            Else
-                                CurrRexxRun.TraceLevel = cA
-                            End If
+                    If CurrRexxRun.InteractiveTracing <> 1 Then
+                        CurrRexxRun.InteractiveTracing = cL
+                        If (CurrRexxRun.TraceLevel <= 2 And cA > 2) Or CurrRexxRun.InteractiveTracing = 1 Then
+                            CurrRexxRun.TraceLevel = cA
+                            i = SrcLstLin
+                            traceLin(i)
                         Else
-                            CurrRexxRun.TracingResume = cA
+                            CurrRexxRun.TraceLevel = cA
                         End If
+                    Else
+                        CurrRexxRun.TracingResume = cA
+                    End If
                 Case fct.itp
-                        MemorySource = FromStack()
-                        CurrRexxRun.InInterpret = True
-                        SaveRegs()
-                        If CompileRexxScript("In memory source") = 0 Then
-                            ExecuteRexxScript("")
-                        End If
-                        RestRegs()
-                        CurrRexxRun.InInterpret = False
+                    MemorySource = FromStack()
+                    CurrRexxRun.InInterpret = True
+                    SaveRegs()
+                    If CompileRexxScript("In memory source") = 0 Then
+                        ExecuteRexxScript("")
+                    End If
+                    RestRegs()
+                    CurrRexxRun.InInterpret = False
                 Case fct.lbl
-                        If (CurrRexxRun.TraceLevel = 2) Then
-                            TracePLin(IntPp)
-                        End If
+                    If (CurrRexxRun.TraceLevel = 2) Then
+                        TracePLin(IntPp)
+                    End If
                 Case fct.sig
-                        If cL = 1 Then
-                            CurrRexxRun.sigNovalue = True
-                            CurrRexxRun.sigLabel = asm.a
-                        Else
-                            CurrRexxRun.sigNovalue = False
-                        End If
+                    If cL = 1 Then
+                        CurrRexxRun.sigNovalue = True
+                        CurrRexxRun.sigLabel = asm.a
+                    Else
+                        CurrRexxRun.sigNovalue = False
+                    End If
                 Case fct.drp
-                        If (cL <> 1) Then
-                            VariaRuns = GetNm(cA, n, en, k)
-                            If k > 0 Then
+                    If (cL <> 1) Then
+                        VariaRuns = GetNm(cA, n, en, k)
+                        If k > 0 Then
+                            CurrRexxRun.RuntimeVars.Remove(k)
+                            For kl As Integer = k To CurrRexxRun.RuntimeVars.Count
+                                VariaRuns = DirectCast(CurrRexxRun.RuntimeVars(kl), VariabelRun)
+                                VariaRuns.ArrayIndex -= 1
+                            Next
+                        End If
+                    Else
+                        VariaRuns = GetNm(cA, n, en, k)
+                        i = n.Length()
+                        k = 1
+                        For Each VR As VariabelRun In CurrRexxRun.RuntimeVars
+                            If Mid(VR.Id, 1, i) = n Then
                                 CurrRexxRun.RuntimeVars.Remove(k)
                                 For kl As Integer = k To CurrRexxRun.RuntimeVars.Count
                                     VariaRuns = DirectCast(CurrRexxRun.RuntimeVars(kl), VariabelRun)
                                     VariaRuns.ArrayIndex -= 1
                                 Next
+                            Else
+                                k = k + 1
                             End If
-                        Else
-                            VariaRuns = GetNm(cA, n, en, k)
-                            i = n.Length()
-                            k = 1
-                            For Each VR As VariabelRun In CurrRexxRun.RuntimeVars
-                                If Mid(VR.Id, 1, i) = n Then
-                                    CurrRexxRun.RuntimeVars.Remove(k)
-                                    For kl As Integer = k To CurrRexxRun.RuntimeVars.Count
-                                        VariaRuns = DirectCast(CurrRexxRun.RuntimeVars(kl), VariabelRun)
-                                        VariaRuns.ArrayIndex -= 1
-                                    Next
-                                Else
-                                    k = k + 1
-                                End If
-                            Next VR
-                        End If
+                        Next VR
+                    End If
                 Case fct.upp ' parse UPPER ...
-                        UpCase = True
+                    UpCase = True
                 Case fct.arg ' parse arg
-                        DoParse(CommandParm) ' internal values, false = external parameter
+                    DoParse(CommandParm) ' internal values, false = external parameter
                 Case fct.pul ' parse pull
-                        DoParse("")
+                    DoParse("")
                 Case fct.pvl ' parse value
-                        DoParse("")
+                    DoParse("")
                 Case fct.pvr ' parse var
-                        DoParse("")
+                    DoParse("")
                 Case fct.stk ' push/queue
-                        m = FromStack()
-                        If cL = 0 Or QStack.Count() = 0 Then
-                            QStack.Add(m) ' 0 = push
-                        Else
-                            QStack.Add(m, , 1) ' 1 = queue
-                        End If
+                    m = FromStack()
+                    If cL = 0 Or QStack.Count() = 0 Then
+                        QStack.Add(m) ' 0 = push
+                    Else
+                        QStack.Add(m, , 1) ' 1 = queue
+                    End If
                 Case fct.upc 'upper/lower
                     Dim cintPP As Integer = IntPp
                     m = GetVarNV(cL, en, n, IntPp)
@@ -3352,15 +3342,39 @@ Public Class Rexx
             End If
             IntPp = IntPp + 1
         End While
-#If Not Debug Then
+#If Not DEBUG Then
         Catch e As Exception
             CurrRexxRun.Rc = 256
             MsgBox("Internal error in REXX interpretor: " & Err.Description & vbCrLf & "Current ReXXfile is: " & RexxFileName & vbCrLf & "Current executing line is: " & CStr(SrcLstLin) & vbCrLf & ".Net Full error description: " & vbCrLf & Err.GetException().ToString)
         End Try
 #End If
     End Sub
+    Sub DoExc(m As String)
+        Dim en As String = "", n As String = ""
+        Dim k As Integer
+        If (CurrRexxRun.CAddress = "") Then CurrRexxRun.CAddress = CurrRexxRun.AddressS
+        If (CurrRexxRun.CAddress = "") Then CurrRexxRun.CAddress = "XEDIT"
+        Logg("""" & CurrRexxRun.CAddress.ToUpper(CultInf) & """")
+        Dim savLenStack = Stack.Count
+        SaveRegs()
+        Dim savRun As RexxCompData = CurrRexxRun
+        Dim e As New RexxEvent
+        RaiseEvent doCmd(CurrRexxRun.CAddress.ToUpper(CultInf), m, e)
+        CurrRexxRun = savRun
+        While Stack.Count > savLenStack
+            RestRegs()
+        End While
+        CurrRexxRun.Rc = e.rc
+        StoreVar(CurrRexxRun.iRc, CStr(CurrRexxRun.Rc), k, en, n)
+        If CurrRexxRun.Rc < 0 Then
+            AddLineToSaybuffer("Cmd: " & m, False)
+            AddLineToSaybuffer(" RC = " & CStr(CurrRexxRun.Rc), True)
+        End If
+        CurrRexxRun.CAddress = ""
+    End Sub
     Private Sub SaveRegs()
         ' Debug.WriteLine("Save regs " + IntPp.ToString + " " + Stack.Count.ToString)
+        Stack.Add(CurrRexxRun.SrcLine) ' interpret ruins
         Stack.Add(CurrRexxRun.InteractiveTracing)
         Stack.Add(CurrRexxRun.TraceLevel)
         Stack.Add(CurrRexxRun.RuntimeVars.Count())
@@ -3373,6 +3387,7 @@ Public Class Rexx
         Dim i As Short = CShort(FromStack())
         CurrRexxRun.TraceLevel = CShort(FromStack())
         CurrRexxRun.InteractiveTracing = CShort(FromStack())
+        CurrRexxRun.SrcLine = CShort(FromStack())
         'Debug.WriteLine("Rest regs " + IntPp.ToString + " " + Stack.Count.ToString)
         Return i
     End Function
@@ -3574,11 +3589,11 @@ Public Class Rexx
             End If
         End If
         If (CurrRexxRun.TraceLevel > 3) Then
-#If Not Debug Then
+#If Not DEBUG Then
             If Mid(ExeName, 2, 1) <> " " Then
 #End If
             traceVar("v", RexxName, GetVar)
-#If Not Debug Then
+#If Not DEBUG Then
             End If
 #End If
         End If
@@ -3618,11 +3633,11 @@ Public Class Rexx
         Var.IdValue = VarValue
         VarExePosition = k
         If (CurrRexxRun.TraceLevel >= 3) Then
-#If Not Debug Then
+#If Not DEBUG Then
             If Mid(VarName, 2, 1) <> " " Then ' not internal variable
 #End If
             traceVar("r", VarName, VarValue)
-#If Not Debug Then
+#If Not DEBUG Then
             End If
 #End If
         End If
@@ -3730,13 +3745,13 @@ Public Class Rexx
                     CurrRexxRun.TraceLevel = CurrRexxRun.TracingResume
                     s = ""
                 ElseIf sUpper = "?" Then
-                    MsgBox("Enter a any valid REXX statement, to modify variables or the execution of the script" & vbCrLf & _
-                           "Enter OFF to terminate interactive trace and resume execution" & vbCrLf & _
-                           "Enter L linenumber [linenumberTo] to list the source" & vbCrLf & _
-                           "Enter B linenumber to set a break at the given line" & vbCrLf & _
-                           "Enter C linenumber to remove the break" & vbCrLf & _
-                           "Enter G linenumber to resume execution at the given line" & vbCrLf & _
-                           "  (Take care not to jump into loops or routines)" & vbCrLf & _
+                    MsgBox("Enter a any valid REXX statement, to modify variables or the execution of the script" & vbCrLf &
+                           "Enter OFF to terminate interactive trace and resume execution" & vbCrLf &
+                           "Enter L linenumber [linenumberTo] to list the source" & vbCrLf &
+                           "Enter B linenumber to set a break at the given line" & vbCrLf &
+                           "Enter C linenumber to remove the break" & vbCrLf &
+                           "Enter G linenumber to resume execution at the given line" & vbCrLf &
+                           "  (Take care not to jump into loops or routines)" & vbCrLf &
                            "Press only Enter to continue interactive trace" & vbCrLf)
                     s = myInputBox("Interactive", "Enter statement or ?", "")
                 ElseIf sUpper.Length > 2 AndAlso (sUpper(0) = "B"c Or sUpper(0) = "C"c Or sUpper(0) = "G"c) Then
@@ -3796,14 +3811,13 @@ Public Class Rexx
                     Dim wfn As String
                     wfn = CreateNameOfWorkfile()
                     Dim sw As New StreamWriter(wfn)
-                    sw.Write(s & ";")
+                    sw.Write("/* */ " & s & ";")
                     sw.Close()
                     CurrRexxRun.InInterpret = True
                     CurrRexxRun.InInteractive = True
                     Dim sTrace As Boolean
                     sTrace = RexxTrace
                     RexxTrace = False
-                    'Dim crIntpt As New InterpretFromRexx(wfn, "", CurrRexxRun)
                     SaveRegs()
                     If CompileRexxScript(wfn) = 0 Then
                         ExecuteRexxScript("")
@@ -3812,7 +3826,10 @@ Public Class Rexx
                     RexxTrace = sTrace
                     CurrRexxRun.InInterpret = False
                     CurrRexxRun.InInteractive = False
-                    File.Delete(wfn)
+                    Try
+                        File.Delete(wfn)
+                    Catch ex As Exception
+                    End Try
                     s = myInputBox(s + vbCrLf + "Interactive debug", "Enter statement or ?", "")
                 End If
             Loop
@@ -3921,7 +3938,7 @@ Public Class Rexx
         Dim MainParmIsRout As Boolean = False
         l1 = 0
         asmParse = DirectCast(CurrRexxRun.IntCode.Item(IntPp), AsmStatement)
-        If (asmParse.f = fct.arg) Then ' check n° arguments passed
+        If (asmParse.f = fct.arg) Then ' check nr arguments passed
             CallStackElement = DirectCast(CurrRexxRun.CallStack(CurrRexxRun.CallStack.Count), CallElem)
             If Not (CurrRexxRun.CallStack.Count = 1 AndAlso CallStackElement.InternDepth = 0) Then ' caller and routine in same script?
                 asmCallingLine = DirectCast(CurrRexxRun.IntCode.Item(CInt(Stack.Item(Stack.Count()))), AsmStatement) ' cal statement  
@@ -4291,7 +4308,7 @@ Public Class Rexx
         Return res
     End Function
     Private Function ReadSource(src As Collection, longName As String) As Integer
-        If longName <> "In memory source.REX" Then
+        If longName <> "In memory source" Then
             ReadSource = ReadSourceFile(src, longName)
         Else
             Dim s As New LineOfSource
@@ -4300,70 +4317,6 @@ Public Class Rexx
             src.Add(s)
             ReadSource = 0
         End If
-    End Function
-
-    Private Function ReadSourceFileOld(src As Collection, longName As String) As Integer
-        Dim rc As Integer = 0
-        Dim line, stat As String
-        Dim InString As Boolean
-        Dim DelimString, c As Char
-        Dim i, j, lnr As Integer
-
-        '#If Not Debug Then
-        Try
-            '#End If
-            Dim sr As New StreamReader(longName, System.Text.Encoding.ASCII, True)
-            lnr = 0
-            '  Using sr As StreamReader = File.OpenText(longName)
-            Do While sr.Peek() >= 0
-                line = sr.ReadLine().TrimEnd
-                lnr = lnr + 1
-                If line.Length > 0 Then
-                    Do While line(line.Length - 1) = ","
-                        line = line.Substring(0, line.Length - 1) & sr.ReadLine().TrimEnd
-                    Loop
-                    InString = False
-                    j = -1
-                    For i = 0 To line.Length - 1
-                        c = line(i)
-                        If InString Then
-                            If c = DelimString Then
-                                InString = False
-                            End If
-                        ElseIf c = "'" Or c = """" Then
-                            DelimString = c
-                            InString = True
-                        ElseIf c = ";" Then
-                            stat = line.Substring(j + 1, i - j - 1)
-                            If stat.Trim.Length > 0 Then
-                                Dim s As New LineOfSource
-                                s.Text = stat & ";"
-                                s.LineNr = lnr
-                                src.Add(s)
-                            End If
-                            j = i
-                        End If
-                    Next
-                    If i > j + 2 Then
-                        stat = line.Substring(j + 1, i - j - 1)
-                        If stat.Trim.Length > 0 Then
-                            Dim s As New LineOfSource
-                            s.Text = stat & ";"
-                            s.LineNr = lnr
-                            src.Add(s)
-                        End If
-                    End If
-                End If
-            Loop
-            sr.Close()
-            sr.Dispose()
-            '  End Using
-            '#If Not Debug Then
-        Catch e As Exception
-            rc = 16
-        End Try
-        '#End If
-        Return rc
     End Function
     Private Function ReadSourceFile(src As Collection, Filename As String) As Integer
         ' read file in ASCII or UNICODE and store source in collection src
@@ -4387,6 +4340,9 @@ Public Class Rexx
                 If nSkip > 0 Then
                     nSkip -= 1
                 Else
+                    If iFile = 1 AndAlso ch = 63 AndAlso CurrEdtSession.EncodingType = "8"c Then
+                        ssd.SrcStart = 2 ' skip ?: BOM indicator for windows utf8 file encoder
+                    End If
                     If iFile = 1 AndAlso ch = 255 Then
                         IsUnicodeh = True
                     ElseIf iFile = 2 AndAlso IsUnicodeh AndAlso ch = 254 Then
@@ -4466,7 +4422,7 @@ Friend Class LineOfSource
     Friend Text As String
 End Class
 Friend Class CallElem
-    Friend ProcNum As Integer    ' n° in source of proc
+    Friend ProcNum As Integer    ' nr in source of proc
     Friend InternDepth As Integer    ' internal call depth
     Friend Exposes As Collection ' strings of names to expose
 End Class
@@ -4529,6 +4485,7 @@ Public Class RexxCompData
     Friend sigNovalue As Boolean, sigLabel As Integer
     Friend InInterpret As Boolean
     Friend InInteractive As Boolean = False
+    Friend InExecution As Boolean = False
 
     Friend Source As New Collection
     Friend ItpSource As New Collection
