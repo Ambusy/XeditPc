@@ -1,9 +1,11 @@
 ﻿Press F3 to return to editor
 
-Windows Vista or 7 user: see below to modify or add commands
+non Windows XP user: see below to modify or add commands
 
 Basic edit commands    [...] is optional    .... / .... choose
 
+ADD [n]
+ALTER c/XX c/XX [target [no [fo]]] 
 BOTTOM       
 CAPPEND text
 CDELETE target
@@ -18,6 +20,7 @@ CMSG command
 CURSOR SCREEN/FILE linen° coln°
 DELETE [target]   
 DOWN [target]  
+DROPBUF [n]
 FIND text  
 FINDUP text  
 GET file [f n°] [n n°]
@@ -25,6 +28,7 @@ HELP
 INPUT sourcetext  
 LEFT [n/*] 
 LOCATE target
+MAKEBUF
 MCOPY           (copy selection to clipboard, ctrl-click: rectangle)
 MCUT            (cut selection)
 MPASTE          (paste selection to clipboard)
@@ -125,6 +129,7 @@ EXTRACT
      SCOPE
      SELECTSET
      SHADOW
+     TABS
      TEMP
      TERMINAL
      TRUNC
