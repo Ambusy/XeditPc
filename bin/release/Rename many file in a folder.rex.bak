@@ -6,7 +6,7 @@ if folder = "" then exit
 "extract /temp/"   /* get user's TEMP directory */
 dsn = temp.1||"file.list"
 say "executing command DIR" folder||"\*.jpg >"||dsn
-address "DOS" "cmd /C " "DIR" folder||"\*.jpg >"||dsn
+address "cms" "cmd /C " "DIR" folder||"\*.jpg >"||dsn
 call STREAM(dsn,"C","OPEN READ")
 n = lines(dsn)
 do i=1 to n
@@ -19,7 +19,7 @@ do i=1 to n
       filen = right(file,9)
       if file <> filen then do
         say "executing command REN" '"'||folder||'\'||file||'"' '"'||filen||'"'
-        address "DOS" "cmd /C " "REN" '"'||folder||'\'||file||'"' '"'||filen||'"'
+        address "cms" "cmd /C " "REN" '"'||folder||'\'||file||'"' '"'||filen||'"'
       end
     end
   end

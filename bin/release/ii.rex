@@ -3,7 +3,7 @@
 trace n
 parse arg p l n .
 if p = "PREFIX" & l = "LINE" then do
-   address xedit
+   address "xedit"
    "Extract /Line/Cursor/"
    ":" n
    "Extract /Curline/"

@@ -108,7 +108,8 @@
      CHAROUT  . . . . . . . . . . . . . . . . . . . . . . . . . . .  59  
      CHARS  . . . . . . . . . . . . . . . . . . . . . . . . . . . .  60  
      COMPARE  . . . . . . . . . . . . . . . . . . . . . . . . . . .  61  
-     COPIES . . . . . . . . . . . . . . . . . . . . . . . . . . . .  62  
+     COPIES . . . . . . . . . . . . . . . . . . . . . . . . . . . .  62 
+     CONTAINS . . . . . . . . . . . . . . . . . . . . . . . . . . .  62 
      C2X  . . . . . . . . . . . . . . . . . . . . . . . . . . . . .  63  
      DATATYPE   . . . . . . . . . . . . . . . . . . . . . . . . . .  63  
      DATE   . . . . . . . . . . . . . . . . . . . . . . . . . . . .  65  
@@ -127,6 +128,7 @@
      RANDOM   . . . . . . . . . . . . . . . . . . . . . . . . . . .  77  
      REVERSE  . . . . . . . . . . . . . . . . . . . . . . . . . . .  78  
      REGEXP . . . . . . . . . . . . . . . . . . . . . . . . . . . .  78  
+     RXFUNCADD  . . . . . . . . . . . . . . . . . . . . . . . . . .  114
      RIGHT  . . . . . . . . . . . . . . . . . . . . . . . . . . . .  79  
      SIGN   . . . . . . . . . . . . . . . . . . . . . . . . . . . .  80  
      STREAM   . . . . . . . . . . . . . . . . . . . . . . . . . . .  80  
@@ -772,8 +774,8 @@
       1. The line ends in the middle of comment.
 
                                                                                          [11]
-      2. The last character was a comma.  In this case the
-         comma is functionally ignored, and acts as a
+      2. The last non-comment token was a comma.  In this case the
+         comma is functionally replaced by a blank, and acts as a
          continuation character.
 
       This means that you only need to use semicolons to separate
@@ -3886,6 +3888,31 @@
       SUBSTR( )   Returns a substring of a string, by character
 
                                                                                          [63]
+   --------------------------------------------------------------------
+                                  CONTAINS
+   --------------------------------------------------------------------
+
+
+   Purpose
+
+      Looks up if a compound variable contains a given value. If so returns the
+      compound's tail (the "index"), if absent returns "0"
+
+   Syntax
+
+      >>-CONTAINS(string,head)----------------------------------------><
+
+   Parameters
+
+      string The value to look for
+
+      head   The head of the compound variable including the point.
+
+   Examples
+
+      CONTAINS(123,"TBL.") @  0 if no TBL.x has value 123
+      CONTAINS(123,"TBL.") @  7 if TBL.7 has value 123
+
 
 
    --------------------------------------------------------------------
@@ -5000,6 +5027,8 @@
                            |                  |
                            +-CLOSE------------+
                            |                  |
+                           +-RESET------------+
+                           |                  |
                            +-SEEK-offset------+
                            |                  |
                            +-QUERY-type-------+
@@ -5085,6 +5114,8 @@
                  failed, STREAM returns an appropriate error message.
                  If you try to close an unopened stream, STREAM returns
                  a null string.
+
+      RESET      Optionally closes a stream and deletes the underlying file.
 
       SEEK offsetSets an explicit read or write position within a
                  persistent stream.  See "Input and Output" on page
@@ -6959,3 +6990,18 @@
          fore multiple labels are allowed before another type of
          clause.
 
+                                                                                         [114]
+
+   --------------------------------------------------------------------
+                                  RXFUNCADD
+   --------------------------------------------------------------------
+   Purpose
+      Add an external function to the known declared functions
+   Syntax
+      RXFUNCADD(systemname, libraryname, rexxname)
+   Parameters
+      systemname  The name of the routine as known externally
+      libraryname The name of the residing library
+      rexxname    The name with which the function is called within the Rexx script.
+   Remarks
+      Returns 0 if the environment knows to find the function.  Otherwise, returns 1.

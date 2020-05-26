@@ -21,7 +21,7 @@ if t = "" then do
    say "enter file new start number"
    pull t
 end
-"cms erase a.$$$"
+"erase a.$$$"
 'cms dir "' || p || f || '*.*" >a.$$$'
 "XEDIT a.$$$"
 "TOP"

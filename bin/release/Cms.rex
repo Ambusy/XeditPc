@@ -1,5 +1,5 @@
 /* Execute cms (dos) command */ 
 trace n
 parse arg c
-address cms "cmd /C " || c
+address "DOS" "cmd /C " || c
 exit rc

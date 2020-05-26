@@ -13,7 +13,7 @@ tmp = temp.1
 inf = tmp || "$s$x$.tmp"
 ouf = tmp || "$s$x$2.tmp"
 "save" inf 
-address dos "SORT /+"||col inf "/O" ouf
+"CMS SORT /+"||col inf "/O" ouf
 "erase" inf
 ":1"
 "delete *"

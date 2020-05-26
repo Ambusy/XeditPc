@@ -229,11 +229,9 @@ TRIMR     Strips trailing spaecs from all lines
 NUMMER    puts a sequencenumber in the visible lines
 COMPFILE  Compare contents of all files in a (sub)directory
 
-
-
 Edit linecommands implemented in rexx:
 
-C         to copy/move line(s) Before or After a line
+C         to copy/move line(s) Preceding or Following a line
 CC
 M
 MM
@@ -296,6 +294,7 @@ Not all functions are present. Available:
    CHAROUT       STRIP
    COMPARE       SUBSTR
    COPIES        SUBWORD
+   CONTAINS
    DATATYPE      TIME
    DATE          TRANSLATE
    DELSTR        TRUNC
