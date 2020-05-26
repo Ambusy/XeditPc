@@ -6054,7 +6054,7 @@ FileDeleteErrorRes:
         If env.ToUpper(CultInf) = "XEDIT" Then
             Me.DoCmd1(s, False)
         Else
-            Dim myProcess As Process = Nothing
+            Dim myProcess As Process = New Process()
             Dim en, pa As String, sep As Char, i As Integer
             If s.Substring(0, 1) = """" Then
                 sep = """"c
@@ -6070,10 +6070,15 @@ FileDeleteErrorRes:
                 pa = en.Substring(i + 1)
                 en = en.Substring(0, i)
             End If
+            'MsgBox(env.ToUpper(CultInf) & " " & s & "!" & en & "!" & pa)
             Try
                 myProcess = Process.Start(en, pa)
-                myProcess.WaitForExit()
-                rc = myProcess.ExitCode
+                If env.ToUpper(CultInf) = "NOWAIT" Then
+                    rc = 0
+                Else
+                    myProcess.WaitForExit()
+                    rc = myProcess.ExitCode
+                End If
             Catch ex As Exception
                 rc = -1
             End Try

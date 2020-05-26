@@ -80,6 +80,7 @@ Partial Class MyMsg
         Me.ShowInTaskbar = False
         Me.StartPosition = System.Windows.Forms.FormStartPosition.CenterParent
         Me.Text = "MyMsg"
+        Me.TopMost = True
         Me.ResumeLayout(False)
         Me.PerformLayout()
 

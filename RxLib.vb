@@ -45,7 +45,7 @@ Public Class Rexx
     Friend Shared SayLine(24) As String ' say buffer for all routines
     Friend Shared lSay, nSay As Integer
     Friend Shared RexxWords As New Collection ' symbols for compiler
-    Friend Shared RexxFunctions(44) As String ' builtin functions with parameter definitions
+    Friend Shared RexxFunctions(45) As String ' builtin functions with parameter definitions
     Friend Shared SymsStr(78) As String ' names of symbols for errors
     Friend Shared SysMessages As New Collection ' text of messages
     Public Shared QStack As New Collection ' Queue/Pull currRexxRun.Stack
@@ -296,22 +296,24 @@ Public Class Rexx
         If RcComp = 0 And Not Interpreting Then
             CurrRexxRun = Nothing
             For Each rs As RexxCompData In RexxRuns
-                If Not rs.InExecution AndAlso RexxFileName = rs.fileName Then
-                    CurrRexxRun = rs
-                    Logg("Already compiled and not active" & RexxFileName)
-                    If Filename <> "In memory source" Then
-                        If System.IO.File.GetLastWriteTime(RexxFileName) > rs.fileTstamp OrElse rs.CompRc <> 0 Then
-                            Logg("Recompile " & RexxFileName)
+                If Not rs.InExecution Then
+                    If RexxFileName = rs.fileName Then
+                        CurrRexxRun = rs
+                        Logg("Already compiled and not active" & RexxFileName)
+                        If Filename <> "In memory source" Then
+                            If System.IO.File.GetLastWriteTime(RexxFileName) > rs.fileTstamp OrElse rs.CompRc <> 0 Then
+                                Logg("Recompile " & RexxFileName)
+                                RcComp = -2
+                            End If
+                        Else
                             RcComp = -2
                         End If
+                        CurrRexxRun.UseStamp = Now()
+                        Exit For
                     Else
-                        RcComp = -2
-                    End If
-                    CurrRexxRun.UseStamp = Now()
-                    Exit For
-                Else
-                    If minDate > rs.UseStamp Then
-                        minDate = rs.UseStamp
+                        If minDate > rs.UseStamp Then
+                            minDate = rs.UseStamp
+                        End If
                     End If
                 End If
             Next
@@ -347,15 +349,16 @@ Public Class Rexx
             Else
                 If RcIi = -1 Then
                     CurrRexxRun.UseStamp = Now()
-                    If RexxRuns.Count = 99 Then
-                        Dim rs As New RexxCompData
+                    If RexxRuns.Count >= 99 Then
                         For ix As Integer = 1 To RexxRuns.Count()
-                            rs = DirectCast(RexxRuns(ix), RexxCompData)
-                            If minDate = rs.UseStamp Then
+                            Dim rs = DirectCast(RexxRuns(ix), RexxCompData)
+                            If Not rs.InExecution AndAlso minDate = rs.UseStamp Then
                                 Logg("Substitute " & rs.fileName & " by " & CurrRexxRun.fileName)
                                 RexxRuns.Remove(ix)
                                 RexxRuns.Add(CurrRexxRun)
-                                Exit For
+                                If RexxRuns.Count < 99 Then
+                                    Exit For
+                                End If
                             End If
                         Next
                     Else
@@ -2151,6 +2154,7 @@ Public Class Rexx
         i = i + 1 : RexxFunctions(i) = "02SSII     CHAROUT"
         i = i + 1 : RexxFunctions(i) = "01S        CHARS"
         i = i + 1 : RexxFunctions(i) = "02SSS      COMPARE"
+        i = i + 1 : RexxFunctions(i) = "02SS       CONTAINS"
         i = i + 1 : RexxFunctions(i) = "02SI       COPIES"
         i = i + 1 : RexxFunctions(i) = "01SS       DATATYPE"
         i = i + 1 : RexxFunctions(i) = "00S        DATE"
@@ -2580,6 +2584,15 @@ Public Class Rexx
                             End If
                         Case "INDEX"
                             m = CStr(InStr(ps(1), ps(2)))
+                        Case "CONTAINS"
+                            m = "0"
+                            If ps(2).EndsWith(".") Then
+                                For Each v As VariabelRun In CurrRexxRun.RuntimeVars
+                                    If v.IdValue = ps(1) AndAlso v.Id.StartsWith(ps(2)) Then
+                                        m = v.Id.Substring(ps(2).Length)
+                                    End If
+                                Next
+                            End If
                         Case "POS"
                             If cL < 3 Then pi(3) = 1
                             m = CStr(InStr(pi(3), ps(2), ps(1)))
@@ -2829,7 +2842,7 @@ Public Class Rexx
                             m = Mid(ps(1), 1, pi(2) - 1) & Mid(ps(1), pi(2) + pi(3))
                         Case "ROUND"
                             If cL < 2 Then pi(2) = 0
-                            m = Math.Round(pr(1), pi(2))
+                            m = CStr(Math.Round(pr(1), pi(2)))
                             If Not DecimalSepPt Then m = Translate(m, ".,", ",.")
                         Case "SIGN"
                             If pr(1) = 0 Then
@@ -3046,15 +3059,22 @@ Public Class Rexx
                             If m <> "ERROR" Then
                                 Dim str As aStream
                                 str = DirectCast(Streams.Item(ps(1)), aStream)
-                                If Not pm(2) And Not pm(3) Then
-                                    m = CloseStream(ps(1))
-                                Else
-                                    If pm(3) Then
-                                        GotoStreamLine(str, pi(3)) ' start at line
-                                        str.WritePos = str.ReadPos
+                                If Not str.FileStr.CanWrite Then
+                                    CloseStream(ps(1))
+                                    m = OpenStream(ps(1), "W")
+                                    str = DirectCast(Streams.Item(ps(1)), aStream)
+                                End If
+                                If m <> "ERROR" Then
+                                    If Not pm(2) And Not pm(3) Then
+                                        m = CloseStream(ps(1))
+                                    Else
+                                        If pm(3) Then
+                                            GotoStreamLine(str, pi(3)) ' start at line
+                                            str.WritePos = str.ReadPos
+                                        End If
+                                        m = StreamWriteLine(str, ps(2), True)
+                                        str.WritePos += ps(2).Length() + 2
                                     End If
-                                    m = StreamWriteLine(str, ps(2), True)
-                                    str.WritePos += ps(2).Length() + 2
                                 End If
                             End If
                         Case "CHARS"
@@ -3098,19 +3118,26 @@ Public Class Rexx
                             If m <> "ERROR" Then
                                 Dim str As aStream, mc As Integer
                                 str = DirectCast(Streams.Item(ps(1)), aStream)
-                                If Not pm(2) And Not pm(3) Then
-                                    m = CloseStream(ps(1))
-                                Else
-                                    If pm(3) Then
-                                        str.WritePos = pi(3) - 1
-                                    End If
-                                    If pm(4) Then
-                                        mc = pi(4)
+                                If Not str.FileStr.CanWrite Then
+                                    CloseStream(ps(1))
+                                    m = OpenStream(ps(1), "W")
+                                    str = DirectCast(Streams.Item(ps(1)), aStream)
+                                End If
+                                If m <> "ERROR" Then
+                                    If Not pm(2) And Not pm(3) Then
+                                        m = CloseStream(ps(1))
                                     Else
-                                        mc = 1
+                                        If pm(3) Then
+                                            str.WritePos = pi(3) - 1
+                                        End If
+                                        If pm(4) Then
+                                            mc = pi(4)
+                                        Else
+                                            mc = ps(2).Length
+                                        End If
+                                        m = StreamWriteLine(str, ps(2).Substring(0, mc), False)
+                                        str.WritePos += mc
                                     End If
-                                    m = StreamWriteLine(str, ps(2).Substring(0, mc), False)
-                                    str.WritePos += mc
                                 End If
                             End If
                         Case "REGEXP"
@@ -4289,6 +4316,11 @@ Public Class Rexx
         Next
         x = y
         l = x.Length()
+        Dim l1 As Integer = l Mod 8
+        If l1 > 0 Then
+            x = "0000000".Substring(0, 8 - l1) + x
+            l = x.Length()
+        End If
         res = ""
         j = 0
         h = 0
