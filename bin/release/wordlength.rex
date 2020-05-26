@@ -1,4 +1,4 @@
-/* wordlength(text,index) */
+/* wordlength(text,index) return length of nth word*/
 wordlength: trace n
   parse arg txt, idx
   if idx > 1

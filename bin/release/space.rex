@@ -1,4 +1,4 @@
-/* space(text, [n° chars], [pad_char]) */
+/* space(text, [n° chars], [pad_char]) return words with exact spacing with indicated spacechar*/
 space: trace n  
   parse arg txt, ns, pad
   if ns = "" then ns = 1

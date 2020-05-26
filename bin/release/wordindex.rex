@@ -1,4 +1,4 @@
-/* wordindex(text,index) */
+/* wordindex(text,index) return position of the "index"ed word */
 wordindex: trace n
   parse arg txt, idx
   inw = 0  /* in a word? */
