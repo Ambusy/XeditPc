@@ -86,7 +86,6 @@ reopenFile:
             CurrEdtSession.FileUsesEndlineLF = False
             CurrEdtSession.FileUsesEndlineCR = False
             lFile = CurrEdtSession.EditFile.Length()
-            CurrEdtSession.IsUnicode = False
             ssd = New SourceLine
             ssd.SrcFileIx = "E"c
             ssd.SrcStart = 1
@@ -125,7 +124,7 @@ reopenFile:
                             If ch = 10 Then CurrEdtSession.FileUsesEndlineCR = True
                             If (vCh = 10 Or vCh = 13) Then
                                 ch = 0 ' Lf after CR or Cr after LF has no meaning
-                                If CurrEdtSession.IsUnicode Then
+                                If CurrEdtSession.EncodingType = "U"c Then
                                     nSkip = 1
                                 End If
                                 ssd.SrcStart += (nSkip + 1)
@@ -133,7 +132,7 @@ reopenFile:
                                 ssd.SrcLength = iFile - ssd.SrcStart
                                 CurrEdtSession.SourceList.Add(ssd)
                                 Logg("InitEditFile read " & CStr(CurrEdtSession.SourceList.Count) & " " & CStr(ssd.SrcStart) & " " & CStr(ssd.SrcLength))
-                                If CurrEdtSession.IsUnicode Then nSkip = 1
+                                If CurrEdtSession.EncodingType = "U"c Then nSkip = 1
                                 ssd = New SourceLine
                                 ssd.SrcFileIx = "E"c
                                 ssd.SrcStart = iFile + 1 + nSkip
@@ -1345,8 +1344,16 @@ opn:
                             StoreExtract1("FULLFILENAME", strng)
                         Case "FTYPE"
                             strng = CurrEdtSession.EditFileName
+                            i = strng.LastIndexOf("\")
+                            If i > -1 Then
+                                strng = strng.Substring(i + 1)
+                            End If
                             i = InStrRev(strng, ".")
-                            If i > 0 Then strng = Mid(strng, i + 1)
+                            If i > 0 Then
+                                strng = Mid(strng, i + 1)
+                            Else
+                                strng = ""
+                            End If
                             StoreExtract1("FTYPE", strng.ToUpper())
                         Case "FNAME"
                             strng = CurrEdtSession.EditFileName
@@ -2872,41 +2879,41 @@ FileDeleteErrorRes:
                 If CurrEdtSession.RecfmV Then
                     If CurrEdtSession.FileUsesEndlineLF Then l += 1
                     If CurrEdtSession.FileUsesEndlineCR Then l += 1
-                    If CurrEdtSession.IsUnicode Then
-                        If CurrEdtSession.FileUsesEndlineLF Then l += 1
-                        If CurrEdtSession.FileUsesEndlineCR Then l += 1
-                    End If
+                If CurrEdtSession.EncodingType = "U"c Then
+                    If CurrEdtSession.FileUsesEndlineLF Then l += 1
+                    If CurrEdtSession.FileUsesEndlineCR Then l += 1
                 End If
+            End If
                 Dim StrtWrt As Integer = 0
-                If CurrEdtSession.IsUnicode AndAlso FirstLine Then
-                    StrtWrt = 2
-                    l += 2
-                End If
-                Dim buf(l - 1) As Byte
+            If CurrEdtSession.EncodingType = "U"c AndAlso FirstLine Then
+                StrtWrt = 2
+                l += 2
+            End If
+            Dim buf(l - 1) As Byte
                 EditRdFile = FileWithData(ssd.SrcFileIx)
                 If ssd.SrcStart = 0 Then
                     ssd.SrcStart = 1
                 End If
                 EditRdFile.Seek(ssd.SrcStart - 1, SeekOrigin.Begin)
                 EditRdFile.Read(buf, StrtWrt, ssd.SrcLength)
-                If CurrEdtSession.IsUnicode Then
-                    If FirstLine Then
-                        buf(0) = 255
-                        buf(1) = 254
-                        FirstLine = False
-                    End If
-                    If CurrEdtSession.RecfmV AndAlso lne < CurrEdtSession.SourceList.Count Then
-                        If CurrEdtSession.FileUsesEndlineLF Then
-                            If CurrEdtSession.FileUsesEndlineCR Then
-                                buf(l - 4) = 13
-                            Else
-                                buf(l - 2) = 13
-                            End If
+            If CurrEdtSession.EncodingType = "U"c Then
+                If FirstLine Then
+                    buf(0) = 255
+                    buf(1) = 254
+                    FirstLine = False
+                End If
+                If CurrEdtSession.RecfmV AndAlso lne < CurrEdtSession.SourceList.Count Then
+                    If CurrEdtSession.FileUsesEndlineLF Then
+                        If CurrEdtSession.FileUsesEndlineCR Then
+                            buf(l - 4) = 13
+                        Else
+                            buf(l - 2) = 13
                         End If
-                        If CurrEdtSession.FileUsesEndlineCR Then buf(l - 2) = 10
                     End If
-                Else
-                    If CurrEdtSession.RecfmV AndAlso lne < CurrEdtSession.SourceList.Count Then
+                    If CurrEdtSession.FileUsesEndlineCR Then buf(l - 2) = 10
+                End If
+            Else
+                If CurrEdtSession.RecfmV AndAlso lne < CurrEdtSession.SourceList.Count Then
                         If CurrEdtSession.FileUsesEndlineLF Then
                             If CurrEdtSession.FileUsesEndlineCR Then
                                 buf(l - 2) = 13
@@ -3466,52 +3473,54 @@ FileDeleteErrorRes:
                                 StrToShow = StrToBuild.ToString
                             End If
                         End If
-                        StrToShow = StrToShow.TrimEnd()
-                        Dim buf() As Byte = System.Text.Encoding.Default.GetBytes(StrToShow)
-                        UnPrint(buf)
-                        StrToShow = System.Text.Encoding.Default.GetString(buf)
-                        dsScr.CharsOnScr = CShort(StrToShow.Length())
-                        CalcSelectedLineParts(dsScr, StrToShow, Bsl, Sel, Asl)
-                        Dim PntPiece As Integer = 1
-                        Logg("XeditPc_Paint line " & CStr(crLine) & " sel: " & CStr(Bsl) & " " & CStr(Sel) & " " & CStr(Asl))
-                        TxtCurLin += StrToShow
-                        If Bsl > 0 Then
-                            chRs(PntPiece) = New CharacterRange(7, Bsl)
-                            sbRs(PntPiece) = blackBrush
-                            flRs(PntPiece) = whiteBrush
-                            PntPiece += 1
-                        End If
-                        If Sel > 0 Then
-                            chRs(PntPiece) = New CharacterRange(7 + Bsl, Sel)
-                            sbRs(PntPiece) = whiteBrush
-                            flRs(PntPiece) = blueBrush
-                            PntPiece += 1
-                        End If
-                        If Asl > 0 Then
-                            chRs(PntPiece) = New CharacterRange(7 + Bsl + Sel, Asl)
-                            sbRs(PntPiece) = blackBrush
-                            flRs(PntPiece) = whiteBrush
-                            PntPiece += 1
-                        End If
-                        Dim chRsa As Array = Array.CreateInstance(GetType(CharacterRange), PntPiece)
-                        Array.Copy(chRs, 0, chRsa, 0, PntPiece)
-                        aRectangle = New Rectangle(0, CInt((crLine - 1) * RectHeight) - 2, ClientSize.Width - VSB.Width, RectHeight) ' x, y, w, h 
-                        ' Set string format.
-                        Dim stringFormat As New StringFormat
-                        stringFormat.SetMeasurableCharacterRanges(chRsa)
-                        ' Measure ranges in string.
-                        Dim stringRegions As Array = Array.CreateInstance(GetType([Region]), PntPiece)
-                        stringRegions = e.Graphics.MeasureCharacterRanges(TxtCurLin, EditFont, aRectangle, stringFormat)
-                        For ir As Integer = stringRegions.GetLowerBound(0) To stringRegions.GetUpperBound(0)
-                            Dim measureRect1 As RectangleF = stringRegions(ir).GetBounds(e.Graphics)
-                            Logg("  |" & TxtCurLin.Substring(chRs(ir).First, chRs(ir).Length) & "|")
-                            g.FillRectangle(flRs(ir), measureRect1)
-                            g.DrawString(TxtCurLin.Substring(chRs(ir).First, chRs(ir).Length), EditFont, sbRs(ir), CSng(measureRect1.X), CSng(measureRect1.Y))
-                        Next
-                        If crLine = CurrEdtSession.CursorDisplayLine Then
-                            TxtCurLinCr = TxtCurLin
-                        End If
-                    End If
+                StrToShow = StrToShow.TrimEnd()
+                If CurrEdtSession.EncodingType = "A"c Then
+                    Dim buf() As Byte = System.Text.Encoding.Default.GetBytes(StrToShow)
+                    UnPrint(buf)
+                    StrToShow = System.Text.Encoding.Default.GetString(buf)
+                End If
+                dsScr.CharsOnScr = CShort(StrToShow.Length())
+                CalcSelectedLineParts(dsScr, StrToShow, Bsl, Sel, Asl)
+                Dim PntPiece As Integer = 1
+                Logg("XeditPc_Paint line " & CStr(crLine) & " sel: " & CStr(Bsl) & " " & CStr(Sel) & " " & CStr(Asl))
+                TxtCurLin += StrToShow
+                If Bsl > 0 Then
+                    chRs(PntPiece) = New CharacterRange(7, Bsl)
+                    sbRs(PntPiece) = blackBrush
+                    flRs(PntPiece) = whiteBrush
+                    PntPiece += 1
+                End If
+                If Sel > 0 Then
+                    chRs(PntPiece) = New CharacterRange(7 + Bsl, Sel)
+                    sbRs(PntPiece) = whiteBrush
+                    flRs(PntPiece) = blueBrush
+                    PntPiece += 1
+                End If
+                If Asl > 0 Then
+                    chRs(PntPiece) = New CharacterRange(7 + Bsl + Sel, Asl)
+                    sbRs(PntPiece) = blackBrush
+                    flRs(PntPiece) = whiteBrush
+                    PntPiece += 1
+                End If
+                Dim chRsa As Array = Array.CreateInstance(GetType(CharacterRange), PntPiece)
+                Array.Copy(chRs, 0, chRsa, 0, PntPiece)
+                aRectangle = New Rectangle(0, CInt((crLine - 1) * RectHeight) - 2, ClientSize.Width - VSB.Width, RectHeight) ' x, y, w, h 
+                ' Set string format.
+                Dim stringFormat As New StringFormat
+                stringFormat.SetMeasurableCharacterRanges(chRsa)
+                ' Measure ranges in string.
+                Dim stringRegions As Array = Array.CreateInstance(GetType([Region]), PntPiece)
+                stringRegions = e.Graphics.MeasureCharacterRanges(TxtCurLin, EditFont, aRectangle, stringFormat)
+                For ir As Integer = stringRegions.GetLowerBound(0) To stringRegions.GetUpperBound(0)
+                    Dim measureRect1 As RectangleF = stringRegions(ir).GetBounds(e.Graphics)
+                    Logg("  |" & TxtCurLin.Substring(chRs(ir).First, chRs(ir).Length) & "|")
+                    g.FillRectangle(flRs(ir), measureRect1)
+                    g.DrawString(TxtCurLin.Substring(chRs(ir).First, chRs(ir).Length), EditFont, sbRs(ir), CSng(measureRect1.X), CSng(measureRect1.Y))
+                Next
+                If crLine = CurrEdtSession.CursorDisplayLine Then
+                    TxtCurLinCr = TxtCurLin
+                End If
+            End If
 #If Not DEBUG Then
                 Catch ex As Exception
                     If MsgBox("ERROR displaying a line: " & ex.Message, MsgBoxStyle.OkCancel, "Internal Programming Error") = MsgBoxResult.Cancel Then
@@ -3521,37 +3530,37 @@ FileDeleteErrorRes:
                     End If
                 End Try
 #End If
-            Next
-            ' draw the cursor in red, measure the text before the cursor pos
-            Dim crRs(0) As CharacterRange
-            If CurrEdtSession.CursorDisplayColumn < -6 Then CurrEdtSession.CursorDisplayColumn = -6
-            crRs(0) = New CharacterRange(6 + CurrEdtSession.CursorDisplayColumn, 1)
-            TxtCurLinCr = TxtCurLinCr.PadRight(9 + CurrEdtSession.CursorDisplayColumn)
-            aRectangle = New Rectangle(0, CInt((CurrEdtSession.CursorDisplayLine - 1) * RectHeight + 1), ClientSize.Width - VSB.Width, RectHeight) ' x, y, w, h 
-            Dim stringFormatC As New StringFormat
-            stringFormatC.SetMeasurableCharacterRanges(crRs)
-            Dim stringRegionsC(0) As [Region]
-            stringRegionsC = e.Graphics.MeasureCharacterRanges(TxtCurLinCr, EditFont, aRectangle, stringFormatC)
-            Dim measureRect2 As RectangleF = stringRegionsC(0).GetBounds(e.Graphics)
-            Dim CuX As Integer = measureRect2.X + 2
-            Dim CuXt As Integer = CuX
-            Dim CuY As Integer = CInt((CurrEdtSession.CursorDisplayLine) * RectHeight) + 1
-            Dim CuYt As Integer = CuY
-            If Not CurrEdtSession.InsOvertype Then
-                CuXt = CuX + CInt(EditTextWidth)
-                CuYt = CuY - 1
-                CuY = CuY - 1
-            Else
-                CuYt = CuY - CInt(EditTextHeight)
-            End If
-            Dim pF As New Point(CuX, CuY)
-            Dim pT As New Point(CuXt, CuYt)
-            g.DrawLine(redPen, pF, pT)
-            g.Dispose()
-            RepaintAllScreenLines = False
-            CalcIxInSLines()
-            CurrEdtSession.SessionInited = True
-            Logg("XeditPc_Paint end")
+        Next
+        ' draw the cursor in red, measure the text before the cursor pos
+        Dim crRs(0) As CharacterRange
+        If CurrEdtSession.CursorDisplayColumn < -6 Then CurrEdtSession.CursorDisplayColumn = -6
+        crRs(0) = New CharacterRange(6 + CurrEdtSession.CursorDisplayColumn, 1)
+        TxtCurLinCr = TxtCurLinCr.PadRight(9 + CurrEdtSession.CursorDisplayColumn)
+        aRectangle = New Rectangle(0, CInt((CurrEdtSession.CursorDisplayLine - 1) * RectHeight + 1), ClientSize.Width - VSB.Width, RectHeight) ' x, y, w, h 
+        Dim stringFormatC As New StringFormat
+        stringFormatC.SetMeasurableCharacterRanges(crRs)
+        Dim stringRegionsC(0) As [Region]
+        stringRegionsC = e.Graphics.MeasureCharacterRanges(TxtCurLinCr, EditFont, aRectangle, stringFormatC)
+        Dim measureRect2 As RectangleF = stringRegionsC(0).GetBounds(e.Graphics)
+        Dim CuX As Integer = measureRect2.X + 2
+        Dim CuXt As Integer = CuX
+        Dim CuY As Integer = CInt((CurrEdtSession.CursorDisplayLine) * RectHeight) + 1
+        Dim CuYt As Integer = CuY
+        If Not CurrEdtSession.InsOvertype Then
+            CuXt = CuX + CInt(EditTextWidth)
+            CuYt = CuY - 1
+            CuY = CuY - 1
+        Else
+            CuYt = CuY - CInt(EditTextHeight)
+        End If
+        Dim pF As New Point(CuX, CuY)
+        Dim pT As New Point(CuXt, CuYt)
+        g.DrawLine(redPen, pF, pT)
+        g.Dispose()
+        RepaintAllScreenLines = False
+        CalcIxInSLines()
+        CurrEdtSession.SessionInited = True
+        Logg("XeditPc_Paint end")
 #If Not DEBUG Then
         Catch ex As Exception
             MsgBox("ERROR displaying the screen. " & ex.Message, MsgBoxStyle.Critical, "Internal Programming Error")
