@@ -1,4 +1,4 @@
-Imports VB = Microsoft.VisualBasic
+ï»¿Imports VB = Microsoft.VisualBasic
 Imports System.Drawing.Printing
 #Const CreLogFile = False
 #Const tracen = False
@@ -512,19 +512,19 @@ opn:
 #If Not DEBUG Then
         Try
 #End If
-            orgCmd = CommandLine
-            Dim i As Integer
-            If FormShown Then
-                If Not CurrEdtSession.LinEndOff Then
+        orgCmd = CommandLine
+        Dim i As Integer
+        If FormShown Then
+            If Not CurrEdtSession.LinEndOff Then
+                i = CommandLine.IndexOf(CurrEdtSession.LinEndChar)
+                While i >= 0
+                    DoCmd1(CommandLine.Substring(0, i), FromKb)
+                    CommandLine = CommandLine.Substring(i + 1)
                     i = CommandLine.IndexOf(CurrEdtSession.LinEndChar)
-                    While i >= 0
-                        DoCmd1(CommandLine.Substring(0, i), FromKb)
-                        CommandLine = CommandLine.Substring(i + 1)
-                        i = CommandLine.IndexOf(CurrEdtSession.LinEndChar)
-                    End While
-                End If
+                End While
             End If
-            DoCmd1(CommandLine, FromKb)
+        End If
+        DoCmd1(CommandLine, FromKb)
 #If Not DEBUG Then
         Catch E As Exception ' might be an error
             Logg("DoCmd catch " & E.GetBaseException.ToString)
@@ -869,7 +869,7 @@ opn:
             Else
                 rc = 16
             End If
-        ElseIf Abbrev(FirstWord, "DELETE", 3) Then ' DELETE n°lines/*
+        ElseIf Abbrev(FirstWord, "DELETE", 3) Then ' DELETE nÂ°lines/*
             Dim Xed As Boolean = False
             dsScr = DirectCast(ScrList.Item(CurrEdtSession.CurLineNr), ScreenLine)
             While rc = 0 AndAlso (dsScr.CurLinType = "T"c Or dsScr.CurLinType = "X"c)
@@ -979,7 +979,7 @@ opn:
                     rc = 4
                 End If
             End If
-        ElseIf Abbrev(FirstWord, "CURSOR", 3) Then ' CURSOR [SCREEN/FILE] COMMAND/linen° coln°
+        ElseIf Abbrev(FirstWord, "CURSOR", 3) Then ' CURSOR [SCREEN/FILE] COMMAND/linenÂ° colnÂ°
             NextWord = NxtWordFromStr(CommandLine, "SCREEN")
             If Abbrev(NextWord, "COMMAND") Then
                 NextWord = "SCREEN"
@@ -1045,7 +1045,7 @@ opn:
             End If
         ElseIf Abbrev(FirstWord, "SET", 3) Then
             FirstWord = NxtWordFromStr(CommandLine)
-            If Abbrev(FirstWord, "ZONE") Then ' ZONE leftcol° rightcol°/*
+            If Abbrev(FirstWord, "ZONE") Then ' ZONE leftcolÂ° rightcolÂ°/*
                 CurrEdtSession.EditZoneLeft = CShort(NxtNumFromStr(CommandLine, "1"))
                 CurrEdtSession.EditZoneRight = CShort(NumOrAst(CommandLine, "*", 32767))
             ElseIf Abbrev(FirstWord, "PENDING", 4) Then ' set pending BLOCK commandnaam / OFF"
@@ -1200,7 +1200,7 @@ opn:
                 If prvShadow <> CurrEdtSession.Shadow Then
                     If CurrEdtSession.SessionInited Then RefrScrBuf()
                 End If
-            ElseIf Abbrev(FirstWord, "SELECT", 3) Then ' SET SELECT n°lines/* level
+            ElseIf Abbrev(FirstWord, "SELECT", 3) Then ' SET SELECT nÂ°lines/* level
                 dsScr = DirectCast(ScrList.Item(CurrEdtSession.CurLineNr), ScreenLine)
                 Dim k As Integer = NxtNumFromStr(CommandLine, "0")
                 j = NumOrAst(CommandLine, "*", CurrEdtSession.SourceList.Count() - dsScr.CurSrcNr + 1) + dsScr.CurSrcNr - 1
@@ -2019,7 +2019,7 @@ opn:
             vr = Mid(Opt, 6).Trim()
         End If
         Dim counter As Integer
-        If Ecmd = "DISKW" Then ' EXECIO n° FN startn°
+        If Ecmd = "DISKW" Then ' EXECIO nÂ° FN startnÂ°
             If Not WritableFile(fn, "EXECIO") Then Exit Sub
             If StartNr = 0 Then
                 Copy1st = 0
@@ -2104,10 +2104,10 @@ opn:
             If StartNr > 0 Then
                 If exi Then
                     FileClose(1)
-                    File.Move(fn, fn & ".£.$$$")
+                    File.Move(fn, fn & ".Å.$$$")
                 End If
                 File.Move(fn & ".$$$", fn)
-                If exi Then File.Delete(fn & ".£.$$$")
+                If exi Then File.Delete(fn & ".Å.$$$")
             End If
         Else ' DISKR
             CurRecNr = 0
@@ -2812,90 +2812,90 @@ opn:
 #If Not DEBUG Then
         Try
 #End If
-            Dim tFileName As String
-            Dim WrPos, l As Integer
-            Dim newSt As New Collection
-            Dim EditSaveFile As FileStream
-            Dim ssd As SourceLine
-            Logg("SaveFile start" & Filename)
-            SaveAllModifiedLines()
-            RestoreIedLines()
-            If Filename = "?" Then
-                SaveFileDialog1.FileName = CurrEdtSession.EditFileName
-                SaveFileDialog1.CheckFileExists = False
-                SaveFileDialog1.Title = "SAVE"
-                SaveFileDialog1.ShowDialog()
-                Filename = SaveFileDialog1.FileName
-                If Filename = "" Then
-                    rc = 8
-                    Exit Sub
-                End If
-            End If
-            If Not WritableFile(Filename, "SAVE") Then
-                Logg("SaveFile not writable " & Filename)
+        Dim tFileName As String
+        Dim WrPos, l As Integer
+        Dim newSt As New Collection
+        Dim EditSaveFile As FileStream
+        Dim ssd As SourceLine
+        Logg("SaveFile start" & Filename)
+        SaveAllModifiedLines()
+        RestoreIedLines()
+        If Filename = "?" Then
+            SaveFileDialog1.FileName = CurrEdtSession.EditFileName
+            SaveFileDialog1.CheckFileExists = False
+            SaveFileDialog1.Title = "SAVE"
+            SaveFileDialog1.ShowDialog()
+            Filename = SaveFileDialog1.FileName
+            If Filename = "" Then
+                rc = 8
                 Exit Sub
             End If
-            If SaveAs Then
-                Logg("SaveFile saveas" & Filename)
-                tFileName = Filename
+        End If
+        If Not WritableFile(Filename, "SAVE") Then
+            Logg("SaveFile not writable " & Filename)
+            Exit Sub
+        End If
+        If SaveAs Then
+            Logg("SaveFile saveas" & Filename)
+            tFileName = Filename
 FileDeleteErrorRes:
-                Try
-                    If File.Exists(Filename) Then File.Delete(Filename)
-                Catch ex As Exception
-                    Dim Msg As String = SysMsg(16) & " " & Filename
-                    Dim Response As Integer = MsgBox(Msg, MsgBoxStyle.RetryCancel, Msg)
-                    If Response = MsgBoxResult.Retry Then ' user requests RETRY.
-                        GoTo FileDeleteErrorRes
-                    Else
-                        rc = 48
-                        Exit Sub
-                    End If
-                End Try
-            Else
-                tFileName = Filename & ".$$$"
-            End If
-            EditSaveFile = New FileStream(tFileName, FileMode.OpenOrCreate, FileAccess.ReadWrite)
-            WrPos = 0
-            Dim FirstLine As Boolean = True
-            Dim lne As Integer = 0
-            For Each ssd In CurrEdtSession.SourceList
-                lne += 1
-                nrCyclesEv += 1 : If nrCyclesEv > 5000 Then CallDoEvent()
-                If CancelCmd Then
-                    EditSaveFile.Dispose()
-                    EditSaveFile.Close()
+            Try
+                If File.Exists(Filename) Then File.Delete(Filename)
+            Catch ex As Exception
+                Dim Msg As String = SysMsg(16) & " " & Filename
+                Dim Response As Integer = MsgBox(Msg, MsgBoxStyle.RetryCancel, Msg)
+                If Response = MsgBoxResult.Retry Then ' user requests RETRY.
+                    GoTo FileDeleteErrorRes
+                Else
+                    rc = 48
                     Exit Sub
                 End If
-                If ssd.SrcLength = -1 Then
-                    ssd.SrcLength = 0 ' probably solved this error, but dare not remove it
-                End If
-                If ssd.SrcStart = 0 Then
-                    ssd.SrcStart = 1
-                End If
-                l = ssd.SrcLength
-                If Not CurrEdtSession.RecfmV Then
-                    If l > CurrEdtSession.Lrecl Then l = CurrEdtSession.Lrecl 'truncate line
-                End If
-                If CurrEdtSession.RecfmV Then
-                    If CurrEdtSession.FileUsesEndlineLF Then l += 1
-                    If CurrEdtSession.FileUsesEndlineCR Then l += 1
+            End Try
+        Else
+            tFileName = Filename & ".$$$"
+        End If
+        EditSaveFile = New FileStream(tFileName, FileMode.OpenOrCreate, FileAccess.ReadWrite)
+        WrPos = 0
+        Dim FirstLine As Boolean = True
+        Dim lne As Integer = 0
+        For Each ssd In CurrEdtSession.SourceList
+            lne += 1
+            nrCyclesEv += 1 : If nrCyclesEv > 5000 Then CallDoEvent()
+            If CancelCmd Then
+                EditSaveFile.Dispose()
+                EditSaveFile.Close()
+                Exit Sub
+            End If
+            If ssd.SrcLength = -1 Then
+                ssd.SrcLength = 0 ' probably solved this error, but dare not remove it
+            End If
+            If ssd.SrcStart = 0 Then
+                ssd.SrcStart = 1
+            End If
+            l = ssd.SrcLength
+            If Not CurrEdtSession.RecfmV Then
+                If l > CurrEdtSession.Lrecl Then l = CurrEdtSession.Lrecl 'truncate line
+            End If
+            If CurrEdtSession.RecfmV Then
+                If CurrEdtSession.FileUsesEndlineLF Then l += 1
+                If CurrEdtSession.FileUsesEndlineCR Then l += 1
                 If CurrEdtSession.EncodingType = "U"c Then
                     If CurrEdtSession.FileUsesEndlineLF Then l += 1
                     If CurrEdtSession.FileUsesEndlineCR Then l += 1
                 End If
             End If
-                Dim StrtWrt As Integer = 0
+            Dim StrtWrt As Integer = 0
             If CurrEdtSession.EncodingType = "U"c AndAlso FirstLine Then
                 StrtWrt = 2
                 l += 2
             End If
             Dim buf(l - 1) As Byte
-                EditRdFile = FileWithData(ssd.SrcFileIx)
-                If ssd.SrcStart = 0 Then
-                    ssd.SrcStart = 1
-                End If
-                EditRdFile.Seek(ssd.SrcStart - 1, SeekOrigin.Begin)
-                EditRdFile.Read(buf, StrtWrt, ssd.SrcLength)
+            EditRdFile = FileWithData(ssd.SrcFileIx)
+            If ssd.SrcStart = 0 Then
+                ssd.SrcStart = 1
+            End If
+            EditRdFile.Seek(ssd.SrcStart - 1, SeekOrigin.Begin)
+            EditRdFile.Read(buf, StrtWrt, ssd.SrcLength)
             If CurrEdtSession.EncodingType = "U"c Then
                 If FirstLine Then
                     buf(0) = 255
@@ -2914,58 +2914,58 @@ FileDeleteErrorRes:
                 End If
             Else
                 If CurrEdtSession.RecfmV AndAlso lne < CurrEdtSession.SourceList.Count Then
-                        If CurrEdtSession.FileUsesEndlineLF Then
-                            If CurrEdtSession.FileUsesEndlineCR Then
-                                buf(l - 2) = 13
-                            Else
-                                buf(l - 1) = 13
-                            End If
+                    If CurrEdtSession.FileUsesEndlineLF Then
+                        If CurrEdtSession.FileUsesEndlineCR Then
+                            buf(l - 2) = 13
+                        Else
+                            buf(l - 1) = 13
                         End If
-                        If CurrEdtSession.FileUsesEndlineCR Then buf(l - 1) = 10
                     End If
-                End If
-                If Not SaveAs Then newSt.Add(WrPos)
-                If CurrEdtSession.RecfmV AndAlso lne = CurrEdtSession.SourceList.Count Then
-                    If CurrEdtSession.FileUsesEndlineLF Then l -= 1 ' remove last CrLf
-                    If CurrEdtSession.FileUsesEndlineCR Then l -= 1
-                End If
-                EditSaveFile.Write(buf, 0, l)
-                WrPos = WrPos + l
-            Next ssd
-            EditSaveFile.Dispose()
-            EditSaveFile.Close()
-            Logg("SaveFile written")
-            If Not SaveFileExisted Then
-                If Not File.Exists(tFileName) Then
-                    MsgBox(SysMsg(13) & ": " & tFileName)
-                    rc = 16
-                    Exit Sub
+                    If CurrEdtSession.FileUsesEndlineCR Then buf(l - 1) = 10
                 End If
             End If
-            If Not SaveAs Then
-                If Not CurrEdtSession.EditFile Is Nothing Then
-                    CurrEdtSession.EditFile.Dispose()
-                    CurrEdtSession.EditFile.Close()
-                    If Not CurrEdtSession.BakfileAlreadyCreated Then
-                        RenameFile(Filename, Filename & ".bak")
-                        If rc <> 48 Then CurrEdtSession.BakfileAlreadyCreated = True
-                    End If
-                End If
-                If rc <> 48 Then RenameFile(tFileName, Filename)
-                Logg("SaveFile renamed")
-                CurrEdtSession.EditFile = New FileStream(Filename, FileMode.Open, FileAccess.Read)
-                If rc <> 48 Then
-                    Dim Linr As Integer = 0
-                    For Each ssd In CurrEdtSession.SourceList
-                        nrCyclesEv += 1 : If nrCyclesEv > 5000 Then CallDoEvent()
-                        If CancelCmd Then Exit Sub
-                        Linr = Linr + 1
-                        ssd.SrcFileIx = "E"c
-                        ssd.SrcStart = CInt(newSt.Item(Linr)) + 1
-                    Next ssd
+            If Not SaveAs Then newSt.Add(WrPos)
+            If CurrEdtSession.RecfmV AndAlso lne = CurrEdtSession.SourceList.Count Then
+                If CurrEdtSession.FileUsesEndlineLF Then l -= 1 ' remove last CrLf
+                If CurrEdtSession.FileUsesEndlineCR Then l -= 1
+            End If
+            EditSaveFile.Write(buf, 0, l)
+            WrPos = WrPos + l
+        Next ssd
+        EditSaveFile.Dispose()
+        EditSaveFile.Close()
+        Logg("SaveFile written")
+        If Not SaveFileExisted Then
+            If Not File.Exists(tFileName) Then
+                MsgBox(SysMsg(13) & ": " & tFileName)
+                rc = 16
+                Exit Sub
+            End If
+        End If
+        If Not SaveAs Then
+            If Not CurrEdtSession.EditFile Is Nothing Then
+                CurrEdtSession.EditFile.Dispose()
+                CurrEdtSession.EditFile.Close()
+                If Not CurrEdtSession.BakfileAlreadyCreated Then
+                    RenameFile(Filename, Filename & ".bak")
+                    If rc <> 48 Then CurrEdtSession.BakfileAlreadyCreated = True
                 End If
             End If
-            Logg("SaveFile end")
+            If rc <> 48 Then RenameFile(tFileName, Filename)
+            Logg("SaveFile renamed")
+            CurrEdtSession.EditFile = New FileStream(Filename, FileMode.Open, FileAccess.Read)
+            If rc <> 48 Then
+                Dim Linr As Integer = 0
+                For Each ssd In CurrEdtSession.SourceList
+                    nrCyclesEv += 1 : If nrCyclesEv > 5000 Then CallDoEvent()
+                    If CancelCmd Then Exit Sub
+                    Linr = Linr + 1
+                    ssd.SrcFileIx = "E"c
+                    ssd.SrcStart = CInt(newSt.Item(Linr)) + 1
+                Next ssd
+            End If
+        End If
+        Logg("SaveFile end")
 #If Not DEBUG Then
         Catch ex As Exception
         End Try
@@ -3174,249 +3174,249 @@ FileDeleteErrorRes:
 #If Not DEBUG Then
         Try
 #End If
-            Logg("XeditPc_Paint start")
-            Dim crLine, j, n, SourceI As Integer
-            Dim CharsOnScreenToShow As Integer
-            Dim StrToBuild As System.Text.StringBuilder, StrToShow, StrToShowExp, TxtCurLinCr, VerCurStr, sNr As String
-            Dim Bsl, Sel, Asl, VerF, VerLn As Integer
-            Dim g As Graphics = e.Graphics
-            Dim blueBrush As New SolidBrush(Color.Blue)
-            Dim whiteBrush As New SolidBrush(Color.White)
-            Dim blackBrush As New SolidBrush(Color.Black)
-            Dim redBrush As New SolidBrush(Color.Red)
-            Dim BeigeBrush As New SolidBrush(Color.Beige)
-            Dim redPen As New Pen(Color.Red, 2)
-            Dim aRectangle As Rectangle
-            Dim EditSize As SizeF
-            Dim EditFont As New Font("Courier New", FontSizeOnForm)
-            Dim dsScr, dsScrn As ScreenLine
-            Dim dsSource As SourceLine
-            Dim dsSrcDm As SourceLine = New SourceLine ' dummy source, for C, M, 0, etc.-type of lines
-            If QuitPgm Then Exit Sub
-            EditTextHeight = EditFont.Height
-            RectHeight = CInt(EditTextHeight) + 1
-            EditSize = g.MeasureString("0", EditFont)
-            Dim ExtraWidth1stChar As Single = EditSize.Width ' width of 1st char on a line
-            EditSize = g.MeasureString("00", EditFont)
-            EditTextWidth = EditSize.Width - ExtraWidth1stChar ' width of 2nd to last char on a line
-            CurrEdtSession.EditTextWidth = EditTextWidth
-            CurrEdtSession.RectHeight = RectHeight
-            CurrEdtSession.EditTextHeight = EditTextHeight
-            ExtraWidth1stChar = ExtraWidth1stChar - EditTextWidth 'extra width of 1st char on line
-            'Dim hg As Integer = ClientRectangle.Size.Height
-            'If hg > Screen.PrimaryScreen.Bounds.Height Then
-            '    hg = Screen.PrimaryScreen.Bounds.Height
-            'End If
-            LinesScreenVisible = CShort(Math.Floor(ClientRectangle.Size.Height / RectHeight))
-            pCharsScreenVisible = CharsOnScreen
-            CharsOnScreen = CShort(CSng(ClientSize.Width - VSB.Width) / EditTextWidth) - 7S
-            CharsOnScreenToShow = CharsOnScreen
-            If CurrEdtSession.ShowEol Then CharsOnScreenToShow -= 1
-            If InvalidatedWin Then ' we enter PAINT from a previous PAINT that modified parts of the window data
-                Logg("XeditPc_Paint paint again")
-                InvalidatedWin = False ' now we just have to paint those parts
-            Else ' First, see if any part of the screen is modified: if so, invalidate those parts and invoke paint again
-                If ScrList.Count = 0 Then ' first time around, create and fill SCREEN list
-                    Logg("XeditPc_Paint build new screenbuf")
-                    Dim NrLine As Short = 1 ' first line with filename etc.
-                    If CurrEdtSession.CmdLineNr <= CurrEdtSession.CurLineNr And CurrEdtSession.CmdLineNr > -1 Then NrLine += 1S
-                    If CurrEdtSession.MsgLineNrF <= CurrEdtSession.CurLineNr And Not CurrEdtSession.MsgOverlay Then NrLine += CurrEdtSession.MsgLineNrT
-                    'CurrEdtSession.NrBeforeCurL = CurrEdtSession.CurLineNr - NrLine - 1S
-                    FillScreenBuffer(1, True)
+        Logg("XeditPc_Paint start")
+        Dim crLine, j, n, SourceI As Integer
+        Dim CharsOnScreenToShow As Integer
+        Dim StrToBuild As System.Text.StringBuilder, StrToShow, StrToShowExp, TxtCurLinCr, VerCurStr, sNr As String
+        Dim Bsl, Sel, Asl, VerF, VerLn As Integer
+        Dim g As Graphics = e.Graphics
+        Dim blueBrush As New SolidBrush(Color.Blue)
+        Dim whiteBrush As New SolidBrush(Color.White)
+        Dim blackBrush As New SolidBrush(Color.Black)
+        Dim redBrush As New SolidBrush(Color.Red)
+        Dim BeigeBrush As New SolidBrush(Color.Beige)
+        Dim redPen As New Pen(Color.Red, 2)
+        Dim aRectangle As Rectangle
+        Dim EditSize As SizeF
+        Dim EditFont As New Font("Courier New", FontSizeOnForm)
+        Dim dsScr, dsScrn As ScreenLine
+        Dim dsSource As SourceLine
+        Dim dsSrcDm As SourceLine = New SourceLine ' dummy source, for C, M, 0, etc.-type of lines
+        If QuitPgm Then Exit Sub
+        EditTextHeight = EditFont.Height
+        RectHeight = CInt(EditTextHeight) + 1
+        EditSize = g.MeasureString("0", EditFont)
+        Dim ExtraWidth1stChar As Single = EditSize.Width ' width of 1st char on a line
+        EditSize = g.MeasureString("00", EditFont)
+        EditTextWidth = EditSize.Width - ExtraWidth1stChar ' width of 2nd to last char on a line
+        CurrEdtSession.EditTextWidth = EditTextWidth
+        CurrEdtSession.RectHeight = RectHeight
+        CurrEdtSession.EditTextHeight = EditTextHeight
+        ExtraWidth1stChar = ExtraWidth1stChar - EditTextWidth 'extra width of 1st char on line
+        'Dim hg As Integer = ClientRectangle.Size.Height
+        'If hg > Screen.PrimaryScreen.Bounds.Height Then
+        '    hg = Screen.PrimaryScreen.Bounds.Height
+        'End If
+        LinesScreenVisible = CShort(Math.Floor(ClientRectangle.Size.Height / RectHeight))
+        pCharsScreenVisible = CharsOnScreen
+        CharsOnScreen = CShort(CSng(ClientSize.Width - VSB.Width) / EditTextWidth) - 7S
+        CharsOnScreenToShow = CharsOnScreen
+        If CurrEdtSession.ShowEol Then CharsOnScreenToShow -= 1
+        If InvalidatedWin Then ' we enter PAINT from a previous PAINT that modified parts of the window data
+            Logg("XeditPc_Paint paint again")
+            InvalidatedWin = False ' now we just have to paint those parts
+        Else ' First, see if any part of the screen is modified: if so, invalidate those parts and invoke paint again
+            If ScrList.Count = 0 Then ' first time around, create and fill SCREEN list
+                Logg("XeditPc_Paint build new screenbuf")
+                Dim NrLine As Short = 1 ' first line with filename etc.
+                If CurrEdtSession.CmdLineNr <= CurrEdtSession.CurLineNr And CurrEdtSession.CmdLineNr > -1 Then NrLine += 1S
+                If CurrEdtSession.MsgLineNrF <= CurrEdtSession.CurLineNr And Not CurrEdtSession.MsgOverlay Then NrLine += CurrEdtSession.MsgLineNrT
+                'CurrEdtSession.NrBeforeCurL = CurrEdtSession.CurLineNr - NrLine - 1S
+                FillScreenBuffer(1, True)
+            End If
+            While ScrList.Count < LinesScreenVisible And LinesScreenVisible > 0 ' visible screen was resized: lines added, add also to screen list
+                Logg("XeditPc_Paint added")
+                crLine = CurrEdtSession.SrcOnScrn(CurrEdtSession.nSrcOnScrn) ' find next sourcelinenr
+                If crLine = 0 Then crLine = 1 ' close from taskbar
+                dsScr = DirectCast(ScrList.Item(crLine), ScreenLine)
+                SourceI = dsScr.CurSrcNr + 1
+                crLine = ScrList.Count           ' find line where to insert
+                If CurrEdtSession.CmdLineNr = -1 Then crLine -= 1
+                j = crLine
+                crLine = crLine + 1
+                dsScr = New ScreenLine()
+                GetTextOfScrline(dsScr, crLine, SourceI, True)
+                dsScr.CurRepaint = True        '
+                ScrList.Add(dsScr, , , j)
+                CurrEdtSession.SrcOnScrn(CurrEdtSession.nSrcOnScrn) += 1S
+            End While
+            If ScrList.Count > LinesScreenVisible Then ' screen was resized: lines deleted, delete from screenlist
+                Logg("XeditPc_Paint deleted")
+                Dim dsCmd As New ScreenLine
+                If CurrEdtSession.CmdLineNr = -1 Then
+                    dsCmd = DirectCast(ScrList.Item(ScrList.Count), ScreenLine)
+                    ScrList.Remove(ScrList.Count)
+                    LinesScreenVisible -= 1S
                 End If
-                While ScrList.Count < LinesScreenVisible And LinesScreenVisible > 0 ' visible screen was resized: lines added, add also to screen list
-                    Logg("XeditPc_Paint added")
-                    crLine = CurrEdtSession.SrcOnScrn(CurrEdtSession.nSrcOnScrn) ' find next sourcelinenr
-                    If crLine = 0 Then crLine = 1 ' close from taskbar
+                While ScrList.Count > LinesScreenVisible And LinesScreenVisible > 0 ' lines deleted, delete from screenlist
+                    crLine = ScrList.Count ' find line where to insert
                     dsScr = DirectCast(ScrList.Item(crLine), ScreenLine)
-                    SourceI = dsScr.CurSrcNr + 1
-                    crLine = ScrList.Count           ' find line where to insert
-                    If CurrEdtSession.CmdLineNr = -1 Then crLine -= 1
-                    j = crLine
-                    crLine = crLine + 1
-                    dsScr = New ScreenLine()
-                    GetTextOfScrline(dsScr, crLine, SourceI, True)
-                    dsScr.CurRepaint = True        '
-                    ScrList.Add(dsScr, , , j)
-                    CurrEdtSession.SrcOnScrn(CurrEdtSession.nSrcOnScrn) += 1S
+                    If Not dsScr.CurLinFixTp Then
+                        SaveModifiedLine(dsScr)
+                    End If
+                    dsScr = Nothing
+                    ScrList.Remove(crLine)
                 End While
-                If ScrList.Count > LinesScreenVisible Then ' screen was resized: lines deleted, delete from screenlist
-                    Logg("XeditPc_Paint deleted")
-                    Dim dsCmd As New ScreenLine
-                    If CurrEdtSession.CmdLineNr = -1 Then
-                        dsCmd = DirectCast(ScrList.Item(ScrList.Count), ScreenLine)
-                        ScrList.Remove(ScrList.Count)
-                        LinesScreenVisible -= 1S
-                    End If
-                    While ScrList.Count > LinesScreenVisible And LinesScreenVisible > 0 ' lines deleted, delete from screenlist
-                        crLine = ScrList.Count ' find line where to insert
-                        dsScr = DirectCast(ScrList.Item(crLine), ScreenLine)
-                        If Not dsScr.CurLinFixTp Then
-                            SaveModifiedLine(dsScr)
-                        End If
-                        dsScr = Nothing
-                        ScrList.Remove(crLine)
-                    End While
-                    If CurrEdtSession.CmdLineNr = -1 Then
-                        LinesScreenVisible += 1S
-                        ScrList.Add(dsCmd)
-                    End If
-                    CalcIxInSLines()
+                If CurrEdtSession.CmdLineNr = -1 Then
+                    LinesScreenVisible += 1S
+                    ScrList.Add(dsCmd)
                 End If
-                If CurrEdtSession.PrevEditLineScr < 1 Or CurrEdtSession.PrevEditLineScr > LinesScreenVisible Then
-                    CurrEdtSession.PrevEditLineScr = 1
-                End If
-                If CurrEdtSession.CursorDisplayLine < 1 Or CurrEdtSession.CursorDisplayLine > LinesScreenVisible Then
-                    CurrEdtSession.CursorDisplayLine = 1
-                End If
-                If CurrEdtSession.CursorDisplayLine <> CurrEdtSession.PrevEditLineScr Or CurrEdtSession.CursorDisplayColumn <> CurrEdtSession.PrevEditPosScr Then
-                    Logg("XeditPc_Paint cursor moved")
-                    dsScr = DirectCast(ScrList.Item(CurrEdtSession.CursorDisplayLine), ScreenLine) 'cursor was moved: repaint old and new cursor line
-                    dsScr.CurRepaint = True
-                    If CurrEdtSession.CursorDisplayLine <> CurrEdtSession.PrevEditLineScr Then
-                        dsScr = DirectCast(ScrList.Item(CurrEdtSession.PrevEditLineScr), ScreenLine) 'repaint cursor line(VerCurStr)
-                        dsScr.CurRepaint = True
-                        CurrEdtSession.PrevEditLineScr = CurrEdtSession.CursorDisplayLine
-                    End If
-                    CurrEdtSession.PrevEditPosScr = CurrEdtSession.CursorDisplayColumn
-                End If
-                dsScr = DirectCast(ScrList.Item(1), ScreenLine) 'always repaint 1st line
-                GetTextOfScrline(dsScr, 1, 0, True)
+                CalcIxInSLines()
+            End If
+            If CurrEdtSession.PrevEditLineScr < 1 Or CurrEdtSession.PrevEditLineScr > LinesScreenVisible Then
+                CurrEdtSession.PrevEditLineScr = 1
+            End If
+            If CurrEdtSession.CursorDisplayLine < 1 Or CurrEdtSession.CursorDisplayLine > LinesScreenVisible Then
+                CurrEdtSession.CursorDisplayLine = 1
+            End If
+            If CurrEdtSession.CursorDisplayLine <> CurrEdtSession.PrevEditLineScr Or CurrEdtSession.CursorDisplayColumn <> CurrEdtSession.PrevEditPosScr Then
+                Logg("XeditPc_Paint cursor moved")
+                dsScr = DirectCast(ScrList.Item(CurrEdtSession.CursorDisplayLine), ScreenLine) 'cursor was moved: repaint old and new cursor line
                 dsScr.CurRepaint = True
-                If CurrEdtSession.MsgOverlay Then ' insert overlay messages, save sourcelines 
-                    If CurrEdtSession.ScrOverlayed.Count = 0 Then ' show messages
-                        n = CurrEdtSession.MsgLineNrT
-                        If n > CurrEdtSession.Msgs.Count Then n = CurrEdtSession.Msgs.Count
-                        If CurrEdtSession.Msgs.Count > 0 Then
-                        End If
-                        Logg("XeditPc_Paint ovl msg" & CStr(n))
-                        For crLine = 1 To n
-                            dsScr = DirectCast(ScrList.Item(CurrEdtSession.MsgLineNrF - 1 + crLine), ScreenLine) 'repaint msg line
-                            dsScrn = New ScreenLine
-                            dsScrn.CopyFrom(dsScr) ' save in Scrn
-                            CurrEdtSession.ScrOverlayed.Add(dsScrn)
-                            dsScr.CurLinType = "M"c ' Message
-                            dsScr.CurLinFixTp = True
-                            dsScr.CurSrcRead = True
-                            dsScr.CurLinSrc = DirectCast(CurrEdtSession.Msgs.Item(1), String)
-                            dsScr.CurLinNr = ""
-                            CurrEdtSession.Msgs.Remove(1)
-                            dsScr.CurRepaint = True
-                        Next
-                    End If
-                Else ' insert message on fixed lines
+                If CurrEdtSession.CursorDisplayLine <> CurrEdtSession.PrevEditLineScr Then
+                    dsScr = DirectCast(ScrList.Item(CurrEdtSession.PrevEditLineScr), ScreenLine) 'repaint cursor line(VerCurStr)
+                    dsScr.CurRepaint = True
+                    CurrEdtSession.PrevEditLineScr = CurrEdtSession.CursorDisplayLine
+                End If
+                CurrEdtSession.PrevEditPosScr = CurrEdtSession.CursorDisplayColumn
+            End If
+            dsScr = DirectCast(ScrList.Item(1), ScreenLine) 'always repaint 1st line
+            GetTextOfScrline(dsScr, 1, 0, True)
+            dsScr.CurRepaint = True
+            If CurrEdtSession.MsgOverlay Then ' insert overlay messages, save sourcelines 
+                If CurrEdtSession.ScrOverlayed.Count = 0 Then ' show messages
                     n = CurrEdtSession.MsgLineNrT
                     If n > CurrEdtSession.Msgs.Count Then n = CurrEdtSession.Msgs.Count
-                    Logg("XeditPc_Paint fixed msg" & CStr(n))
+                    If CurrEdtSession.Msgs.Count > 0 Then
+                    End If
+                    Logg("XeditPc_Paint ovl msg" & CStr(n))
                     For crLine = 1 To n
                         dsScr = DirectCast(ScrList.Item(CurrEdtSession.MsgLineNrF - 1 + crLine), ScreenLine) 'repaint msg line
+                        dsScrn = New ScreenLine
+                        dsScrn.CopyFrom(dsScr) ' save in Scrn
+                        CurrEdtSession.ScrOverlayed.Add(dsScrn)
+                        dsScr.CurLinType = "M"c ' Message
+                        dsScr.CurLinFixTp = True
+                        dsScr.CurSrcRead = True
                         dsScr.CurLinSrc = DirectCast(CurrEdtSession.Msgs.Item(1), String)
+                        dsScr.CurLinNr = ""
                         CurrEdtSession.Msgs.Remove(1)
                         dsScr.CurRepaint = True
                     Next
                 End If
-                If CharsOnScreen > pCharsScreenVisible Then ' need show more characters on line
-                    For Each dsScr In ScrList
-                        If dsScr.CurLinSrc.Length() >= CharsOnScreen Then
-                            dsScr.CurRepaint = True
-                        End If
-                    Next
-                    pCharsScreenVisible = CharsOnScreen
-                End If
-                crLine = 0
+            Else ' insert message on fixed lines
+                n = CurrEdtSession.MsgLineNrT
+                If n > CurrEdtSession.Msgs.Count Then n = CurrEdtSession.Msgs.Count
+                Logg("XeditPc_Paint fixed msg" & CStr(n))
+                For crLine = 1 To n
+                    dsScr = DirectCast(ScrList.Item(CurrEdtSession.MsgLineNrF - 1 + crLine), ScreenLine) 'repaint msg line
+                    dsScr.CurLinSrc = DirectCast(CurrEdtSession.Msgs.Item(1), String)
+                    CurrEdtSession.Msgs.Remove(1)
+                    dsScr.CurRepaint = True
+                Next
+            End If
+            If CharsOnScreen > pCharsScreenVisible Then ' need show more characters on line
                 For Each dsScr In ScrList
-                    crLine += 1
-                    If dsScr.CurRepaint Or RepaintAllScreenLines Then
-                        InvalidatedWin = True
-                        RepaintLine(dsScr, crLine)
+                    If dsScr.CurLinSrc.Length() >= CharsOnScreen Then
+                        dsScr.CurRepaint = True
                     End If
                 Next
-                If InvalidatedWin Then ' data to be painted has been hanged, start paint all over
-                    ForcePaint()
-                    InvalidatedWin = True ' Forcepaint switched it off
-                    Logg("XeditPc_Paint end invalidated" & CStr(n))
-                    Exit Sub
+                pCharsScreenVisible = CharsOnScreen
+            End If
+            crLine = 0
+            For Each dsScr In ScrList
+                crLine += 1
+                If dsScr.CurRepaint Or RepaintAllScreenLines Then
+                    InvalidatedWin = True
+                    RepaintLine(dsScr, crLine)
                 End If
+            Next
+            If InvalidatedWin Then ' data to be painted has been hanged, start paint all over
+                ForcePaint()
+                InvalidatedWin = True ' Forcepaint switched it off
+                Logg("XeditPc_Paint end invalidated" & CStr(n))
+                Exit Sub
             End If
-            VSB.Visible = (LinesScreenVisible < CurrEdtSession.SourceList.Count)
-            VSB.Maximum = CurrEdtSession.SourceList.Count / 10
-            If VSB.Maximum < 100 Then VSB.Maximum = 100
-            VSB.Height = ClientSize.Height
-            VSB.Left = ClientSize.Width - VSB.Width
-            dsScr = DirectCast(ScrList.Item(CurrEdtSession.CurLineNr), ScreenLine)
-            Dim vv As Integer
-            If LinesScreenVisible <> 0 And CurrEdtSession.SourceList.Count <> 0 Then
-                vv = Math.Round(CDbl(dsScr.CurSrcNr) / CDbl(CurrEdtSession.SourceList.Count) * VSB.Maximum)
-            Else
-                vv = 1
-            End If
-            If vv > VSB.Maximum Then vv = VSB.Maximum
-            If vv < VSB.Minimum Then vv = VSB.Minimum
-            VSB.Value = vv
-            Debug.WriteLine("XeditPc_Paint start")
-            Dim vp As VerifyPair = DirectCast(CurrEdtSession.Verif.Item(1), VerifyPair)
-            CurrEdtSession.mseSelLeftVer = CurrEdtSession.mseSelLeft - CShort(vp.VerFrom - 1)
-            CurrEdtSession.mseSelRightVer = CurrEdtSession.mseSelRight - CShort(vp.VerFrom - 1)
-            Dim TxtCurLin As String
-            TxtCurLinCr = " "
-            Dim chRs(6) As CharacterRange
-            Dim sbRs(6) As SolidBrush
-            Dim flRs(6) As SolidBrush
-            For crLine = 1 To LinesScreenVisible  ' repaint the screen
+        End If
+        VSB.Visible = (LinesScreenVisible < CurrEdtSession.SourceList.Count)
+        VSB.Maximum = CurrEdtSession.SourceList.Count / 10
+        If VSB.Maximum < 100 Then VSB.Maximum = 100
+        VSB.Height = ClientSize.Height
+        VSB.Left = ClientSize.Width - VSB.Width
+        dsScr = DirectCast(ScrList.Item(CurrEdtSession.CurLineNr), ScreenLine)
+        Dim vv As Integer
+        If LinesScreenVisible <> 0 And CurrEdtSession.SourceList.Count <> 0 Then
+            vv = Math.Round(CDbl(dsScr.CurSrcNr) / CDbl(CurrEdtSession.SourceList.Count) * VSB.Maximum)
+        Else
+            vv = 1
+        End If
+        If vv > VSB.Maximum Then vv = VSB.Maximum
+        If vv < VSB.Minimum Then vv = VSB.Minimum
+        VSB.Value = vv
+        Debug.WriteLine("XeditPc_Paint start")
+        Dim vp As VerifyPair = DirectCast(CurrEdtSession.Verif.Item(1), VerifyPair)
+        CurrEdtSession.mseSelLeftVer = CurrEdtSession.mseSelLeft - CShort(vp.VerFrom - 1)
+        CurrEdtSession.mseSelRightVer = CurrEdtSession.mseSelRight - CShort(vp.VerFrom - 1)
+        Dim TxtCurLin As String
+        TxtCurLinCr = " "
+        Dim chRs(6) As CharacterRange
+        Dim sbRs(6) As SolidBrush
+        Dim flRs(6) As SolidBrush
+        For crLine = 1 To LinesScreenVisible  ' repaint the screen
 #If Not DEBUG Then
                 Try
 #End If
-                    TxtCurLin = ""
-                    dsScr = DirectCast(ScrList.Item(crLine), ScreenLine)
-                    If dsScr.CurRepaint Or RepaintAllScreenLines Then
-                        dsScr.CurRepaint = False
-                        If dsScr.CurLinType = "L"c Then
-                            dsSource = DirectCast(dsScr.CurLinSsd, SourceLine)
-                        Else
-                            dsSource = dsSrcDm
-                        End If
-                        If Not dsScr.CurSrcRead Then
-                            ReadSourceInScrBuf(dsScr)
-                        End If
-                        sNr = dsScr.CurLinNr
-                        If dsScr.CurLinType = "L"c Or dsScr.CurLinType = "T"c Or dsScr.CurLinType = "B"c Or dsScr.CurLinType = "X"c Then
-                            If CurrEdtSession.FindLineCmd(dsScr.CurSrcNr, j) Then
-                                Dim mLnCmd As LineCommand
-                                mLnCmd = DirectCast(CurrEdtSession.LineCommands.Item(j), LineCommand)
-                                sNr = mLnCmd.LinecmdText
-                                If mLnCmd.RepeatFactorPresent Then sNr = sNr & CStr(mLnCmd.RepeatFactor)
-                                sNr = sNr.PadRight(6).Substring(0, 6)
-                            End If
-                        Else
-                            If dsScr.CurLinType = "M"c AndAlso dsScr.CurLinSrc.Length() > 0 Then sNr = "MSG.. "
-                        End If
-                        sNr = sNr.PadRight(6)
-                        TxtCurLin += sNr + " "
-                        chRs(0) = New CharacterRange(0, sNr.Length)
-                        If crLine = CurrEdtSession.CurLineNr Then
-                            sbRs(0) = blueBrush
-                        Else
-                            sbRs(0) = blackBrush
-                        End If
-                        flRs(0) = whiteBrush
-                        StrToShow = dsScr.CurLinSrc
-                        If dsScr.CurLinType = "L"c Then
-                            If CurrEdtSession.ShowEol Then
-                                StrToShow = StrToShow & Chr(182)
-                            End If
-                            StrToShowExp = StrToShow
-                            If CurrEdtSession.ExpTabs Then
-                                Dim i As Integer = StrToShowExp.IndexOf(vbTab)
-                                If i > -1 Then
-                                    While i > -1
-                                        Dim PosOfNextTab As Integer = -1
-                                        For k As Integer = 1 To CurrEdtSession.Tabs.Length - 1
-                                            If CurrEdtSession.Tabs(k) = 0 Then Exit For
-                                            If i + 1 <= CurrEdtSession.Tabs(k) Then
-                                                PosOfNextTab = CurrEdtSession.Tabs(k)
-                                                Exit For
-                                            End If
-                                        Next
+            TxtCurLin = ""
+            dsScr = DirectCast(ScrList.Item(crLine), ScreenLine)
+            If dsScr.CurRepaint Or RepaintAllScreenLines Then
+                dsScr.CurRepaint = False
+                If dsScr.CurLinType = "L"c Then
+                    dsSource = DirectCast(dsScr.CurLinSsd, SourceLine)
+                Else
+                    dsSource = dsSrcDm
+                End If
+                If Not dsScr.CurSrcRead Then
+                    ReadSourceInScrBuf(dsScr)
+                End If
+                sNr = dsScr.CurLinNr
+                If dsScr.CurLinType = "L"c Or dsScr.CurLinType = "T"c Or dsScr.CurLinType = "B"c Or dsScr.CurLinType = "X"c Then
+                    If CurrEdtSession.FindLineCmd(dsScr.CurSrcNr, j) Then
+                        Dim mLnCmd As LineCommand
+                        mLnCmd = DirectCast(CurrEdtSession.LineCommands.Item(j), LineCommand)
+                        sNr = mLnCmd.LinecmdText
+                        If mLnCmd.RepeatFactorPresent Then sNr = sNr & CStr(mLnCmd.RepeatFactor)
+                        sNr = sNr.PadRight(6).Substring(0, 6)
+                    End If
+                Else
+                    If dsScr.CurLinType = "M"c AndAlso dsScr.CurLinSrc.Length() > 0 Then sNr = "MSG.. "
+                End If
+                sNr = sNr.PadRight(6)
+                TxtCurLin += sNr + " "
+                chRs(0) = New CharacterRange(0, sNr.Length)
+                If crLine = CurrEdtSession.CurLineNr Then
+                    sbRs(0) = blueBrush
+                Else
+                    sbRs(0) = blackBrush
+                End If
+                flRs(0) = whiteBrush
+                StrToShow = dsScr.CurLinSrc
+                If dsScr.CurLinType = "L"c Then
+                    If CurrEdtSession.ShowEol Then
+                        StrToShow = StrToShow & Chr(182)
+                    End If
+                    StrToShowExp = StrToShow
+                    If CurrEdtSession.ExpTabs Then
+                        Dim i As Integer = StrToShowExp.IndexOf(vbTab)
+                        If i > -1 Then
+                            While i > -1
+                                Dim PosOfNextTab As Integer = -1
+                                For k As Integer = 1 To CurrEdtSession.Tabs.Length - 1
+                                    If CurrEdtSession.Tabs(k) = 0 Then Exit For
+                                    If i + 2 <= CurrEdtSession.Tabs(k) Then
+                                        PosOfNextTab = CurrEdtSession.Tabs(k)
+                                        Exit For
+                                    End If
+                                Next
                                 If PosOfNextTab = -1 Then
                                     PosOfNextTab = i + 2
                                 End If
@@ -3424,55 +3424,63 @@ FileDeleteErrorRes:
                                 If PosOfNextTab - i - 1 > 0 Then st = st + "".PadRight(PosOfNextTab - i - 1, " "c)
                                 StrToShowExp = st + StrToShowExp.Substring(i + 1)
                                 i = StrToShowExp.IndexOf(vbTab)
-                                    End While
-                                    dsScr.TabsinOrig = True
-                                    dsScr.CurLinSrcExp = StrToShowExp ' if expanded text is changed, tabs dissapear from source, if not they remain: edit with tabs off
-                                End If
-                            End If
-                            StrToBuild = New System.Text.StringBuilder(CharsOnScreenToShow)
-                            Dim LengthPrevVer As Integer = 0
-                            Dim CurVerIx As Integer = -1 ' each VER set
-                            Dim VerTextPos As Integer = 0 ' pos of char in text
-                            For Each vp In CurrEdtSession.Verif
-                                CurVerIx += 1
-                                dsScr.VerifPartFrom(CurVerIx) = StrToBuild.ToString.Length ' this is pos on screen, with (ix) -> curr.Verif.from -> source pos
-                                dsScr.VerifPartHex(CurVerIx) = vp.VerHex
-                                VerF = vp.VerFrom - 1
-                                VerLn = vp.VerTo - VerF
-                                If VerF < 0 Then VerF = 0
-                                If VerLn < 0 Then VerLn = 0
-                                If vp.VerHex Then
-                                    VerCurStr = C2X(StrToShow) ' always including tabs
-                                    VerLn *= 2 ' 2 chars per symbol
-                                    VerF = VerF * 2
-                                Else
-                                    If CurrEdtSession.ExpTabs Then ' tabs shown if no SET TABS active
-                                        VerCurStr = StrToShowExp
-                                    Else
-                                        VerCurStr = StrToShow
-                                    End If
-                                End If
-                                If VerLn > CharsOnScreenToShow Then VerLn = CharsOnScreenToShow
-                                If VerF >= VerCurStr.Length Then ' outside visible part
-                                    VerCurStr = ""
-                                Else
-                                    If VerF <> 0 Then VerCurStr = VerCurStr.Substring(VerF)
-                                End If
-                                If VerCurStr.Length > VerLn Then
-                                    VerCurStr = VerCurStr.Substring(0, VerLn)
-                                Else
-                                    VerCurStr = VerCurStr.PadRight(VerLn, " "c)
-                                End If
-                                StrToBuild.Insert(LengthPrevVer, VerCurStr)
-                                LengthPrevVer = LengthPrevVer + VerCurStr.Length()
-                                dsScr.VerifPartLen(CurVerIx) = StrToBuild.ToString.Length - dsScr.VerifPartFrom(CurVerIx)
-                            Next
-                            If LengthPrevVer > CharsOnScreenToShow Then
-                                StrToShow = StrToBuild.ToString.Substring(0, CharsOnScreenToShow)
-                            Else
-                                StrToShow = StrToBuild.ToString
+                            End While
+                            dsScr.TabsinOrig = True
+                            dsScr.CurLinSrcExp = StrToShowExp ' if expanded text is changed, tabs dissapear from source, if not they remain: edit with tabs off
+                        End If
+                    Else
+                        If CurrEdtSession.EncodingType <> "A"c Then
+                            StrToShow = StrToShow.Replace(vbTab, "â€¢"c)
+                            If Not TabSymbMsg Then
+                                DoCmd("MSG â€¢ is position of a TAB", False)
+                                TabSymbMsg = True
                             End If
                         End If
+                    End If
+                    StrToBuild = New System.Text.StringBuilder(CharsOnScreenToShow)
+                    Dim LengthPrevVer As Integer = 0
+                    Dim CurVerIx As Integer = -1 ' each VER set
+                    Dim VerTextPos As Integer = 0 ' pos of char in text
+                    For Each vp In CurrEdtSession.Verif
+                        CurVerIx += 1
+                        dsScr.VerifPartFrom(CurVerIx) = StrToBuild.ToString.Length ' this is pos on screen, with (ix) -> curr.Verif.from -> source pos
+                        dsScr.VerifPartHex(CurVerIx) = vp.VerHex
+                        VerF = vp.VerFrom - 1
+                        VerLn = vp.VerTo - VerF
+                        If VerF < 0 Then VerF = 0
+                        If VerLn < 0 Then VerLn = 0
+                        If vp.VerHex Then
+                            VerCurStr = C2X(StrToShow) ' always including tabs
+                            VerLn *= 2 ' 2 chars per symbol
+                            VerF = VerF * 2
+                        Else
+                            If CurrEdtSession.ExpTabs Then ' tabs shown if no SET TABS active
+                                VerCurStr = StrToShowExp
+                            Else
+                                VerCurStr = StrToShow
+                            End If
+                        End If
+                        If VerLn > CharsOnScreenToShow Then VerLn = CharsOnScreenToShow
+                        If VerF >= VerCurStr.Length Then ' outside visible part
+                            VerCurStr = ""
+                        Else
+                            If VerF <> 0 Then VerCurStr = VerCurStr.Substring(VerF)
+                        End If
+                        If VerCurStr.Length > VerLn Then
+                            VerCurStr = VerCurStr.Substring(0, VerLn)
+                        Else
+                            VerCurStr = VerCurStr.PadRight(VerLn, " "c)
+                        End If
+                        StrToBuild.Insert(LengthPrevVer, VerCurStr)
+                        LengthPrevVer = LengthPrevVer + VerCurStr.Length()
+                        dsScr.VerifPartLen(CurVerIx) = StrToBuild.ToString.Length - dsScr.VerifPartFrom(CurVerIx)
+                    Next
+                    If LengthPrevVer > CharsOnScreenToShow Then
+                        StrToShow = StrToBuild.ToString.Substring(0, CharsOnScreenToShow)
+                    Else
+                        StrToShow = StrToBuild.ToString
+                    End If
+                End If
                 StrToShow = StrToShow.TrimEnd()
                 If CurrEdtSession.EncodingType = "A"c Then
                     Dim buf() As Byte = System.Text.Encoding.Default.GetBytes(StrToShow)
@@ -3944,9 +3952,9 @@ FileDeleteErrorRes:
             'r = r & "EF"
             'Else
             ic = Asc(ccc)
-                c1 = ic \ 16
-                c2 = ic And &HFS
-                r = r & Mid(s, c1 + 1, 1) & Mid(s, c2 + 1, 1)
+            c1 = ic \ 16
+            c2 = ic And &HFS
+            r = r & Mid(s, c1 + 1, 1) & Mid(s, c2 + 1, 1)
             'End If
         Next
         Return r
