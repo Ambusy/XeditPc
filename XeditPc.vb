@@ -1,5 +1,6 @@
 ﻿Imports VB = Microsoft.VisualBasic
 Imports System.Drawing.Printing
+Imports System.Xml.Schema
 #Const CreLogFile = False
 #Const tracen = False
 Public Class XeditPc
@@ -63,6 +64,16 @@ Public Class XeditPc
             CurrEditSessionIx = EdtSessions.Count()
             ProcessCommandOptions(CommandLine)
             If Not QuitPgm Then
+                Dim f As Boolean = False
+                For i = 1 To 8
+                    If GetRegistryKey("XeditPc", "File" & CStr(i), "") = Filename Then f = True
+                Next
+                If Not f Then
+                    For i = 7 To 1 Step -1
+                        SaveRegistryKey("XeditPc", "File" & CStr(i + 1), GetRegistryKey("XeditPc", "File" & CStr(i), ""))
+                    Next
+                    SaveRegistryKey("XeditPc", "File1", Filename)
+                End If
                 ReadEditFile(Filename)
                 ' FormShown = true
                 SetFormCaption()
@@ -237,7 +248,7 @@ reopenFile:
     Friend Sub AskFiles(ByVal CommandLine As String)
         If CommandLine.Length() = 0 Then
             Dim files(), s As String
-            OpenFileDialog1.Title = "XeditPC by AMBusy at Gmail.com " & Chr(169) & "2007-2020. " & SysMsg(12)
+            OpenFileDialog1.Title = "XeditPC by AMBusy at Gmail.com " & Chr(169) & "2007-2021. " & SysMsg(12)
             OpenFileDialog1.FileName = ""
             OpenFileDialog1.CheckFileExists = False
             OpenFileDialog1.Multiselect = True
@@ -246,7 +257,13 @@ reopenFile:
             OpenFileDialog1.ShowDialog()
             files = OpenFileDialog1.FileNames
             If files(0) = "" Then
-                rc = 16
+                Dim r As New Recent()
+                Recent.ShowDialog()
+                If Recent.res <> "" Then
+                    rc = InitAndRunEdit(Recent.res, False)
+                Else
+                    rc = 16
+                End If
             Else
                 For Each s In files
                     If s.Length() > 0 Then
@@ -349,7 +366,7 @@ reopenFile:
         If w.Length() > 0 Then
             If TypeColon AndAlso w(0) = ":"c Then
                 If reg.IsMatch(w.Substring(1)) Then
-                    res = w.Substring(1) & " 1"
+                    res = w.Substring(1) & " " & CStr(CurrEdtSession.EditZoneLeft)
                 Else
                     LocateString(w, CurrEdtSession.EditZoneLeft, CurrEdtSession.EditZoneRight, LocLine, LocPos)
                     If rc = 0 Then
@@ -361,20 +378,20 @@ reopenFile:
             ElseIf w(0) = "+"c Then
                 If w.Length > 1 Then
                     If w(1) = "*" Then
-                        res = CStr(CurrEdtSession.SourceList.Count() + 1) & " 1" 'BOT of File
+                        res = CStr(CurrEdtSession.SourceList.Count() + 1) & " " & CStr(CurrEdtSession.EditZoneLeft) 'BOT of File
                     Else
-                        res = CStr(dsScr.CurSrcNr + CInt(w.Substring(1))) & " 1"
+                        res = CStr(dsScr.CurSrcNr + CInt(w.Substring(1))) & " " & CStr(CurrEdtSession.EditZoneLeft)
                     End If
                 Else
-                    res = CStr(dsScr.CurSrcNr + 1) & " 1"
+                    res = CStr(dsScr.CurSrcNr + 1) & " " & CStr(CurrEdtSession.EditZoneLeft)
                 End If
             ElseIf w(0) = "-"c Then
                 If w.Length > 1 Then
                     If w(1) = "*" Then
-                        res = "0 1" ' TOP of file
+                        res = "0 " & CStr(CurrEdtSession.EditZoneLeft) ' TOP of file
                     Else
                         Try
-                            res = CStr(dsScr.CurSrcNr - CInt(w.Substring(1))) & " 1"
+                            res = CStr(dsScr.CurSrcNr - CInt(w.Substring(1))) & " " & CStr(CurrEdtSession.EditZoneLeft)
                         Catch ex As Exception
                             s = LocateString(OrgParmS, CurrEdtSession.EditZoneLeft, CurrEdtSession.EditZoneRight, LocLine, LocPos) ' remains command
                             If rc = 0 Then
@@ -383,10 +400,10 @@ reopenFile:
                         End Try
                     End If
                 Else
-                    res = CStr(dsScr.CurSrcNr - 1) & " 1"
+                    res = CStr(dsScr.CurSrcNr - 1) & " " & CStr(CurrEdtSession.EditZoneLeft)
                 End If
             ElseIf w(0) = "."c Then
-                res = GetPointLine(w.ToUpper(CultInf)) & " 1"
+                res = GetPointLine(w.ToUpper(CultInf)) & " " & CStr(CurrEdtSession.EditZoneLeft)
             Else
                 s = LocateString(OrgParmS, CurrEdtSession.EditZoneLeft, CurrEdtSession.EditZoneRight, LocLine, LocPos) ' remains command
                 If rc = 0 Then
@@ -676,7 +693,7 @@ opn:
             End If
             dsScr = DirectCast(ScrList.Item(CurrEdtSession.CurLineNr), ScreenLine)
             If dsScr.CurLinType = "B" Or dsScr.CurLinType = "T" Then rc = 4
-            If FromKb And rc > 1 AndAlso retArr(0) <> "0" Then
+            If FromKb AndAlso rc > 1 AndAlso retArr(0) <> "0" Then
                 CurrEdtSession.Msgs.Add(SysMsg(17))
             Else
                 If CommandLine.Length() > 0 Then
@@ -698,12 +715,19 @@ opn:
                 RunEdit("", "")
             Else
                 If CommandLine = "?" Then
-                    OpenFileDialog1.FileName = CurrEdtSession.EditFileName
+                    OpenFileDialog1.FileName = "" 'CurrEdtSession.EditFileName
                     OpenFileDialog1.CheckFileExists = False
                     OpenFileDialog1.ShowHelp = True
                     OpenFileDialog1.Multiselect = False
                     OpenFileDialog1.ShowDialog()
                     CommandLine = OpenFileDialog1.FileName
+                    If OpenFileDialog1.FileNames(0) = "" Then
+                        Dim r As New Recent()
+                        Recent.ShowDialog()
+                        If Recent.res <> "" Then
+                            CommandLine = Recent.res
+                        End If
+                    End If
                     RunEdit(CommandLine, "")
                 Else
                     InitAndRunEdit(CommandLine, False)
@@ -1151,7 +1175,7 @@ opn:
                 If FormShown Then RepaintAllScreenLines = True
             ElseIf Abbrev(FirstWord, "MSGMODE", 4) Then ' set MSGMODE ON/OFF
                 CurrEdtSession.MsgMode = (NxtWordFromStr(CommandLine, "OFF") = "ON")
-            ElseIf Abbrev(FirstWord, "VERIFY") Then ' set VERIFY ON/OFF HEX
+            ElseIf Abbrev(FirstWord, "VERIFY") Then ' set VERIFY [HEX] ON/OFF  [ranges]
                 Dim vp As VerifyPair
                 FirstWord = NxtWordFromStr(CommandLine, "")
                 If FirstWord = "ON" Or FirstWord = "OFF" Then
@@ -1200,7 +1224,7 @@ opn:
                 If prvShadow <> CurrEdtSession.Shadow Then
                     If CurrEdtSession.SessionInited Then RefrScrBuf()
                 End If
-            ElseIf Abbrev(FirstWord, "SELECT", 3) Then ' SET SELECT n°lines/* level
+            ElseIf Abbrev(FirstWord, "SELECT", 3) Then ' SET SELECT level n°lines/* 
                 dsScr = DirectCast(ScrList.Item(CurrEdtSession.CurLineNr), ScreenLine)
                 Dim k As Integer = NxtNumFromStr(CommandLine, "0")
                 j = NumOrAst(CommandLine, "*", CurrEdtSession.SourceList.Count() - dsScr.CurSrcNr + 1) + dsScr.CurSrcNr - 1
@@ -1216,7 +1240,9 @@ opn:
                         ssd.SrcSelect = k
                     End If
                 Next
-                If CurrEdtSession.SessionInited Then RefrScrBuf()
+                If CurrEdtSession.SessionInited Then
+                    RefrScrBuf()
+                End If
             ElseIf Abbrev(FirstWord, "DISPLAY", 4) Then ' set DISPLAY low high/*
                 CurrEdtSession.EditDisplayMin = CShort(CIntUserCor(NxtWordFromStr(CommandLine, "0")))
                 CurrEdtSession.EditDisplayMax = CShort(NumOrAst(CommandLine, "*", 32767))
@@ -1328,16 +1354,12 @@ opn:
                             dsScr = DirectCast(ScrList.Item(CurrEdtSession.CurLineNr), ScreenLine)
                             StoreExtract1("LENGTH", CStr(dsScr.CurLinSrc.Trim().Length()))
                         Case "SCOPE"
-                            'dsScr = DirectCast(ScrList.Item(CurrEdtSession.CurLineNr), ScreenLine)
                             StoreExtract1("SCOPE", CStr(IIf(CurrEdtSession.ScopeAllDisplay, "ALL", "DISPLAY")))
                         Case "WRAP"
-                            ' dsScr = DirectCast(ScrList.Item(CurrEdtSession.CurLineNr), ScreenLine)
                             StoreExtract1("WRAP", CStr(IIf(CurrEdtSession.Wrap, "ON", "OFF")))
                         Case "MSGMODE"
-                            ' dsScr = DirectCast(ScrList.Item(CurrEdtSession.CurLineNr), ScreenLine)
                             StoreExtract1("MSGMODE", CStr(IIf(CurrEdtSession.MsgMode, "ON", "OFF")))
                         Case "SHADOW"
-                            ' dsScr = DirectCast(ScrList.Item(CurrEdtSession.CurLineNr), ScreenLine)
                             StoreExtract1("SHADOW", CStr(IIf(CurrEdtSession.Shadow, "ON", "OFF")))
                         Case "FULLFILENAME"
                             strng = CurrEdtSession.EditFileName
@@ -2329,6 +2351,12 @@ opn:
                 TrStr = OldString.ToUpper()
                 If TrStr.Substring(0, 2) = "X'" And TrStr.Substring(TrStr.Length() - 1, 1) = "'" Then
                     OldString = X2C(TrStr.Substring(2, TrStr.Length() - 3))
+                ElseIf TrStr.Substring(TrStr.Length() - 2, 2) = "'X" And TrStr.Substring(0, 1) = "'" Then
+                    OldString = X2C(TrStr.Substring(1, TrStr.Length() - 3))
+                ElseIf TrStr.Substring(0, 2) = "X""" And TrStr.Substring(TrStr.Length() - 1, 1) = """" Then
+                    OldString = X2C(TrStr.Substring(2, TrStr.Length() - 3))
+                ElseIf TrStr.Substring(TrStr.Length() - 2, 2) = """X" And TrStr.Substring(0, 1) = """" Then
+                    OldString = X2C(TrStr.Substring(1, TrStr.Length() - 3))
                 End If
             End If
             CmdString = CmdString.Substring(i)
@@ -2339,6 +2367,12 @@ opn:
                     TrStr = NewString.ToUpper()
                     If TrStr.Substring(0, 2) = "X'" And TrStr.Substring(TrStr.Length() - 1, 1) = "'" Then
                         NewString = X2C(TrStr.Substring(2, TrStr.Length() - 3))
+                    ElseIf TrStr.Substring(TrStr.Length() - 2, 2) = "'X" And TrStr.Substring(0, 1) = "'" Then
+                        NewString = X2C(TrStr.Substring(1, TrStr.Length() - 3))
+                    ElseIf TrStr.Substring(0, 2) = "X""" And TrStr.Substring(TrStr.Length() - 1, 1) = """" Then
+                        NewString = X2C(TrStr.Substring(2, TrStr.Length() - 3))
+                    ElseIf TrStr.Substring(TrStr.Length() - 2, 2) = """X" And TrStr.Substring(0, 1) = """" Then
+                        NewString = X2C(TrStr.Substring(1, TrStr.Length() - 3))
                     End If
                 End If
                 CmdString = CmdString.Substring(i).TrimStart
@@ -2675,6 +2709,9 @@ opn:
             If (ssd.SrcSelect <= CurrEdtSession.EditDisplayMax And ssd.SrcSelect >= CurrEdtSession.EditDisplayMin) Or CurrEdtSession.ScopeAllDisplay Then
                 src = ReadOneSourceLine(ssd)
                 Logg("Locate1String src = " & src)
+                If src.Length < ZoneR Then
+                    src = src.PadRight(ZoneR)
+                End If
                 If LocString.Length() = 0 Then ' point before first char
                     If NrOcc = -2 Then
                         found = src.Length()
@@ -3177,10 +3214,11 @@ FileDeleteErrorRes:
         Logg("XeditPc_Paint start")
         Dim crLine, j, n, SourceI As Integer
         Dim CharsOnScreenToShow As Integer
-        Dim StrToBuild As System.Text.StringBuilder, StrToShow, StrToShowExp, TxtCurLinCr, VerCurStr, sNr As String
+        Dim StrToBuild As System.Text.StringBuilder, StrToShow, StrToShowTabs, StrToShowExp, TxtCurLinCr, VerCurStr, sNr As String
         Dim Bsl, Sel, Asl, VerF, VerLn As Integer
         Dim g As Graphics = e.Graphics
         Dim blueBrush As New SolidBrush(Color.Blue)
+        Dim blueishBrush As New SolidBrush(Color.Indigo)
         Dim whiteBrush As New SolidBrush(Color.White)
         Dim blackBrush As New SolidBrush(Color.Black)
         Dim redBrush As New SolidBrush(Color.Red)
@@ -3404,10 +3442,11 @@ FileDeleteErrorRes:
                     If CurrEdtSession.ShowEol Then
                         StrToShow = StrToShow & Chr(182)
                     End If
-                    StrToShowExp = StrToShow
-                    If CurrEdtSession.ExpTabs Then
-                        Dim i As Integer = StrToShowExp.IndexOf(vbTab)
-                        If i > -1 Then
+                    StrToShowExp = StrToShow ' with tabs expanded, if tabs on 
+                    StrToShowTabs = StrToShow ' with tabs original for display hex in U8 and Unicode files
+                    Dim i As Integer = StrToShowExp.IndexOf(vbTab)
+                    If i > -1 Then
+                        If CurrEdtSession.ExpTabs Then
                             While i > -1
                                 Dim PosOfNextTab As Integer = -1
                                 For k As Integer = 1 To CurrEdtSession.Tabs.Length - 1
@@ -3427,13 +3466,13 @@ FileDeleteErrorRes:
                             End While
                             dsScr.TabsinOrig = True
                             dsScr.CurLinSrcExp = StrToShowExp ' if expanded text is changed, tabs dissapear from source, if not they remain: edit with tabs off
-                        End If
-                    Else
-                        If CurrEdtSession.EncodingType <> "A"c Then
-                            StrToShow = StrToShow.Replace(vbTab, "•"c)
-                            If Not TabSymbMsg Then
-                                DoCmd("MSG • is position of a TAB", False)
-                                TabSymbMsg = True
+                        Else
+                            If CurrEdtSession.EncodingType <> "A"c Then
+                                StrToShow = StrToShow.Replace(vbTab, "•"c)
+                                If Not TabSymbMsg Then
+                                    DoCmd("MSG • " + SysMsg(25), False)
+                                    TabSymbMsg = True
+                                End If
                             End If
                         End If
                     End If
@@ -3450,7 +3489,7 @@ FileDeleteErrorRes:
                         If VerF < 0 Then VerF = 0
                         If VerLn < 0 Then VerLn = 0
                         If vp.VerHex Then
-                            VerCurStr = C2X(StrToShow) ' always including tabs
+                            VerCurStr = C2X(StrToShowTabs) ' always including tabs
                             VerLn *= 2 ' 2 chars per symbol
                             VerF = VerF * 2
                         Else
@@ -3494,7 +3533,11 @@ FileDeleteErrorRes:
                 TxtCurLin += StrToShow
                 If Bsl > 0 Then
                     chRs(PntPiece) = New CharacterRange(7, Bsl)
-                    sbRs(PntPiece) = blackBrush
+                    If crLine = CurrEdtSession.CursorDisplayLine Then
+                        sbRs(PntPiece) = blueishBrush
+                    Else
+                        sbRs(PntPiece) = blackBrush
+                    End If
                     flRs(PntPiece) = whiteBrush
                     PntPiece += 1
                 End If
@@ -3506,7 +3549,11 @@ FileDeleteErrorRes:
                 End If
                 If Asl > 0 Then
                     chRs(PntPiece) = New CharacterRange(7 + Bsl + Sel, Asl)
-                    sbRs(PntPiece) = blackBrush
+                    If crLine = CurrEdtSession.CursorDisplayLine Then
+                        sbRs(PntPiece) = blueishBrush
+                    Else
+                        sbRs(PntPiece) = blackBrush
+                    End If
                     flRs(PntPiece) = whiteBrush
                     PntPiece += 1
                 End If

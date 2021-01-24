@@ -17,6 +17,7 @@ Module MainMod
     Public DecimalSepPt As Boolean ' . is decimal separator and not ,
     Public FontSizeOnForm As Integer = 8
     Public RepaintAllScreenLines As Boolean ' repaint all lines?
+    Public TabSymbMsg As Boolean = False
 
     Public EdtSessions As New Collection
     Public CurrEdtSession As EdtSession
@@ -139,7 +140,7 @@ Module MainMod
         logFile.Close()
 #End If
     End Sub
-    Private Function GetRegistryKey(ByVal KeyName As String, ByVal ValueName As String, ByVal Defaultval As String) As String
+    Public Function GetRegistryKey(ByVal KeyName As String, ByVal ValueName As String, ByVal Defaultval As String) As String
         If ValidKeyName(KeyName) Then
             Dim readValue As String
             readValue = CStr(My.Computer.Registry.GetValue("HKEY_CURRENT_USER\Software\AMBusy\" & KeyName, ValueName, Nothing))
@@ -152,7 +153,7 @@ Module MainMod
             GetRegistryKey = Defaultval
         End If
     End Function
-    Private Sub SaveRegistryKey(ByRef KeyName As String, ByVal ValueName As String, ByVal ValueData As String)
+    Public Sub SaveRegistryKey(ByRef KeyName As String, ByVal ValueName As String, ByVal ValueData As String)
         If ValidKeyName(KeyName) Then
             My.Computer.Registry.CurrentUser.CreateSubKey("Software\AMBusy\" & KeyName)
             My.Computer.Registry.SetValue("HKEY_CURRENT_USER\Software\AMBusy\" & KeyName, ValueName, ValueData)

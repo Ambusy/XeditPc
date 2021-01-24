@@ -31,6 +31,7 @@ Public Class Rexx
     Private NumY As Double ' num. value of last checked number: if numeric, numY contains the float value
     Private SrcLstLin As Integer ' current linenumber
     Private UpCase As Boolean ' next parse wants uppercase?
+    Private LwCase As Boolean ' next parse wants lowercase?
     Private iCurrParSeqNr, nDo, iParSeqNr, iMaxParSeqNr As Integer ' numbers to generate unique internal names
     Private GenTemp As Boolean ' generate temp code?
     Private CharAftId, CharBefId As Char ' char before and after current identifier
@@ -153,7 +154,8 @@ Public Class Rexx
         opr ' operation on stacked value(s)
         '                           code[].a = type of operation
         lod ' load from currRexxRun.Stack
-        sto ' store on currRexxRun.Stack
+        sto ' store on currRexxRun.Stack code[].a = index in IdName
+        '                                code[].l = 0: my level, 1 Next level (params only)
         jmp ' jump
         jbr ' jump to builtin routine
         jcf ' jump if condition false
@@ -173,7 +175,7 @@ Public Class Rexx
         cle ' call external rex     code[].a = idx of name to call
         arg ' ARG and helpers.      code[].a = nr arguments in ARG
         '                           code[].l = seq nr of the parameter  
-        upp ' uppercase             code[].a = 1: UPPER
+        upp ' uppercase             code[].a = 1: UPPER = 2: LOWER
         parp ' +n                   code[].a = +/-number
         '                           code[].l = seq nr in ARG
         parc ' n abs.               code[].a = number
@@ -440,6 +442,30 @@ Public Class Rexx
                                 asm.a = k
                             End If
                         Next
+                    End If
+                    If asm.f = fct.sto Then
+                        If asm.l > 0 Then
+                            DefVars = DirectCast(CurrRexxRun.IdName.Item(asm.l), DefVariable)
+                            Dim fndIx As Boolean = False
+                            For j = 1 To CurrRexxRun.IxProcName.Count()
+                                If CStr(CurrRexxRun.IxProcName.Item(j)) = DefVars.Id Then
+                                    k = CInt(CurrRexxRun.IxProc.Item(j)) - 1
+                                    Dim asm2 As AsmStatement = DirectCast(CurrRexxRun.IntCode.Item(k), AsmStatement)
+                                    If asm2.f = fct.lin Then
+                                        asm2 = DirectCast(CurrRexxRun.IntCode.Item(k + 1), AsmStatement)
+                                    End If
+                                    fndIx = True
+                                    If asm2.l = Symbols.procsym Then
+                                        asm.l = 1 ' procedure
+                                    Else
+                                        asm.l = 0 ' label is not a procedure
+                                    End If
+                                End If
+                            Next
+                            If Not fndIx Then
+                                asm.l = 0 ' builtin or external
+                            End If
+                        End If
                     End If
                     If asm.f = fct.cal Then ' replace routinename by index in currRexxRun.IntCode
                         If asm.l = -1 Then asm.f = fct.jmp ' signal: jmp, not cal !
@@ -924,9 +950,13 @@ Public Class Rexx
             ElseIf (cSymb = Symbols.argsym) Then  '   arg value etc
                 GenerateAsm(fct.upp, 0, 1)
                 argGen(fct.arg)
-            ElseIf (cSymb = Symbols.parsesym) Then  ' parse upper arg value etc
+            ElseIf (cSymb = Symbols.parsesym) Then  ' parse lower upper arg value etc
                 ActivatePARSEstatKeywords(True)
                 GetNextSymbol()
+                If (cSymb = Symbols.lowersym) Then
+                    GetNextSymbol()
+                    GenerateAsm(fct.upp, 0, 2)
+                End If
                 If (cSymb = Symbols.uppersym) Then
                     GetNextSymbol()
                     GenerateAsm(fct.upp, 0, 1)
@@ -1208,14 +1238,14 @@ Public Class Rexx
             GetNextSymbol()
         End While
     End Sub
-    Private Sub DoCallOrFunction(ByRef i As Integer, ByRef callf As Boolean)
+    Private Sub DoCallOrFunction(ByRef ixProcName As Integer, ByRef typeIsCall As Boolean)
         Dim NrValues, vi, j As Integer
         Dim ip As Integer
         Dim Pars As New Collection
         Dim ParsN As New Collection
         Dim closeSym As Symbols
         NrValues = 0
-        iParSeqNr += 100
+        iParSeqNr += 1000
         Pars.Clear()
         If cSymb = Symbols.lparen Then
             GetNextSymbol()
@@ -1226,7 +1256,7 @@ Public Class Rexx
         While (cSymb <> closeSym And cSymb <> Symbols.semicolon And cSymb <> Symbols.endprog)
             NrValues = NrValues + 1
             If cSymb <> Symbols.comma Then ' not an empty parameter
-                ProcessCallParm(NrValues, vi, NrValues)
+                ProcessCallParm(NrValues, vi, NrValues, ixProcName)
                 Pars.Add(vi) ' position of parameter id in names
                 ParsN.Add(iCurrParSeqNr) ' seq nr of parm  
             Else
@@ -1245,16 +1275,16 @@ Public Class Rexx
             End If
         End While
         If cSymb = Symbols.rparen Then GetNextSymbol()
-        GenerateAsm(fct.cal, NrValues, i)
+        GenerateAsm(fct.cal, NrValues, ixProcName)
         j = 0
         For Each ip In Pars
             j = j + 1
             GenerateAsm(fct.cll, CInt(ParsN.Item(j)), ip)
         Next ip
-        If Not callf Then GenerateAsm(fct.lod, tpSymbol.tpVariable, CurrRexxRun.iRes)
-        iParSeqNr -= 100
+        If Not typeIsCall Then GenerateAsm(fct.lod, tpSymbol.tpVariable, CurrRexxRun.iRes)
+        iParSeqNr -= 1000
     End Sub
-    Private Sub ProcessCallParm(ByVal n As Integer, ByRef i As Integer, ByVal iParStat As Integer)
+    Private Sub ProcessCallParm(ByVal n As Integer, ByRef i As Integer, ByVal iParStat As Integer, ixProcName As Integer)
         Dim pn As String
         iCurrParSeqNr = iParSeqNr + iParStat - 1
         If iMaxParSeqNr < iCurrParSeqNr Then iMaxParSeqNr = iCurrParSeqNr
@@ -1262,7 +1292,8 @@ Public Class Rexx
         i = SourceNameIndexPosition(pn, tpSymbol.tpVariable, DefVars)
         '  
         Condition() ' Expression()
-        GenerateAsm(fct.sto, 0, i) ' store final value of parameter n
+        'achteraf 1 Of 0, Als procedure
+        GenerateAsm(fct.sto, ixProcName, i) ' store final value of parameter n in next level
     End Sub
     Private Sub Factor(ByRef restExpression As Boolean)
         Dim i As Integer
@@ -1546,6 +1577,7 @@ Public Class Rexx
                         GetNextChar()
                         If LineTransit AndAlso prChara = ";" Then
                             SigError(120)
+                            Exit Sub
                         End If
                     End While
                     If eofRexxFile Then SigError(120)
@@ -2394,7 +2426,7 @@ Public Class Rexx
                                     Case 19 ' >=
                                         If (num >= num2) Then LRes = 1
                                 End Select
-                            Else ' string compare
+                            Else ' string compare  
                                 m = m.Trim()
                                 m2 = m2.Trim()
                                 Select Case cA
@@ -2478,7 +2510,7 @@ Public Class Rexx
                     End If
                 Case fct.sto
                     m = FromStack()
-                    StoreVar(cA, m, k, en, n)
+                    StoreVar(cA, m, k, en, n, cL)
                 Case fct.jmp
                     If (CurrRexxRun.TraceLevel > 2) Then
                         TracePLin(cA)
@@ -3314,7 +3346,7 @@ Public Class Rexx
                             Next
                         End If
                     Else
-                        VariaRuns = GetNm(cA, n, en, k)
+                        n = DirectCast(CurrRexxRun.IdName.Item(cA), DefVariable).Id
                         i = n.Length()
                         k = 1
                         For Each VR As VariabelRun In CurrRexxRun.RuntimeVars
@@ -3330,7 +3362,8 @@ Public Class Rexx
                         Next VR
                     End If
                 Case fct.upp ' parse UPPER ...
-                    UpCase = True
+                    UpCase = (cA = 1)
+                    LwCase = (cA = 2)
                 Case fct.arg ' parse arg
                     DoParse(CommandParm) ' internal values, false = external parameter
                 Case fct.pul ' parse pull
@@ -3646,7 +3679,7 @@ Public Class Rexx
         End If
         Return VarName
     End Function
-    Public Sub StoreVar(ByVal VarPosition As Integer, ByVal VarValue As String, ByRef VarExePosition As Integer, ByRef ExeName As String, ByRef RexxName As String)
+    Public Sub StoreVar(ByVal VarPosition As Integer, ByVal VarValue As String, ByRef VarExePosition As Integer, ByRef ExeName As String, ByRef RexxName As String, Optional nextLev As Integer = 0)
         Dim k As Integer
         Dim VarName As String
         Dim Var As VariabelRun
@@ -3654,7 +3687,13 @@ Public Class Rexx
         VarName = DefVars.Id
         RexxName = VarName
         ExeName = SubstIndices(VarName)
-        k = VarIndex(ExeName, True) ' create if not exists
+        If nextLev = 0 Then
+            k = VarIndex(ExeName, True) ' create if not exists
+        Else
+            Dim RunLvl As Integer = CurrRexxRun.CallStack.Count - 1
+            If RunLvl = -1 Then RunLvl = 0
+            k = VarIndex(ExeName, True, RunLvl + nextLev) ' create if not exists
+        End If
         Var = DirectCast(CurrRexxRun.RuntimeVars(k), VariabelRun)
         'Dim dbg As String = "sto " + VarName + " " + CStr(Var.Level) + " : |" + VarValue + "| " + " x:" + CStr(k)
         Var.IdValue = VarValue
@@ -3670,19 +3709,13 @@ Public Class Rexx
         End If
         Logg("Assign: " & VarName & "=|" & VarValue & "|")
     End Sub
-    Private Function VarIndex(VarName As String, Create As Boolean, Optional RunLvlSpec As Integer = -1, Optional InFunctions As Boolean = False) As Integer
+    Private Function VarIndex(VarName As String, Create As Boolean, Optional RunLvlSpec As Integer = -1) As Integer
         Dim Retval As Integer = 0
         Dim RunLvl As Integer = RunLvlSpec
         If RunLvl = -1 Then RunLvl = CurrRexxRun.CallStack.Count - 1
         If RunLvl = -1 Then RunLvl = 0
-
-        Dim RunLvlp As Integer = RunLvl
-        If Not Create And Not InFunctions Then
-            If VarName.Length > 2 AndAlso VarName(1) = " "c AndAlso RunLvl > 0 Then
-                RunLvlp -= 1
-            End If
-        End If
-        Dim key As String = CStr(RunLvlp) & VarName
+        'Dim RunLvlp As Integer = RunLvl
+        Dim key As String = CStr(RunLvl) & VarName
         If CurrRexxRun.RuntimeVars.Contains(key) Then
             Dim Var As VariabelRun = DirectCast(CurrRexxRun.RuntimeVars(key), VariabelRun)
             Retval = Var.ArrayIndex
@@ -3705,19 +3738,24 @@ Public Class Rexx
         Return Retval
     End Function
     Private Function IsExposed(Varname As String, RunLvl As Integer) As Boolean
-        Dim cse As CallElem = DirectCast(CurrRexxRun.CallStack(RunLvl + 1), CallElem)
-        If Not cse.Exposes Is Nothing Then
-            For Each s As String In cse.Exposes
-                If s = Varname Then
-                    Return True
-                End If
-            Next
+        Dim cse As CallElem = Nothing
+        If RunLvl >= CurrRexxRun.CallStack.Count Then
+            Return False ' parameter for next call level
+        Else
+            cse = DirectCast(CurrRexxRun.CallStack(RunLvl + 1), CallElem)
+            If Not cse.Exposes Is Nothing Then
+                For Each s As String In cse.Exposes
+                    If s = Varname Then
+                        Return True
+                    End If
+                Next
+            End If
+            Dim i As Integer = Varname.IndexOf("."c)
+            If i = -1 Or i = Varname.Length() - 1 Then
+                Return False
+            End If
+            Return IsExposed(Varname.Substring(0, i + 1), RunLvl) ' var.
         End If
-        Dim i As Integer = Varname.IndexOf("."c)
-        If i = -1 Or i = Varname.Length() - 1 Then
-            Return False
-        End If
-        Return IsExposed(Varname.Substring(0, i + 1), RunLvl) ' var.
     End Function
     Private Function GetNm(ByVal a As Integer, ByRef n As String, ByRef en As String, ByRef k As Integer) As VariabelRun
         DefVars = DirectCast(CurrRexxRun.IdName.Item(a), DefVariable)
@@ -3730,7 +3768,7 @@ Public Class Rexx
     End Function
     Private Function GetNmFunc(ByVal a As Integer, ByRef n As String, ByRef en As String, ByRef k As Integer) As VariabelRun
         DefVars = DirectCast(CurrRexxRun.IdName.Item(a), DefVariable)
-        k = VarIndex(DefVars.Id, False, -1, True) ' don't create if not exists
+        k = VarIndex(DefVars.Id, False, -1) ' don't create if not exists
         If k = 0 Then
             Return Nothing
         Else
@@ -4067,7 +4105,11 @@ Public Class Rexx
                             Else
                                 m3 = GetVar((followingToken.a), en, n)
                             End If
-                            i = InStr(1, m2, m3)
+                            If LwCase Then
+                                i = InStr(1, m2.ToLower(CultInf), m3.ToLower(CultInf))
+                            Else
+                                i = InStr(1, m2, m3)
+                            End If
                             If (i = 0) Then i = m2.Length() + 1
                             m2 = Mid(m, l3, i - 1)
                             l3 = l3 + i - 1 + m3.Length()
@@ -4147,7 +4189,7 @@ Public Class Rexx
                 End If
             Next
         End If
-        Words = 9999999
+        Words = 0
     End Function
     Private Function Word(ByVal s As String, ByVal f As Integer, Optional ByVal sep As String = " ") As String
         Dim i, j As Integer
