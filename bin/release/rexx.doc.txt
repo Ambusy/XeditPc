@@ -2518,8 +2518,8 @@
    Syntax
 
       >>-PARSE--+-------+-+--ARG------------------------+--------->
-                +-UPPER-+ +--PULL-----------------------+
-                          +--VALUE--+------------+-WITH-+
+                +-LOWER-+ +--PULL-----------------------+
+                +-UPPER-+ +--VALUE--+------------+-WITH-+
                           |         +-expression-+      |
                           +--VAR-name-------------------+
 
@@ -2527,6 +2527,10 @@
           +-template-+
 
    Parameters
+
+      LOWER    Translates the text of tokens and of parse string 
+               to lower case to find the corresponding tokens. 
+               The results remain in original capitalization.
 
       UPPER    Translates the character strings to upper case.  Other-
                wise no translation takes place during the parsing.
@@ -6807,6 +6811,7 @@
       1 parse upper arg InFile 
       2 if left(InFile,1) = '"' then
       3    parse var InFile '"' InFile '"' .
+      3    parse lower upper var Infile name ".DOC" x  
       4 else
       5    parse var InFile InFile .
       6 InPath = STREAM(InFile,'C','QUERY EXIST')
@@ -6829,6 +6834,8 @@
         1 :Get command line arguments
         2 :if filename is contained within quotes(eg by Explorer)
         3 :strip them 
+        3 :split a name like "ABC.DocX" in ABC and X
+           or "Abc.doc" in ABC and empty. Tokenizing all in lower case, result uppercase
         5 :otherwise skip all from first intermediate blank 
         6 :Check that file exists
         7 :If the file was not found,

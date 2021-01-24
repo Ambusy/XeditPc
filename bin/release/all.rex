@@ -100,46 +100,58 @@ and_all:
 /*                       Get the actual target and remainder */
   target=substr(targparm,targstart,targlen)
   extra=delstr(targparm,targstart,targlen)
-  'COMMAND TOP'
-  'COMMAND EXTRACT /SCOPE/'
-  'COMMAND SET SCOPE DISPLAY'       /* Get the visible file  */
-  'COMMAND PRESERVE'
-  'COMMAND SET VERIFY OFF'          /* Scrap unwanted output */
-  'COMMAND LOCATE' target           /* Is the target there?  */
-  saverc=rc
-  if rc<>0 then do                  /* No, exit quickly      */
-     'COMMAND LOCATE :'line.1
-     'COMMAND MSG Not found'
-     'COMMAND RESTORE'
-     'COMMAND SET SCOPE' scope.1
+  "Extract /scope/line/wrap/msgmode/"
+  "set scope display"
+  "set wrap off"
+  "set msgmode off"
+  "top"
+  "locate" target
+  rrc = rc
+  if rrc <> 0 then do
+     "set wrap" wrap.1
+     "set scope" scope.1
+     "set msgmode" msgmode.1
+     'LOCATE :'line.1
+     'MSG Not found'
      exit 2
-     end
+  end
 /* At this point the target has been verified and located at */
 /* least once.  Now we loop looking for more.                */
-  'COMMAND EXTRACT /LINE/'         /* This is new current    */
-  line=line.1                      /* line after processing  */
-  liner=line.1                      /* return */
-  'COMMAND TOP'
-  'COMMAND SET MSGMODE OFF'
-  'COMMAND SET WRAP OFF'
-  'COMMAND LOCATE :1'              /* tof*/
-  'COMMAND SET SELECT 2' line-1    /* take not containing out of set */
-  'COMMAND LOCATE :'line           /* 1st */
-  'COMMAND LOCATE' target          /* Second search          */
-  do while rc = 0                  /* ... loop until no more */
-     'COMMAND EXTRACT /LINE/'         /* This is new current    */
-     line2=line.1                      /* line after processing  */
-     'COMMAND LOCATE :'line + 1    /* after contaiing */
-     'COMMAND SET SELECT 2' line2 - line - 1
-     line = line2
-     'COMMAND LOCATE :'line2       /* after 2nd contaiing */
-     'COMMAND LOCATE' target
-   end
-  'COMMAND LOCATE :'line + 1    /* after contaiing */
-  'COMMAND SET SELECT 2 *'
-  'COMMAND RESTORE'
+  filine = 1                          /* startline to hide*/
+  "extract /line/"
+  liner = line.1                      /* return line */
+  fndline = line.1                    /* line with target */
+  laline = fndline - 1
+  do while rrc = 0
+    nlines = laline - filine 
+    if nlines > 0 then do
+      "set scope all"
+      'LOCATE :'filine           
+      'SET SELECT 2' nlines
+    end
+    "set scope display"
+    'LOCATE :'fndline           
+    filine = fndline + 1
+    "locate" target                /* next one  */
+    rrc = rc
+    if rrc = 0 then do
+      filine = fndline + 1           /* startline to hide*/
+      "extract /line/"              
+      fndline = line.1               /* line with next target */
+      laline = fndline - 1
+    end
+  end
+  "extract /size/"
+  nlines = size.1 - filine 
+  if nlines > 1 then do
+    'LOCATE :'filine           
+    'SET SELECT 2' nlines
+  end
   'COMMAND LOCATE :'liner
-  'COMMAND SET DISPLAY' 0 0        /* And show deleted lines */
+  'COMMAND SET DISPLAY' 0 0        /* And show selected lines */
+  "set wrap" wrap.1
+  "set scope" scope.1
+  "set msgmode" msgmode.1
   exit
 not_all:   
   targparm  = substr(targparm,2)
