@@ -1,0 +1,328 @@
+﻿Press F3 to return to editor
+
+non Windows XP user: see below to modify or add commands
+
+Basic edit commands    [...] is optional    .... / .... choose
+
+ADD [n]
+ALTER c/XX c/XX [target [no [fo]]] 
+BOTTOM       
+CAPPEND text
+CDELETE target
+CFIRST
+CINSERT text
+CLAST
+CLOCATE target
+COVERLAY mask
+CREPLACE text
+CHANGE -old-new- [target [no [fo]]]    note; no=B if at beginning of line no=E if at end only  
+                                       hex: X'..' or '..'X
+CMSG command
+CURSOR SCREEN/FILE linen° coln°
+DELETE [target]   
+DOWN [target]  
+DROPBUF [n]
+FIND text  
+FINDUP text  
+GET file [f n°] [n n°]
+HELP      
+INPUT sourcetext  
+LEFT [n/*] 
+LOCATE target
+MAKEBUF
+MCOPY           (copy selection to clipboard, ctrl-click: rectangle)
+MCUT            (cut selection)
+MPASTE          (paste selection to clipboard)
+MSG message
+PRINT [Linenumbers] [Heading]                      
+PLAY macrofile
+PUT file [f n°] [n n°]
+QQUIT
+QUIT
+READ CMDLINE
+RECALL  
+REPLACE sourceline
+RESET
+RIGHT [n/*]
+SAVE [filename]
+SELECTSET OFF/ON top left bot right [RECT]
+SENDKEY filename, which sends all characters in the file as if they were typed in. You use the coding convention of SENDKEYS for Microsoft .Net for special characters such as {tab}, {enter}, etc
+SHOWEOL
+TOP
+UNDO
+UP [n/*] 
+XEDIT [next file] / ?        ? to use FileOpenDialog
+=
+&.......
+COMMAND   
+MACRO   
+/ or < invokes LOCATE
+ 
+where target stands for:  
+   :n
+   +n
+   -n
+   .pointname
+   /text/[ &/| /text/ ....]
+
+Break-key or Alt-Break-key terminates a running command
+
+SET
+     ALT-? command                        (set any single symbol key with ALT pressed to a command. Keys with different symbols in lower and uppercase are excluded)
+     AUTOSAVE n / OFF
+     CASE MIXED/UPPERCASE RESPECT/IGNORE  
+     CMDLINE ON TOP/n°/BOTTOM
+     CTRL-? command                        (set any single symbol key with CTRL pressed to a command)
+     CURLINE ON linen°
+     DISPLAY low high/*
+     ENCODE UTF8 / UNICODE / ASCII        (ASCII edits a unicodefile as if it was ascii)
+     FONTSIZE size
+     HEX ON/OFF 
+     LINEND ON/OFF [char]
+     LRECL  nnn
+     MSGLINE ON first n° [OVERLAY]
+     MSGMODE ON/OFF
+     PENDING BLOCK/ON commandname / OFF
+     PF01 ... PF12 command
+     POINT pointname
+     RECFM F/V/FB/VB
+     RESERVED OFF / linen° [Colorname] [HIGH/NOHIGH] text to display (Colors/highlighting not active)
+     REXXPATH path; path; ...
+     REXXTRACE ON/OFF
+     SCOPE ALL/DISPLAY
+     SELECT n°lines/* level
+     SHADOW ON/OFF
+     SHIFT-? command                        (set any single symbol key with SHIFT pressed to a command)
+     STAY ON/OFF
+     SYNONYM newname oldname n°chars
+     TABS ON [nn nn nn nn ..... ] / OFF
+     TRUNC rightcol/*
+     UNDO number
+     VERIFY ON/OFF [HEX] leftcol° rightcol° ...
+     WRAP ON/OFF
+     ZONE leftcol° rightcol°/*
+
+EXTRACT
+     APPLICATIONPATH
+     EXEPATH
+     REXXPATH
+     AUTOSAVE
+     CASE
+     CURLINE
+     CURSOR
+     SIZE
+     FLSCREEN
+     FNAME
+     FONTSIZE
+     FTYPE
+     FULLFILENAME
+     HEX
+     LENGTH
+     LINE
+     LINEND
+     LRECL
+     LSCREEN
+     MSGLINE
+     PENDING 
+     POINT
+     RECFM
+     RING
+     SCOPE
+     SELECTSET
+     SHADOW
+     SIZE
+     TABS
+     TEMP
+     TERMINAL
+     TRUNC
+     VERIFY 
+     WRAP
+     ZONE
+
+LINE COMMANDS
+     I[n] insert 1 / n empty lines
+     D[n] delete 1/n lines
+     X[n] exclude 1 / n lines from view
+     S    reinclude excluded lines 
+     >[n] add spaces at start of line
+     >>[n]add spaces at start of a block of lines
+     <[n] cancel spaces at start of line
+     <<[n]cancel spaces at start of a block of lines
+     "[n] repeat a line
+     ""[n]repeat lines
+     .name
+
+MOUSE possibilities:	
+     select lines with mouse left button (button 1)
+     select a rectangle with CTRL-mouse left button
+     Copy, Cut or Paste with mouse right button (button 2)
+     or with MCOPY, MCUT or MPASTE commands.
+     Paste inserts or overwrites, according to setting of Ins-key.
+     MACRO RECORD / STOP RECORDING to capture keyboard strokes and playback
+     with PLAY file command, using Microsoft's {key} codes to insert special keys
+     Mouseclicks on button 1, Ctrl-1 or 2 are handled by the edittor.
+     All other mousebuttons are handled by a Rexx-programm called MOUSEBUTTONn.REX, 
+      where n stands for the buttonnumber, allowing eg. to use the "Forward" and "Backward" 
+      buttons. Pressing Shift, Ctrl or Alt and a mousebutton adds a prefix to the Rexx name 
+      eg. SHIFT-MOUSEBUTTON1.REX
+     Using the mousewheel you execute MOUSEWHEELUP.REX or MOUSEWHEELDOWN.REX. Again there
+      might be a prefix for the Shift, Alt or Ctrl key.
+     Doubleclicking the left button executes DOUBLECLICK.REX
+     Command SELECTSET ON/OFF top left bot right [RECT] to specify an area to be selected in a Rexx
+       ON: define area  
+       OFF: no selection
+       RECT: if specified indicates a rectangular select, as with CTRL-mouse
+     EXTRACT /SELECTSET/ provides for coordinates of selected area (or all -1)
+     Escape-key cancels selection.
+ 
+LSE-type support, Language Sensitive Editor once on Dec Vms, now on HP,
+  allows templates and expansion, aiding you to write in a rather unknown language. 
+  As a sample I add the REX.LSE file for writing REXX. Syntax is kept very simple.
+  The only tricky thing is the Repeat Token. ... means repeat, ..; means repeat on new line.
+  The special symbols for recognizing tokens are specified inside the commands and may be changed.
+  Commands: Exp (expand token, ctrl-E), ExpD (delete [] around optional source, CTRL-D,
+  ExpI (remove optional part, CTRL-I) and ExpN (jump to next token, CTRL-TAB).
+  Want to give it a try: create a new file with type .REX, insert a line, type PROGRAM
+  and press Ctrl-E and then Ctrl-E on various tokens. Look into REX.LSE to see why it happens
+   
+
+For details on XEDIT commands see: 
+http://ukcc.uky.edu/~ukccinfo.391/xeditref.html
+For details on XEDIT extract command see:
+http://mitvma.mit.edu/cmshelp.cgi?XEDIT%20EXTract%20(ALL 
+
+ 
+Basic Cms commands
+
+GLOBALV [SELECT name] GET/PUT/PUTS/PUTP var 
+       to save variables between sessions
+STATE filename 
+       to see if file exists
+EXECIO nr_lines/* DISKW/DISKR filename [StartRecNr [Recfm [Lrecl]]] [( VAR v / STEM s.]
+       limited version, no FINIS, file closes always
+MSG, EMSG, SMSG  message 
+       limited version, displays message only
+CMSG message 
+       message will be the next command on the command-line 
+
+
+Edit commands implemented in Rexx:
+
+FILE      to save and exit
+STACK n   stack n lines from currentline in program-stack for pulling    
+ALL       to view only lines containing given string(s), see program-structures eg. cobol: ALL /PERFORM/ to see perform-structures
+          all other lines will be excluded 
+PARSE     used in ALL by VM/SP
+SPLTJOIN  splits/joins 1 <-> 2 lines
+FNDDECL   Finds first occurence of the name to which the cursor points
+FNDSECT   Finds Cobol section, of the name to which the cursor points
+FNDRET    Returns to the point in the source where Fnd... or Sav... parted
+SAVEPOS   Saves cursor position, where FNDRET will return to.
+COBLEN    Calculates the length in bytes of a IBM-cobol structure
+SAVVIS    Writes all visible lines (eg. with ALL /.../) to a (given) file
+DELDUPLICATES deletes duplicate lines, ifvthey are paired in the file
+SHALL     Shows all lines containing the word that the cursor points to
+LOCUC     Locates Ansi-string represented in Unicode (with x'00' before each char)
+SORT      Sorts a file ascending on a given colunm (or first colunm).
+WRDGET    Copies a word under the cursor to globalv
+WRDPUT    Pastes the word copied by WRDGET
+LINUNIQ   Deletes succeeding lines with equal keyfields
+TRIMR     Strips trailing spaecs from all lines
+NUMMER    puts a sequencenumber in the visible lines
+COMPFILE  Compare contents of all files in a (sub)directory
+
+
+
+Edit linecommands implemented in rexx:
+
+C         to copy/move line(s) Before or After a line
+CC
+M
+MM
+P
+F
+DD         to delete a block if lines
+XX         to hide a block of lines
+
+Extra linecommands implemented in rexx:
+
+PP         to Put a block of lines in Globalv
+GG         to Get a PUTted-block 
+II         to insert 1 line at a time, until you enter an empty line 
+CM         comment out a block of lines with //
+UC         uncomment block
+
+Special Key-strokes:
+
+Ins: Toggle Insert/Overstrike
+Home: move cursor to commandline
+End: move cursor to end of line. If already at end of line: move to begin of line
+Tab: move cursor to next source or linenumber field
+BackTab: move cursor to previous source or linenumber field
+Return: execute linecommands, execute command
+Esc: if messages are displayed, they are cleaned up, otherwise $ESC$.rex is executed
+DoubleClick: calls DoubleClick.rex, which (modifiable) selects the word under the cursor 
+
+
+At invocation Xedit executes "system profile.rex" in the installation map to set the defaults. 
+This file also includes all messages, thus allowing translation of the package in any language.
+If invoked as "XEDIT filename (PROFILE profilename" xedit will execute profilename.rex next,
+otherwise will execute "profile.rex", if one exists in the paths named in REXXPATH
+All parameters specified after ( will be executed as "SET"s of 2 or 3 words, but if you
+use Verify it must be the last option for it is variable in length.
+Example: "XEDIT filename (LRECL 10 RECFM F PF01 file CASE Mixed Respect VERIF 1 40 H 1 40"
+Parameters may be specified also after entering the filename in the FileOpenBox, using HELP button.
+
+This editor may also be used as a stand-alone Rexx interpreter.
+Invoke Xedit.exe from the Cmd-line (Dos-box) with the /R filename option
+Xedit wil execute the file named after the /R and finish. No edit-window ever exists.
+
+_______________________________________________________________________________________________
+  
+
+
+Rexx features:
+
+All statement types are implemented except:
+   NUMERIC
+   CONDITIONS and TRAPS
+   SIGNAL is partly implemented: SIGNAL ON NOVALUE and SIGNAL label 
+
+Not all functions are present. Available:
+   ABBREV        QUEUED
+   ABS           RANDOM
+   B2X           REVERSE
+   C2X           RIGHT
+   CHARS         SIGN
+   CHARIN        SPACE
+   CHAROUT       STRIP
+   COMPARE       SUBSTR
+   COPIES        SUBWORD
+   DATATYPE      TIME
+   DATE          TRANSLATE
+   DELSTR        TRUNC
+   DELWORD       VALUE (note: Dos limitation, can't set a DOS environment variable)
+   EXTERNALS     VERIFY
+   FORMAT        WORD
+   INDEX         WORDINDEX
+   INSERT        WORDLENGTH
+   LASTPOS       WORDS
+   LEFT          X2B
+   LENGTH        X2C
+   OVERLAY       XRANGE
+   POS           STREAM
+   ROUND         LINES
+                 LINEIN
+                 LINEOUT 
+ 
+Not all operators are implemented. Those available are:
+   +(plus) -(minus) *(times) /(divide) %(int. divide) //(mod) **(power)
+   |(or) &(and) ^ ! \(not) =(equal) ==(exactly equal) <> >< != ^= \=(not equal)
+   <(less) <= ^> !> \>(less or equal) >(greater) >= ^< !< \<(greater or equal) 
+   ||(concatenate strings)
+
+
+The user may interrupt a running Rexx by hitting BREAK or by clicking CLOSE on the PcXedit-window. 
+The edit session will stay alive
+
+For details on the REXX programming language see the file REX.DOC.TXT

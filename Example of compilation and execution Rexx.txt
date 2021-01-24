@@ -1,0 +1,116 @@
+/* call example with PROCEDURE */
+a = "artist"
+say xx(a)
+exit
+  
+xx: procedure 
+parse arg xa 
+xa=yy(xa,2) 
+return xa 
+ 
+yy: procedure 
+parse arg ba, l 
+ya=left(ba,l) 
+return ya 
+
+Compiled code:
+     a = "artist";
+1 lin 0 2
+2 lod 2 L
+3 sto 4 0
+     say xx(a);
+4 lin 0 3
+5 lod 4 V
+6 sto 6 1
+7 cal 15 1
+8 cll 6 1100
+9 lod 1 V
+10 say 0 0
+     exit;
+11 lin 0 4
+12 lod 1 L
+13 sto 1 0
+14 exi 1 0
+     xx: procedure ;
+15 lin 0 6
+16 lbl 1 51
+     parse arg xa ;
+17 lin 0 7
+18 arg 1 1
+19 parv 7 1
+     xa=yy(xa,2) ;
+20 lin 0 8
+21 lod 7 V
+22 sto 9 1
+23 lod 4 L
+24 sto 10 1
+25 cal 34 2
+26 cll 9 2101
+27 cll 10 2102
+28 lod 1 V
+29 sto 7 0
+     return xa ;
+30 lin 0 9
+31 lod 7 V
+32 sto 1 0
+33 ret 1 0
+     yy: procedure ;
+34 lin 0 11
+35 lbl 2 51
+     parse arg ba, l ;
+36 lin 0 12
+37 arg 2 2
+38 parv 11 1
+39 parv 12 2
+     ya=left(ba,l) ;
+40 lin 0 13
+41 lod 11 V
+42 sto 15 0
+43 lod 12 V
+44 sto 16 0
+45 jbr 19 2
+46 cll 15 3103
+47 cll 16 3104
+48 lod 1 V
+49 sto 13 0
+     return ya ;
+50 lin 0 14
+51 lod 13 V
+52 sto 1 0
+53 ret 1 0
+54 lod 1 L
+55 sto 1 0
+56 exi 1 0
+
+Defined variables: seqnr, 'NAME', type 1=procedure, 2=variable
+ 
+1 'RESULT' 2
+2 'RC' 2
+3 'SIGL' 2
+4 'A' 2
+5 'XX' 1
+6 'P 1100' 2
+7 'XA' 2
+8 'YY' 1
+9 'P 2101' 2
+10 'P 2102' 2
+11 'BA' 2
+12 'L' 2
+13 'YA' 2
+14 'LEFT' 1
+15 'P 3103' 2
+16 'P 3104' 2
+
+Runtime variables when executing line 45: seqnr, 'NAME', call level, |value|
+
+1 'RESULT' 0 ||
+2 'RC' 0 |0|
+3 'A' 0 |artist|
+4 'P 1100' 1 |artist|
+5 'XA' 1 |artist|
+6 'P 2101' 2 |artist|
+7 'P 2102' 2 |2|
+8 'BA' 2 |artist|
+9 'L' 2 |2|
+10 'P 3103' 2 |artist|
+11 'P 3104' 2 |2|
