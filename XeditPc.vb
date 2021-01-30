@@ -2709,9 +2709,9 @@ opn:
             If (ssd.SrcSelect <= CurrEdtSession.EditDisplayMax And ssd.SrcSelect >= CurrEdtSession.EditDisplayMin) Or CurrEdtSession.ScopeAllDisplay Then
                 src = ReadOneSourceLine(ssd)
                 Logg("Locate1String src = " & src)
-                If src.Length < ZoneR Then
-                    src = src.PadRight(ZoneR)
-                End If
+                'If src.Length < ZoneR Then
+                '    src = src.PadRight(ZoneR, vbTab)
+                'End If
                 If LocString.Length() = 0 Then ' point before first char
                     If NrOcc = -2 Then
                         found = src.Length()
@@ -4872,7 +4872,7 @@ FileDeleteErrorRes:
                     If MacroRecording Then MacroString += "{ENTER}"
                     KeyEnter(dsScr)
                 Case System.Windows.Forms.Keys.F1 To System.Windows.Forms.Keys.F12
-                    If MacroRecording Then MacroString += "{F" + (eventArgs.KeyCode - 111) + "}"
+                    If MacroRecording Then MacroString += "{F" + CStr(eventArgs.KeyCode - 111) + "}"
                     KeyPfKey(eventArgs.KeyCode, Shift)
                 Case Else
                     KeyAlreadyProcessed = False
