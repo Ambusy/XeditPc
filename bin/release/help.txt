@@ -72,7 +72,18 @@ SET
      AUTOSAVE n / OFF
      CASE MIXED/UPPERCASE RESPECT/IGNORE  
      CMDLINE ON TOP/n°/BOTTOM
-     CTRL-? command                        (set any single symbol key with CTRL pressed to a command)
+     COLOR TEXT [#RRGGBB]                (set colors fg and bg for different areas) Textline, Textline with cursor on it, Textline background 
+     COLOR CURLINETEXT [#RRGGBB]         
+     COLOR TEXTBG [#RRGGBB]
+     COLOR LINENUMBER [#RRGGBB]          Linenumbers, Curline as defined for commands, Linenumbers background     
+     COLOR CURLINENUMBER [#RRGGBB]               
+     COLOR LINENUMBERBG [#RRGGBB]
+     COLOR SELECT [#RRGGBB]              Selected text, selected background      
+     COLOR SELECTBG [#RRGGBB]
+     COLOR COMMAND [#RRGGBB]             Command line, command line background 
+     COLOR COMMANDBG [#RRGGBB]
+     COLOR CURSOR [#RRGGBB]              cursor symbol (line or bar)
+     CTRL-? command                      (set any single symbol key with CTRL pressed to a command)
      CURLINE ON linen°
      DISPLAY low high/*
      ENCODE UTF8 / UNICODE / ASCII        (ASCII edits a unicodefile as if it was ascii)
