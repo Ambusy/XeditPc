@@ -30,7 +30,7 @@ Module MainMod
     Public LinesScreenVisible As Short
     Public CharsOnScreen, pCharsScreenVisible As Short
     Public EditTextHeight, EditTextWidth As Single
-    Public RectHeight As Integer ' height of one line of sourcerectangle
+    Public RectHeight As Integer ' height of one line of source rectangle
 
     Public RexxCmdActive As Boolean ' true = Form is executing a Rexx commandfile
     Public MacroRecording As Boolean
@@ -169,5 +169,24 @@ Module MainMod
             End If
         End If
         Return False
+    End Function
+    Public Function ConvertToRbg(ByVal HexColor As String) As Color
+        Dim Red As String
+        Dim Green As String
+        Dim Blue As String
+        HexColor = Replace(HexColor, "#", "")
+        Red = Val("&H" & Mid(HexColor, 1, 2))
+        Green = Val("&H" & Mid(HexColor, 3, 2))
+        Blue = Val("&H" & Mid(HexColor, 5, 2))
+        Return Color.FromArgb(Red, Green, Blue)
+    End Function
+    Public Function ConvertFromRbg(ByVal HexColor As Color) As String
+        Return "#" & N2X(HexColor.R) & N2X(HexColor.G) & N2X(HexColor.B)
+    End Function
+    Private Function N2X(ByVal x As Short) As String
+        Dim s As String = "0123456789ABCDEF"
+        Dim c1 As Short = x \ 16
+        Dim c2 As Short = x And &HFS
+        N2X = Mid(s, c1 + 1, 1) & Mid(s, c2 + 1, 1)
     End Function
 End Module

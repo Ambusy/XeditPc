@@ -40,6 +40,7 @@ Partial Class XeditPc
         Me.Timer1 = New System.Windows.Forms.Timer(Me.components)
         Me.VSB = New System.Windows.Forms.VScrollBar()
         Me.TimerBar = New System.Windows.Forms.Timer(Me.components)
+        Me.ColorDialog1 = New System.Windows.Forms.ColorDialog()
         Me.ContextMenuStrip1.SuspendLayout()
         Me.SuspendLayout()
         '
@@ -143,5 +144,5 @@ Partial Class XeditPc
     Friend WithEvents ToolStripSeparator2 As System.Windows.Forms.ToolStripSeparator
     Friend WithEvents VSB As System.Windows.Forms.VScrollBar
     Friend WithEvents TimerBar As System.Windows.Forms.Timer
-
+    Friend WithEvents ColorDialog1 As ColorDialog
 End Class

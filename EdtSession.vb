@@ -50,6 +50,18 @@ Public Class EdtSession
     Public mSelect As Boolean ' there is selected text!
     Public mSelRctg As Boolean ' selected with CTRL = rectangle, not whole lines
 
+    Public color_select As Color = Color.White ' selected area
+    Public color_selectbg As Color = Color.Blue
+    Public color_command As Color = Color.Black ' command
+    Public color_commandbg As Color = Color.White
+    Public color_linenr As Color = Color.Black ' linenumbers general
+    Public color_curline As Color = Color.Blue ' curline linenumber
+    Public color_linenrbg As Color = Color.White
+    Public color_text As Color = Color.Black ' main text
+    Public color_textcursor As Color = Color.Indigo ' line with cursor
+    Public color_textbg As Color = Color.White
+    Public color_cursor As Color = Color.Red ' cursor symbol
+
     Public Verif As New Collection ' Verify pairs
     Public VerifyOn As Boolean ' Set Verify On/Off
     Public SourceList As New Collection
@@ -85,7 +97,7 @@ Public Class EdtSession
         Verif.Add(vp)
     End Sub
     Protected Overrides Sub Finalize()
-        If Not EditFile Is Nothing Then
+        If EditFile IsNot Nothing Then
             EditFile.Dispose()
             EditFile.Close()
         End If

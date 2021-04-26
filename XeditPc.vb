@@ -1313,6 +1313,40 @@ opn:
                     End If
                 Next
                 RexxPath += ExecutablePath + ";"
+            ElseIf FirstWord = "COLOR" Then
+                Dim s As String = NxtWordFromStr(CommandLine, "")
+                Dim c As String = NxtWordFromStr(CommandLine, "")
+                If c = "" Then
+                    If (ColorDialog1.ShowDialog() = Windows.Forms.DialogResult.OK) Then
+                        c = ConvertFromRbg(ColorDialog1.Color)
+                        Call DoCmd1("MSG Selected color = " & c, False)
+                    End If
+                End If
+                If Abbrev(s, "SELECT") Then
+                    CurrEdtSession.color_select = ConvertToRbg(c)
+                ElseIf Abbrev(s, "SELECTBG") Then
+                    CurrEdtSession.color_selectbg = ConvertToRbg(c)
+                ElseIf Abbrev(s, "COMMAND") Then
+                    CurrEdtSession.color_command = ConvertToRbg(c)
+                ElseIf Abbrev(s, "COMMANDBG") Then
+                    CurrEdtSession.color_commandbg = ConvertToRbg(c)
+                ElseIf Abbrev(s, "LINENUMBER") Then
+                    CurrEdtSession.color_linenr = ConvertToRbg(c)
+                ElseIf Abbrev(s, "CURLINENUMBER") Then
+                    CurrEdtSession.color_curline = ConvertToRbg(c)
+                ElseIf Abbrev(s, "LINENUMBERBG") Then
+                    CurrEdtSession.color_linenrbg = ConvertToRbg(c)
+                ElseIf Abbrev(s, "TEXT") Then
+                    CurrEdtSession.color_text = ConvertToRbg(c)
+                ElseIf Abbrev(s, "TEXTBG") Then
+                    CurrEdtSession.color_textbg = ConvertToRbg(c)
+                ElseIf Abbrev(s, "CURLINETEXT") Then
+                    CurrEdtSession.color_curline = ConvertToRbg(c)
+                ElseIf Abbrev(s, "CURSOR") Then
+                    CurrEdtSession.color_cursor = ConvertToRbg(c)
+                Else
+                    rc = 16
+                End If
             Else
                 If CurrEdtSession.Settings.Contains(FirstWord) Then
                     CurrEdtSession.Settings.Remove(FirstWord)
@@ -3217,13 +3251,18 @@ FileDeleteErrorRes:
         Dim StrToBuild As System.Text.StringBuilder, StrToShow, StrToShowTabs, StrToShowExp, TxtCurLinCr, VerCurStr, sNr As String
         Dim Bsl, Sel, Asl, VerF, VerLn As Integer
         Dim g As Graphics = e.Graphics
-        Dim blueBrush As New SolidBrush(Color.Blue)
-        Dim blueishBrush As New SolidBrush(Color.Indigo)
+        Dim selectBrush As New SolidBrush(CurrEdtSession.color_select)
+        Dim selectBgBrush As New SolidBrush(CurrEdtSession.color_selectbg)
+        Dim commandBrush As New SolidBrush(CurrEdtSession.color_command)
+        Dim commandbgBrush As New SolidBrush(CurrEdtSession.color_commandbg)
+        Dim linenrBrush As New SolidBrush(CurrEdtSession.color_linenr)
+        Dim curlineBrush As New SolidBrush(CurrEdtSession.color_curline)
+        Dim linenrBgBrush As New SolidBrush(CurrEdtSession.color_linenrbg)
+        Dim lineWithCursorBrush As New SolidBrush(CurrEdtSession.color_textcursor)
+        Dim textBgBrush As New SolidBrush(CurrEdtSession.color_textbg)
+        Dim textBrush As New SolidBrush(CurrEdtSession.color_text)
         Dim whiteBrush As New SolidBrush(Color.White)
-        Dim blackBrush As New SolidBrush(Color.Black)
-        Dim redBrush As New SolidBrush(Color.Red)
-        Dim BeigeBrush As New SolidBrush(Color.Beige)
-        Dim redPen As New Pen(Color.Red, 2)
+        Dim redPen As New Pen(CurrEdtSession.color_cursor, 2)
         Dim aRectangle As Rectangle
         Dim EditSize As SizeF
         Dim EditFont As New Font("Courier New", FontSizeOnForm)
@@ -3241,10 +3280,6 @@ FileDeleteErrorRes:
         CurrEdtSession.RectHeight = RectHeight
         CurrEdtSession.EditTextHeight = EditTextHeight
         ExtraWidth1stChar = ExtraWidth1stChar - EditTextWidth 'extra width of 1st char on line
-        'Dim hg As Integer = ClientRectangle.Size.Height
-        'If hg > Screen.PrimaryScreen.Bounds.Height Then
-        '    hg = Screen.PrimaryScreen.Bounds.Height
-        'End If
         LinesScreenVisible = CShort(Math.Floor(ClientRectangle.Size.Height / RectHeight))
         pCharsScreenVisible = CharsOnScreen
         CharsOnScreen = CShort(CSng(ClientSize.Width - VSB.Width) / EditTextWidth) - 7S
@@ -3398,8 +3433,8 @@ FileDeleteErrorRes:
         Dim TxtCurLin As String
         TxtCurLinCr = " "
         Dim chRs(6) As CharacterRange
-        Dim sbRs(6) As SolidBrush
-        Dim flRs(6) As SolidBrush
+        Dim ForegrBrush(6) As SolidBrush
+        Dim BgBrush(6) As SolidBrush
         For crLine = 1 To LinesScreenVisible  ' repaint the screen
 #If Not DEBUG Then
                 Try
@@ -3431,12 +3466,18 @@ FileDeleteErrorRes:
                 sNr = sNr.PadRight(6)
                 TxtCurLin += sNr + " "
                 chRs(0) = New CharacterRange(0, sNr.Length)
-                If crLine = CurrEdtSession.CurLineNr Then
-                    sbRs(0) = blueBrush
+                BgBrush(0) = linenrBgBrush
+                If dsScr.CurLinType = "C"c Then
+                    ForegrBrush(0) = commandBrush
+                    BgBrush(0) = commandbgBrush
+                ElseIf dsScr.CurLinType <> "L"c Then
+                    ForegrBrush(0) = linenrBrush
+                    BgBrush(0) = whiteBrush
+                ElseIf crLine = CurrEdtSession.CurLineNr Then
+                    ForegrBrush(0) = curlineBrush
                 Else
-                    sbRs(0) = blackBrush
+                    ForegrBrush(0) = linenrBrush
                 End If
-                flRs(0) = whiteBrush
                 StrToShow = dsScr.CurLinSrc
                 If dsScr.CurLinType = "L"c Then
                     If CurrEdtSession.ShowEol Then
@@ -3505,7 +3546,7 @@ FileDeleteErrorRes:
                         Else
                             If VerF <> 0 Then VerCurStr = VerCurStr.Substring(VerF)
                         End If
-                        If VerCurStr.Length > VerLn Then
+                        If (VerCurStr.Length > VerLn And Not CurrEdtSession.ShowEol) OrElse (VerCurStr.Length > VerLn + 1 And CurrEdtSession.ShowEol) Then
                             VerCurStr = VerCurStr.Substring(0, VerLn)
                         Else
                             VerCurStr = VerCurStr.PadRight(VerLn, " "c)
@@ -3533,28 +3574,34 @@ FileDeleteErrorRes:
                 TxtCurLin += StrToShow
                 If Bsl > 0 Then
                     chRs(PntPiece) = New CharacterRange(7, Bsl)
-                    If crLine = CurrEdtSession.CursorDisplayLine Then
-                        sbRs(PntPiece) = blueishBrush
+                    BgBrush(PntPiece) = textBgBrush
+                    If dsScr.CurLinType = "C"c Then
+                        ForegrBrush(PntPiece) = commandBrush
+                        BgBrush(PntPiece) = commandbgBrush
+                    ElseIf crLine = CurrEdtSession.CursorDisplayLine Then
+                        ForegrBrush(PntPiece) = lineWithCursorBrush
                     Else
-                        sbRs(PntPiece) = blackBrush
+                        ForegrBrush(PntPiece) = textBrush
                     End If
-                    flRs(PntPiece) = whiteBrush
                     PntPiece += 1
                 End If
                 If Sel > 0 Then
                     chRs(PntPiece) = New CharacterRange(7 + Bsl, Sel)
-                    sbRs(PntPiece) = whiteBrush
-                    flRs(PntPiece) = blueBrush
+                    ForegrBrush(PntPiece) = selectBrush
+                    BgBrush(PntPiece) = selectBgBrush
                     PntPiece += 1
                 End If
                 If Asl > 0 Then
                     chRs(PntPiece) = New CharacterRange(7 + Bsl + Sel, Asl)
-                    If crLine = CurrEdtSession.CursorDisplayLine Then
-                        sbRs(PntPiece) = blueishBrush
+                    BgBrush(PntPiece) = textBgBrush
+                    If dsScr.CurLinType = "C"c Then
+                        ForegrBrush(PntPiece) = commandBrush
+                        BgBrush(PntPiece) = commandbgBrush
+                    ElseIf crLine = CurrEdtSession.CursorDisplayLine Then
+                        ForegrBrush(PntPiece) = lineWithCursorBrush
                     Else
-                        sbRs(PntPiece) = blackBrush
+                        ForegrBrush(PntPiece) = textBrush
                     End If
-                    flRs(PntPiece) = whiteBrush
                     PntPiece += 1
                 End If
                 Dim chRsa As Array = Array.CreateInstance(GetType(CharacterRange), PntPiece)
@@ -3569,8 +3616,8 @@ FileDeleteErrorRes:
                 For ir As Integer = stringRegions.GetLowerBound(0) To stringRegions.GetUpperBound(0)
                     Dim measureRect1 As RectangleF = stringRegions(ir).GetBounds(e.Graphics)
                     Logg("  |" & TxtCurLin.Substring(chRs(ir).First, chRs(ir).Length) & "|")
-                    g.FillRectangle(flRs(ir), measureRect1)
-                    g.DrawString(TxtCurLin.Substring(chRs(ir).First, chRs(ir).Length), EditFont, sbRs(ir), CSng(measureRect1.X), CSng(measureRect1.Y))
+                    g.FillRectangle(BgBrush(ir), measureRect1)
+                    g.DrawString(TxtCurLin.Substring(chRs(ir).First, chRs(ir).Length), EditFont, ForegrBrush(ir), CSng(measureRect1.X), CSng(measureRect1.Y))
                 Next
                 If crLine = CurrEdtSession.CursorDisplayLine Then
                     TxtCurLinCr = TxtCurLin
@@ -3984,6 +4031,7 @@ FileDeleteErrorRes:
         End If
         InvalidatedWin = False ' And look for screen updates
     End Sub
+
     Private Function C2X(ByVal x As String) As String
         Dim c1, i, l, c2 As Integer
         Dim ccc As Char
