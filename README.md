@@ -3,7 +3,7 @@ Clone of the IBM® editor for VM-CMS of the 1980's
 --------------------------------------------------
 
 
-As a sole USER, extract the "bin/release" folder somewhere on your disk (preferable in a Documents sub folder) and execute the XeditPc program. No need to install. 
+As a sole USER, extract the "bin/release" folder somewhere on your disk (preferable in a Documents sub folder) and execute the XeditPc program. No need to install. Type the HELP command too view all extra commands and features.
 
 
 As a DEVELOPER, open the vbproj file, verify (My Project tab) that you have the correct .NET framework or choose one you do have on your pc. Build the project and run it.
