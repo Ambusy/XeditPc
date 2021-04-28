@@ -767,9 +767,9 @@ opn:
                     CurrEdtSession.chgCount = 0
                 End If
             End If
-            If EdtSessions.Count() = 1 And FromKb Then
-                WrkMaxWritePos = 0
-            End If
+            'If EdtSessions.Count() = 1 And FromKb Then
+            '    WrkMaxWritePos = 0
+            'End If
             If FromKb And rc = 0 Then
                 CurrEdtSession.Msgs.Add(SysMsg(18))
             End If
