@@ -1,5 +1,5 @@
 ﻿Imports VB = Microsoft.VisualBasic
-#Const CreLogFile = False
+#Const CreLogFile = True
 
 Module MainMod
     Public FormShown As Boolean = False ' Initial form after startup has been shown: paint is now possible
@@ -89,7 +89,7 @@ Module MainMod
             End If
         End If
         logFile.WriteLine(" ".PadRight(nInsp) & s)
-        Debug.WriteLine(" ".PadRight(nInsp) & s)
+        'Debug.WriteLine(" ".PadRight(nInsp) & s)
         If i > 0 Then
             If s.Length() > i + 3 Then
                 If s.Substring(i + 1, 3) = "end" Then

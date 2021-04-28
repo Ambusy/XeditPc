@@ -50,6 +50,7 @@ Public Class EdtSession
     Public mSelect As Boolean ' there is selected text!
     Public mSelRctg As Boolean ' selected with CTRL = rectangle, not whole lines
 
+    Public color_screen As Color = Color.White ' basic screen area
     Public color_select As Color = Color.White ' selected area
     Public color_selectbg As Color = Color.Blue
     Public color_command As Color = Color.Black ' command
@@ -71,6 +72,7 @@ Public Class EdtSession
     Public IedLines As New Collection
     Public Synonyms As New Collection
     Public ReservedLines As New Collection
+    Public ScrListSaved As Collection
 
     Public UndoS As New Collection ' undo stack
     Public UnDoCnt, chgCount, UndoSet As Integer ' n° undo's; n° of changes made by user

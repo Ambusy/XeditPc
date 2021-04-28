@@ -1,7 +1,7 @@
 ﻿Imports VB = Microsoft.VisualBasic
 Imports System.Drawing.Printing
 Imports System.Xml.Schema
-#Const CreLogFile = False
+#Const CreLogFile = True
 #Const tracen = False
 Public Class XeditPc
     Dim TimerEnabled As Boolean = False
@@ -45,6 +45,7 @@ Public Class XeditPc
                     found = True
                     CurrEditSessionIx = i ' existing
                     CurrEdtSession = EdtSsn
+                    RunEdit = CurrEditSessionIx
                     Logg("RunEdit Filename in ring")
                     Exit For
                 End If
@@ -54,6 +55,7 @@ Public Class XeditPc
             CurrEditSessionIx = CurrEditSessionIx + 1
             If CurrEditSessionIx > EdtSessions.Count() Then CurrEditSessionIx = 1
             CurrEdtSession = DirectCast(EdtSessions.Item(CurrEditSessionIx), EdtSession)
+            RunEdit = CurrEditSessionIx
             Me.SetFormCaption()
             found = True
         End If
@@ -709,6 +711,7 @@ opn:
             If CancelCmd Then Exit Sub
         ElseIf Abbrev(FirstWord, "XEDIT", 1) Then ' Edit next file
             SaveAllModifiedLines()
+            SaveSsd()
             dsScr = DirectCast(ScrList.Item(CurrEdtSession.CurLineNr), ScreenLine)
             CurrEdtSession.SeqOfFirstSourcelineOnScreen = dsScr.CurSrcNr ' save linenr of old file
             If CommandLine.Length() = 0 Then
@@ -736,7 +739,13 @@ opn:
             If CancelCmd Then Exit Sub
             CurrEdtSession.PrevEditLineScr = CurrEdtSession.CursorDisplayLine
             CurrEdtSession.PrevEditPosScr = CurrEdtSession.CursorDisplayColumn
-            FillScreenBuffer(CurrEdtSession.SeqOfFirstSourcelineOnScreen, False) ' linenr of "new" file
+            RestoreSsd()
+            If ScrList Is Nothing Then
+                ScrList = New Collection
+                FillScreenBuffer(CurrEdtSession.SeqOfFirstSourcelineOnScreen, True) ' linenr of "new" file
+            Else
+                FillScreenBuffer(CurrEdtSession.SeqOfFirstSourcelineOnScreen, False) ' linenr of "old" file
+            End If
         ElseIf Abbrev(FirstWord, "SAVE", 4) Then
             If CommandLine.Length() = 0 OrElse CommandLine = CurrEdtSession.EditFileName Then
                 SaveFile(CurrEdtSession.EditFileName, False)
@@ -758,7 +767,7 @@ opn:
                     CurrEdtSession.chgCount = 0
                 End If
             End If
-            If EdtSessions.Count() = 1 Then
+            If EdtSessions.Count() = 1 And FromKb Then
                 WrkMaxWritePos = 0
             End If
             If FromKb And rc = 0 Then
@@ -1104,7 +1113,6 @@ opn:
                 End If
             ElseIf Abbrev(FirstWord, "LRECL", 2) Then ' set LRECL nnn
                 CurrEdtSession.Lrecl = CShort(Math.Max(1, CIntUserCor(NxtWordFromStr(CommandLine, "32767"))))
-                ' ElseIf Abbrev(FirstWord, "CURLINE", 4) AndAlso Not CurrEdtSession.SessionInited Then  ' set CURLINE ON line
             ElseIf Abbrev(FirstWord, "CURLINE", 4) Then  ' set CURLINE ON line
                 FirstWord = NxtWordFromStr(CommandLine, "2")
                 If FirstWord = "ON" Then FirstWord = NxtWordFromStr(CommandLine, "2")
@@ -1344,6 +1352,8 @@ opn:
                     CurrEdtSession.color_curline = ConvertToRbg(c)
                 ElseIf Abbrev(s, "CURSOR") Then
                     CurrEdtSession.color_cursor = ConvertToRbg(c)
+                ElseIf Abbrev(s, "SCREEN") Then
+                    CurrEdtSession.color_screen = ConvertToRbg(c)
                 Else
                     rc = 16
                 End If
@@ -2347,6 +2357,12 @@ opn:
         curPage += 1
         e.HasMorePages = (curPage <= laPage)
     End Sub
+    Sub SaveSsd()
+        CurrEdtSession.ScrListSaved = ScrList
+    End Sub
+    Sub RestoreSsd()
+        ScrList = CurrEdtSession.ScrListSaved
+    End Sub
     Private Sub ChangeString(ByVal CmdString As String)
         Dim iOcc, nLines, NrOfOcc, FirstOcc, iLine, cFiLin, cLaLin As Integer
         Dim dsScr As ScreenLine
@@ -2838,6 +2854,7 @@ opn:
         ssd = New SourceLine
         ssd.SrcFileIx = "W"c
         ssd.SrcLength = -1 ' No true file entry exists
+        ssd.SrcStart = -1
         CurrEdtSession.FileUsesEndlineCR = True
         CurrEdtSession.FileUsesEndlineLF = True
         dsScr.CurLinSsd = ssd
@@ -2937,8 +2954,8 @@ FileDeleteErrorRes:
                 EditSaveFile.Close()
                 Exit Sub
             End If
-            If ssd.SrcLength = -1 Then
-                ssd.SrcLength = 0 ' probably solved this error, but dare not remove it
+            If ssd.SrcLength = -1 Then ' Ied line
+                ssd.SrcLength = 0
             End If
             If ssd.SrcStart = 0 Then
                 ssd.SrcStart = 1
@@ -3251,6 +3268,7 @@ FileDeleteErrorRes:
         Dim StrToBuild As System.Text.StringBuilder, StrToShow, StrToShowTabs, StrToShowExp, TxtCurLinCr, VerCurStr, sNr As String
         Dim Bsl, Sel, Asl, VerF, VerLn As Integer
         Dim g As Graphics = e.Graphics
+        Me.BackColor = CurrEdtSession.color_screen
         Dim selectBrush As New SolidBrush(CurrEdtSession.color_select)
         Dim selectBgBrush As New SolidBrush(CurrEdtSession.color_selectbg)
         Dim commandBrush As New SolidBrush(CurrEdtSession.color_command)
@@ -3415,7 +3433,8 @@ FileDeleteErrorRes:
         VSB.Maximum = CurrEdtSession.SourceList.Count / 10
         If VSB.Maximum < 100 Then VSB.Maximum = 100
         VSB.Height = ClientSize.Height
-        VSB.Left = ClientSize.Width - VSB.Width
+        VSB.Width = ClientSize.Width / 90
+        VSB.Left = ClientSize.Width - VSB.Width - 3
         dsScr = DirectCast(ScrList.Item(CurrEdtSession.CurLineNr), ScreenLine)
         Dim vv As Integer
         If LinesScreenVisible <> 0 And CurrEdtSession.SourceList.Count <> 0 Then
@@ -3697,7 +3716,7 @@ FileDeleteErrorRes:
         Logg("VBS timer end")
     End Sub
     Private Sub CalcIxInSLines()
-        Dim dsScr As ScreenLine, s As String = ""
+        Dim dsScr As ScreenLine ', s As String = ""
         CurrEdtSession.nSrcOnScrn = 0 ' index of sourcelines within ScrList
         Dim i As Integer = 0
         For Each dsScr In ScrList
@@ -3705,10 +3724,10 @@ FileDeleteErrorRes:
             If Not dsScr.CurLinFixTp Then
                 CurrEdtSession.nSrcOnScrn += 1S
                 CurrEdtSession.SrcOnScrn(CurrEdtSession.nSrcOnScrn) = CShort(i)
-                s = s & CStr(i) & " "
+                ' s = s & CStr(i) & " "
             End If
         Next
-        Logg("SLines=" & s)
+        'Logg("SLines=" & s)
     End Sub
     Private Sub CalcSelectedLineParts(ByVal dsscr As ScreenLine, ByVal s As String, ByRef Bsl As Integer, ByRef Sel As Integer, ByRef Asl As Integer)
         Bsl = 0
@@ -3842,6 +3861,16 @@ FileDeleteErrorRes:
             dsScr.CurLinNr = ""
             dsScr.CurLinSrc = CStr(CurrEdtSession.ReservedLines.Item(CStr(ScrI)))
             dsScr.CurLinFixTp = True
+        ElseIf CurrEdtSession.ReservedLines.Contains(CStr(ScrI - LinesScreenVisible)) And CurrEdtSession.CmdLineNr = -1 Then
+            dsScr.CurLinType = "R"c ' Reserved line
+            dsScr.CurLinNr = ""
+            dsScr.CurLinSrc = CStr(CurrEdtSession.ReservedLines.Item(CStr(ScrI - LinesScreenVisible)))
+            dsScr.CurLinFixTp = True
+        ElseIf CurrEdtSession.ReservedLines.Contains(CStr(ScrI - LinesScreenVisible - 1)) And CurrEdtSession.CmdLineNr <> -1 Then
+            dsScr.CurLinType = "R"c ' Reserved line
+            dsScr.CurLinNr = ""
+            dsScr.CurLinSrc = CStr(CurrEdtSession.ReservedLines.Item(CStr(ScrI - LinesScreenVisible - 1)))
+            dsScr.CurLinFixTp = True
         ElseIf SourceI = 0 Then
             dsScr.CurLinType = "T"c ' TOP of file
             dsScr.CurLinNr = ""
@@ -3910,15 +3939,15 @@ FileDeleteErrorRes:
             End If
             SourceI += SourceDi
         End If
-        If dsScr.CurLinSrc <> "" Then Logg("GetTextOfScrline " & CStr(ScrI) & " " & dsScr.CurLinSrc)
+        Logg("GetTextOfScrline " & CStr(ScrI) & " " & dsScr.CurLinSrc)
     End Sub
     Private Sub ReadSourceInScrBuf(ByRef fCl As ScreenLine)
         Dim ssd As SourceLine
         fCl.CurSrcRead = True
         ssd = DirectCast(CurrEdtSession.SourceList.Item(fCl.CurSrcNr), SourceLine)
         fCl.CurLinSrc = ReadOneSourceLine(ssd)
+        Debug.WriteLine("read source " & CStr(fCl.CurSrcNr) & " " & CStr(ssd.SrcFileIx) & " " & CStr(ssd.SrcStart) & " " & CStr(ssd.SrcLength) & " " & fCl.CurLinSrc)
         fCl.TabsinOrig = False
-
     End Sub
     Dim WarnUtf8 As Boolean = False
     Private Function ReadOneSourceLine(ByVal ssd As SourceLine) As String
@@ -3960,6 +3989,7 @@ FileDeleteErrorRes:
                 value = System.Text.Encoding.Default.GetString(buf)
             End If
         End If
+        'Debug.WriteLine("read source: " & CStr(ssd.SrcFileIx) & " " & CStr(ssd.SrcStart) & " " & CStr(ssd.SrcLength) & " " & value)
         Return value
     End Function
     Private Sub StoreExtract6(ByVal ky As String, ByVal S1 As String, ByVal S2 As String, ByVal S3 As String, ByVal S4 As String, ByVal s5 As String, ByVal s6 As String)
@@ -4012,15 +4042,8 @@ FileDeleteErrorRes:
         Logg("Setvar " + ky + "=" + S1)
     End Sub
     Private Sub XeditPc_Resize(ByVal sender As Object, ByVal e As System.EventArgs) Handles Me.Resize
-        Dim dsscr As ScreenLine
         Logg("XeditPc_Resize")
-        If FormShown Then
-            Try
-                dsscr = DirectCast(ScrList.Item(CurrEdtSession.SrcOnScrn(CurrEdtSession.nSrcOnScrn)), ScreenLine)
-                dsscr.CurRepaint = True
-            Catch ex As Exception
-            End Try
-        End If
+        ScrList.Clear()
         ForcePaint()
     End Sub
     Private Sub ForcePaint()
@@ -4031,7 +4054,6 @@ FileDeleteErrorRes:
         End If
         InvalidatedWin = False ' And look for screen updates
     End Sub
-
     Private Function C2X(ByVal x As String) As String
         Dim c1, i, l, c2 As Integer
         Dim ccc As Char
@@ -4099,8 +4121,8 @@ FileDeleteErrorRes:
                 EditFileWrk = OpenWrkFile()
             End If
             ssd = dsScr.CurLinSsd
-            Logg("SaveModifiedLine " & CStr(dsScr.CurLinNr) & CStr(ssd.SrcLength) & " " & CStr(dsScr.CurLinSrc.Length()) & " ")
-            If ssd.SrcLength > -1 Or dsScr.CurLinSrc.Length() > 0 Then
+            Debug.WriteLine("SaveModifiedLine " & CStr(dsScr.CurLinNr) & " " & CStr(ssd.SrcFileIx) & " " & CStr(ssd.SrcStart) & " " & CStr(ssd.SrcLength) & " " & CStr(dsScr.CurLinSrc.Length()) & " ")
+            If ssd.SrcLength > -1 Or dsScr.CurLinSrc.Length() > 0 Then ' skip Ied line with no contents
                 If Not CurrEdtSession.RecfmV Then
                     If dsScr.CurLinSrc.Length() < CurrEdtSession.Lrecl Then
                         dsScr.CurLinSrc = dsScr.CurLinSrc & Space(CurrEdtSession.Lrecl - dsScr.CurLinSrc.Length())
@@ -4121,15 +4143,15 @@ FileDeleteErrorRes:
                     nBytes = dsScr.CurLinSrc.Length()
                     buf = System.Text.Encoding.Default.GetBytes(dsScr.CurLinSrc)
                 End If
-                If ssd.SrcLength < nBytes Or ssd.SrcFileIx = "E"c Then
+                If ssd.SrcLength = -1 Or nBytes < ssd.SrcLength Or ssd.SrcFileIx = "E"c Then
                     ssd.SrcFileIx = "W"c
                     ssd.SrcStart = WrkMaxWritePos + 1 ' if sourceline modified for first time, or becomes longer
                 End If
                 EditFileWrk.Seek(ssd.SrcStart - 1, SeekOrigin.Begin)
                 ssd.SrcLength = nBytes
                 EditFileWrk.Write(buf, 0, nBytes)
+                Debug.WriteLine("WRITE " & ssd.SrcFileIx & " " & CStr(ssd.SrcStart) & " " & CStr(ssd.SrcLength) & " " & CStr(dsScr.CurLinNr) & " " & CStr(dsScr.CurLinSrc.Length()) & " " & CStr(dsScr.CurLinSrc))
                 WrkMaxWritePos = WrkMaxWritePos + nBytes
-                Logg("wrt tmp:" & CStr(ssd.SrcFileIx) & " " & CStr(ssd.SrcStart) & " " & CStr(ssd.SrcLength) & " " & CStr(ssd.SrcSelect))
             End If
             dsScr.CurLinModified = False
             CurrEdtSession.FileChanged = True
@@ -4476,54 +4498,56 @@ FileDeleteErrorRes:
         If cmdl = -1 Then cmdl = ScrList.Count
         dsScr = DirectCast(ScrList.Item(cmdl), ScreenLine)
         dsScr.CurRepaint = True
+        Dim t As Char = dsScr.CurLinType ' might be overlayed with M
         lCmd = dsScr.CurLinSrc.Trim
         lCmdU = lCmd.ToUpper(CultInf)
         ReshowMsgSrc(False)
         RestoreIedLines()
-        'process command
-        If lCmd.Length() > 0 Then
-            If lCmdU <> "RECALL" Then RecallPick = RecalledCmd
-            If lCmd = "?" Then
-                lCmd = "RECALL"
-                lCmdU = lCmd.ToUpper(CultInf)
-            End If
-            If lCmdU <> "RECALL" And lCmd(0) <> "=" And RecallCmds(RecallPick) <> lCmd Then
-                Dim i As Integer = 0
-                For j As Integer = 1 To RecallIxMax
-                    If RecallCmds(j).ToUpper(CultInf) = lCmdU Then
-                        i = j
-                        Exit For
+        If t = "C"c Then            'process command
+            If lCmd.Length() > 0 Then
+                If lCmdU <> "RECALL" Then RecallPick = RecalledCmd
+                If lCmd = "?" Then
+                    lCmd = "RECALL"
+                    lCmdU = lCmd.ToUpper(CultInf)
+                End If
+                If lCmdU <> "RECALL" And lCmd(0) <> "=" And RecallCmds(RecallPick) <> lCmd Then
+                    Dim i As Integer = 0
+                    For j As Integer = 1 To RecallIxMax
+                        If RecallCmds(j).ToUpper(CultInf) = lCmdU Then
+                            i = j
+                            Exit For
+                        End If
+                    Next
+                    If i = 0 Then
+                        RecallIxAdd = RecallIxAdd + 1
+                        If RecallIxAdd > RecallCmds.GetUpperBound(0) Then RecallIxAdd = 1
+                        If RecallIxAdd > RecallIxMax Then RecallIxMax = RecallIxAdd
+                        RecallCmds(RecallIxAdd) = lCmd
+                        RecallPick = RecallIxAdd
+                    Else
+                        RecallPick = i
                     End If
-                Next
-                If i = 0 Then
-                    RecallIxAdd = RecallIxAdd + 1
-                    If RecallIxAdd > RecallCmds.GetUpperBound(0) Then RecallIxAdd = 1
-                    If RecallIxAdd > RecallIxMax Then RecallIxMax = RecallIxAdd
-                    RecallCmds(RecallIxAdd) = lCmd
-                    RecallPick = RecallIxAdd
+                End If
+                RecalledCmd = 0
+                If lCmdU <> "RECALL" Then
+                    dsScr.CurLinSrc = ""
+                    If CurrEdtSession.CursorDisplayLine = CurrEdtSession.CmdLineNr Or (CurrEdtSession.CursorDisplayLine = LinesScreenVisible And CurrEdtSession.CmdLineNr = -1) Then
+                        CurrEdtSession.CursorDisplayColumn = 1
+                    End If
+                End If
+                rc = 0
+                If lCmd.Substring(0, 1) = "&" Then
+                    DoCmd(lCmd.Substring(1), True)
+                    Dim pRc As Integer = rc
+                    DoCmd1("CMSG " & lCmd, False)
+                    rc = pRc
                 Else
-                    RecallPick = i
+                    DoCmd(lCmd, True)
                 End If
             End If
-            RecalledCmd = 0
-            If lCmdU <> "RECALL" Then
-                dsScr.CurLinSrc = ""
-                If CurrEdtSession.CursorDisplayLine = CurrEdtSession.CmdLineNr Or (CurrEdtSession.CursorDisplayLine = LinesScreenVisible And CurrEdtSession.CmdLineNr = -1) Then
-                    CurrEdtSession.CursorDisplayColumn = 1
-                End If
-            End If
-            rc = 0
-            If lCmd.Substring(0, 1) = "&" Then
-                DoCmd(lCmd.Substring(1), True)
-                Dim pRc As Integer = rc
-                DoCmd1("CMSG " & lCmd, False)
-                rc = pRc
-            Else
-                DoCmd(lCmd, True)
-            End If
+            RecallNrCalled = 0
+            If Not QuitPgm Then DoLineCmd()
         End If
-        RecallNrCalled = 0
-        If Not QuitPgm Then DoLineCmd()
     End Sub
     Private Sub KeyDelete(ByRef dsScr As ScreenLine)
         Dim strng As String, ps As Integer, vp As New VerifyPair
@@ -4583,7 +4607,7 @@ FileDeleteErrorRes:
             If allocList Then ScrList.Add(dsScr)
             dsScr.CurRepaint = True
         Next
-        CalcIxInSLines() ' now sift 1st sourceline down to current line
+        CalcIxInSLines() ' make xref line on screen <==> line in source
         rc = 0 ' If curline halfway in EXCLUDED? start at first one further UP
         dsScrS = DirectCast(ScrList.Item(CurrEdtSession.SrcOnScrn(1)), ScreenLine)
         Dim fiType As Char = dsScrS.CurLinType
@@ -4612,7 +4636,7 @@ FileDeleteErrorRes:
         Dim ResLines, ResIx As New Collection, deleted As Boolean
         i = LinesScreenVisible
         While i >= 1
-            If DirectCast(ScrList.Item(i), ScreenLine).CurLinType = "R"c Then
+            If i < ScrList.Count AndAlso DirectCast(ScrList.Item(i), ScreenLine).CurLinType = "R"c Then
                 ResIx.Add(i)
                 ResLines.Add(DirectCast(ScrList.Item(i), ScreenLine))
                 ScrList.Remove(i)
@@ -4663,10 +4687,10 @@ FileDeleteErrorRes:
         Logg("ShScrUp: " & CStr(from) & " " & CStr(nL))
         i = LinesScreenVisible
         While i >= 1
-            If DirectCast(ScrList.Item(i), ScreenLine).CurLinType = "R"c Then
+            If i < ScrList.Count AndAlso DirectCast(ScrList.Item(i), ScreenLine).CurLinType = "R"c Then
                 ResIx.Add(i)
                 ResLines.Add(DirectCast(ScrList.Item(i), ScreenLine))
-                Logg("ScrList.Remove(i) " & CStr(i))
+                Logg("ScrList.Remove screenline: " & CStr(i))
                 ScrList.Remove(i)
                 deleted = True
             Else
