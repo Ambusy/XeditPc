@@ -4,7 +4,7 @@ trace n
 "SET LRECL 32670"
 "EXTRACT /FTYPE/"
 upper ftype.1
-if ftype.1 = "EXE" | ftype.1 = "DLL"  | ftype.1 = "JPG" then do
+if ftype.1 = "EXE" | ftype.1 = "DLL"  | ftype.1 = "JPG"  | ftype.1 = "" then do
   "SET RECFM F"
   "SET LRECL 64"
 end
@@ -18,8 +18,8 @@ if ftype.1 = "CBL"   then do
   "SET PF05 FndRet"
   "SET PF06 FndDecl"
   "SET PF02 SavePos"
-  "SET reserved 31        F1 Help - 2 SavPos - 3 Quit - 4 FndSect - 5 FndRet - 6 FndDecl - 11 SpltJoin - 12 Recall "
-  "SET reserved 32        Ctrl-C Copy - X Cut - V Paste - Z Undo "
+  "SET reserved -2        F1 Help - 2 SavPos - 3 Quit - 4 FndSect - 5 FndRet - 6 FndDecl - 11 SpltJoin - 12 Recall "
+  "SET reserved -1        Ctrl-C Copy - X Cut - V Paste - Z Undo "
   "SET VIEW 7 *"
 end
 if ftype.1 = "RPGI" then do

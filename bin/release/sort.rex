@@ -36,14 +36,14 @@ do i=1 to n+1 while rc = 0
   "extract /curline/"    
   ln = substr(curline.3,1,6)     
   if datatype(ln)="NUM" then do  /* empty line on top! */
-   "xedit" Fullfilename.1
-   ":" ln
-   "extract /curline/"    
-   tx = substr(curline.3,7)
-   "Bot"
-   "up 1"
-   "I" tx 
-   "xedit" ouf  
+    "xedit" Fullfilename.1
+    ":" ln
+    "extract /curline/"    
+    tx = substr(curline.3,7)
+    "Bot"
+    "up 1"
+    "I" tx 
+    "xedit" ouf  
   end
   "down 1"   
 end         

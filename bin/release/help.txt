@@ -82,6 +82,7 @@ SET
      COLOR SELECTBG [#RRGGBB]
      COLOR COMMAND [#RRGGBB]             Command line, command line background 
      COLOR COMMANDBG [#RRGGBB]
+     COLOR SCREEN [#RRGGBB]              basic screen area
      COLOR CURSOR [#RRGGBB]              cursor symbol (line or bar)
      CTRL-? command                      (set any single symbol key with CTRL pressed to a command)
      CURLINE ON linen°
@@ -152,6 +153,7 @@ EXTRACT
 
 LINE COMMANDS
      I[n] insert 1 / n empty lines
+     J[n] insert 1 / n empty lines that remain if empty
      D[n] delete 1/n lines
      X[n] exclude 1 / n lines from view
      S    reinclude excluded lines 
@@ -262,6 +264,7 @@ GG         to Get a PUTted-block
 II         to insert 1 line at a time, until you enter an empty line 
 CM         comment out a block of lines with //
 UC         uncomment block
+J          like prefix command I with inserted lines that are not deleted when empty
 
 Special Key-strokes:
 
