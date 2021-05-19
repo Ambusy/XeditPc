@@ -4121,7 +4121,7 @@ FileDeleteErrorRes:
                 EditFileWrk = OpenWrkFile()
             End If
             ssd = dsScr.CurLinSsd
-            Debug.WriteLine("SaveModifiedLine " & CStr(dsScr.CurLinNr) & " " & CStr(ssd.SrcFileIx) & " " & CStr(ssd.SrcStart) & " " & CStr(ssd.SrcLength) & " " & CStr(dsScr.CurLinSrc.Length()) & " ")
+            'Debug.WriteLine("SaveModifiedLine " & CStr(dsScr.CurLinNr) & " " & CStr(ssd.SrcFileIx) & " " & CStr(ssd.SrcStart) & " " & CStr(ssd.SrcLength) & " " & CStr(dsScr.CurLinSrc.Length()) & " ")
             If ssd.SrcLength > -1 Or dsScr.CurLinSrc.Length() > 0 Then ' skip Ied line with no contents
                 If Not CurrEdtSession.RecfmV Then
                     If dsScr.CurLinSrc.Length() < CurrEdtSession.Lrecl Then
@@ -4143,7 +4143,7 @@ FileDeleteErrorRes:
                     nBytes = dsScr.CurLinSrc.Length()
                     buf = System.Text.Encoding.Default.GetBytes(dsScr.CurLinSrc)
                 End If
-                If ssd.SrcLength = -1 Or nBytes < ssd.SrcLength Or ssd.SrcFileIx = "E"c Then
+                If ssd.SrcLength = -1 Or nBytes > ssd.SrcLength Or ssd.SrcFileIx = "E"c Then
                     ssd.SrcFileIx = "W"c
                     ssd.SrcStart = WrkMaxWritePos + 1 ' if sourceline modified for first time, or becomes longer
                 End If
@@ -5675,6 +5675,7 @@ FileDeleteErrorRes:
                         S2 = ""
                     End If
                     If S2 = vbCrLf Then
+                        'SaveModifiedLine(dsScr)
                         DoCmd1("INPUT", False)
                         dsScr = DirectCast(ScrList.Item(CurrEdtSession.CurLineNr), ScreenLine)
                         dsScr.CurSrcRead = True
@@ -5720,15 +5721,21 @@ FileDeleteErrorRes:
                                     cScrPos = CShort(CurrEdtSession.CursorDisplayColumn)
                                 End If
                             End If
+                            Dim ii = s.Length
+                            Dim ss As String = s.Substring(0, Math.Min(s.Length, 80))
                             sNl = sN.Substring(0, cScrPos - 1) & s
                             If dsScr.CurLinSsd.SrcLength = -1 Then
                                 dsScr.CurLinSsd.SrcLength = 0 ' paste on Ied line
                                 dsScr.CurLinSsd.SrcStart = 1
                             End If
+                            If CurrEdtSession.CursorDisplayColumn + sNl.Length > CurrEdtSession.Lrecl Then
+                                sNl = sNl.Substring(0, CurrEdtSession.Lrecl - 1 - CurrEdtSession.CursorDisplayColumn)
+                                DoCmd1("MSG Truncated", False)
+                            End If
                             dsScr.CurLinSrc = sNl
                             dsScr.CurLinModified = True
                             dsScr.CurRepaint = True
-                            CurrEdtSession.CursorDisplayColumn = CShort(CurrEdtSession.CursorDisplayColumn + s.Length())
+                            CurrEdtSession.CursorDisplayColumn = CShort(CurrEdtSession.CursorDisplayColumn + sNl.Length())
                         End If
                         AfterFirstLine = True
                     End If
@@ -5796,9 +5803,10 @@ FileDeleteErrorRes:
         Else ' paste on commandline
             s = dsScr.CurLinSrc.PadRight(CurrEdtSession.CursorDisplayColumn)
             s = s.Substring(0, CurrEdtSession.CursorDisplayColumn - 1) & temp & s.Substring(CurrEdtSession.CursorDisplayColumn - 1)
+            If s.Length + CurrEdtSession.CursorDisplayColumn > Short.MaxValue Then s = s.Substring(0, Short.MaxValue - 1 - CurrEdtSession.CursorDisplayColumn)
             dsScr.CurLinSrc = s
             dsScr.CurRepaint = True
-            CurrEdtSession.CursorDisplayColumn += CShort(temp.Length())
+            CurrEdtSession.CursorDisplayColumn += CShort(s.Length() - CurrEdtSession.CursorDisplayColumn)
         End If
         rc = 0
         Pasting = False
