@@ -68,11 +68,11 @@ where target stands for:
 Break-key or Alt-Break-key terminates a running command
 
 SET
-     ALT-? command                        (set any single symbol key with ALT pressed to a command. Keys with different symbols in lower and uppercase are excluded)
+     ALT-? command                        set any single symbol key with ALT pressed to a command. Keys with different symbols in lower and uppercase are excluded
      AUTOSAVE n / OFF
      CASE MIXED/UPPERCASE RESPECT/IGNORE  
      CMDLINE ON TOP/n°/BOTTOM
-     COLOR TEXT [#RRGGBB]                (set colors fg and bg for different areas) Textline, Textline with cursor on it, Textline background 
+     COLOR TEXT [#RRGGBB]                Set colors fg and bg for different areas: Textline, Textline with cursor on it, Textline background 
      COLOR CURLINETEXT [#RRGGBB]         
      COLOR TEXTBG [#RRGGBB]
      COLOR LINENUMBER [#RRGGBB]          Linenumbers, Curline as defined for commands, Linenumbers background     
@@ -152,18 +152,18 @@ EXTRACT
      ZONE
 
 LINE COMMANDS
-     I[n] insert 1 / n empty lines
-     J[n] insert 1 / n empty lines that remain if empty
-     D[n] delete 1/n lines
-     X[n] exclude 1 / n lines from view
-     S    reinclude excluded lines 
-     >[n] add spaces at start of line
-     >>[n]add spaces at start of a block of lines
-     <[n] cancel spaces at start of line
-     <<[n]cancel spaces at start of a block of lines
-     "[n] repeat a line
-     ""[n]repeat lines
-     .name
+     I[n]  insert 1 / n empty lines that are deleted upon Enter, is contents is not modified / inserted
+     J[n]  insert 1 / n empty lines that remain if empty even if not touched
+     D[n]  delete 1/n lines
+     X[n]  exclude 1 / n lines from view
+     S     reinclude excluded lines 
+     >[n]  add spaces at start of line
+     >>[n] add spaces at start of a block of lines
+     <[n]  cancel spaces at start of line
+     <<[n] cancel spaces at start of a block of lines
+     "[n]  repeat a line
+     ""[n] repeat lines
+     .name give a line a name for reference 
 
 MOUSE possibilities:	
      select lines with mouse left button (button 1)
@@ -181,7 +181,7 @@ MOUSE possibilities:
      Using the mousewheel you execute MOUSEWHEELUP.REX or MOUSEWHEELDOWN.REX. Again there
       might be a prefix for the Shift, Alt or Ctrl key.
      Doubleclicking the left button executes DOUBLECLICK.REX
-     Command SELECTSET ON/OFF top left bot right [RECT] to specify an area to be selected in a Rexx
+     Command SELECTSET ON/OFF top left bot right [RECT] to specify an area to be selected in a Rexx, as if it was selected with the mouse
        ON: define area  
        OFF: no selection
        RECT: if specified indicates a rectangular select, as with CTRL-mouse
@@ -248,12 +248,12 @@ COMPFILE  Compare contents of all files in a (sub)directory
 
 Edit linecommands implemented in rexx:
 
-C         to copy/move line(s) Before or After a line
+C          to copy line(s) preceding or following a line
 CC
-M
+M          to move
 MM
-P
-F
+P          preceding line
+F          following line
 DD         to delete a block if lines
 XX         to hide a block of lines
 
@@ -261,10 +261,9 @@ Extra linecommands implemented in rexx:
 
 PP         to Put a block of lines in Globalv
 GG         to Get a PUTted-block 
-II         to insert 1 line at a time, until you enter an empty line 
+II         to insert 1 line at a time, until you enter an empty line, with indentation
 CM         comment out a block of lines with //
 UC         uncomment block
-J          like prefix command I with inserted lines that are not deleted when empty
 
 Special Key-strokes:
 
