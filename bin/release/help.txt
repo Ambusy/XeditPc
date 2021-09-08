@@ -94,6 +94,7 @@ SET
      LRECL  nnn
      MSGLINE ON first n° [OVERLAY]
      MSGMODE ON/OFF
+     NULLS ON/OFF
      PENDING BLOCK/ON commandname / OFF
      PF01 ... PF12 command
      POINT pointname
