@@ -1,24 +1,23 @@
 ﻿Imports VB = Microsoft.VisualBasic
 Imports System.Drawing.Printing
 Imports System.Xml.Schema
-#Const CreLogFile = True
+#Const CreLogFile = False
 #Const tracen = False
 Public Class XeditPc
     Dim TimerEnabled As Boolean = False
     Dim TimerInterval As Integer = 50
     Dim MousePosX, MousePosY As Integer ' if cursor on scrollbar, act on changes of value
     Public WithEvents Rxs As New Rexx
-    Public Function InitAndRunEdit(ByVal CommandLine As String, ByVal cmdl As Boolean) As Integer
+    Public Function InitAndRunEdit(ByVal CommandLine As String) As Integer
         Dim i As Integer
         Dim Filename As String
-        If cmdl Then
-            i = InStr(CommandLine, "?")
+        i = InStr(CommandLine, "(") ' XEDIT  file (options) comment
+        If i > 0 Then
+            Filename = CommandLine.Substring(0, i - 1).Trim()
+            CommandLine = CommandLine.Substring(i)
+            i = InStr(CommandLine, ")")
             If i > 0 Then
-                Filename = CommandLine.Substring(0, i - 1)
-                CommandLine = CommandLine.Substring(i)
-            Else
-                Filename = CommandLine
-                CommandLine = ""
+                CommandLine = CommandLine.Substring(0, i - 1)
             End If
         Else
             Filename = CommandLine
@@ -66,19 +65,48 @@ Public Class XeditPc
             CurrEditSessionIx = EdtSessions.Count()
             ProcessCommandOptions(CommandLine)
             If Not QuitPgm Then
-                Dim f As Boolean = False
-                For i = 1 To 8
-                    If GetRegistryKey("XeditPc", "File" & CStr(i), "") = Filename Then f = True
+                Dim f As Integer = 0
+                Dim fn As String = ""
+                Dim opt As String = ""
+                i = 0
+                For Each fnx As String In RecentFiles
+                    fn = fnx
+                    i += 1
+                    Dim ix As Integer = fn.IndexOf("|")
+                    If ix > -1 Then
+                        opt = fn.Substring(ix + 1)
+                        fn = fn.Substring(0, ix).Trim()
+                    End If
+                    If fn = Filename Then
+                        f = i
+                        Exit For
+                    End If
                 Next
-                If Not f Then
-                    For i = 7 To 1 Step -1
-                        SaveRegistryKey("XeditPc", "File" & CStr(i + 1), GetRegistryKey("XeditPc", "File" & CStr(i), ""))
-                    Next
-                    SaveRegistryKey("XeditPc", "File1", Filename)
+                If f = 0 Then ' add
+                    If RecentFiles.Count = 100 Then
+                        RecentFiles.Remove(100)
+                    End If
+                    If CommandLine = "" Then
+                        RecentFiles.Add(Filename,, 1)
+                    Else
+                        RecentFiles.Add(Filename & " |" & CommandLine,, 1) ' | shown as ( in recents screen
+                        ProcessCommandOptions(CommandLine)
+                    End If
+                Else ' replace
+                    If HelpCmd Then ' opt was previous, commandline is new options
+                        opt = CommandLine
+                    End If
+                    RecentFiles.Remove(f)
+                    If opt = "" Then
+                        RecentFiles.Add(Filename,, f)
+                    Else
+                        RecentFiles.Add(Filename & " |" & opt,, f)
+                        ProcessCommandOptions(opt)
+                    End If
                 End If
                 ReadEditFile(Filename)
-                ' FormShown = true
-                SetFormCaption()
+                    ' FormShown = true
+                    SetFormCaption()
                 CurrEdtSession.SeqOfFirstSourcelineOnScreen = 1
             End If
         End If
@@ -195,10 +223,6 @@ reopenFile:
         CurrEdtSession.CursorDisplayLine = 0
         If RunRexx("SYSTEM PROFILE", "") = 256 Then QuitPgm = True
         If Not QuitPgm Then
-            If HelpCmd Then
-                CommandLine = CommandLine & OptionsScreen.CmdString
-                Words = Split(CommandLine.Trim.ToUpper(CultInf))
-            End If
             Logg("ProcessCommandOptions  " & CommandLine)
             profile = "PROFILE"
             Words = Split(CommandLine.Trim.ToUpper(CultInf))
@@ -229,7 +253,7 @@ reopenFile:
             End If
             i = 0
             While i < UBound(Words, 1)
-                If Words(i) = "VERIFY" Then
+                If Words(i) = "VERIFY" Then ' rest of option string
                     s = "SET "
                     For i = i To UBound(Words, 1)
                         s = s & Words(i) & " "
@@ -240,6 +264,9 @@ reopenFile:
                     i += 1
                 Else
                     DoCmd1("SET " & Words(i) & " " & Words(i + 1), False)
+                    If Words(i) = "ENCODE" Then
+                        i = i
+                    End If
                 End If
                 i += 2
             End While
@@ -250,7 +277,7 @@ reopenFile:
     Friend Sub AskFiles(ByVal CommandLine As String)
         If CommandLine.Length() = 0 Then
             Dim files(), s As String
-            OpenFileDialog1.Title = "XeditPC by AMBusy at Gmail.com " & Chr(169) & "2007-2021. " & SysMsg(12)
+            OpenFileDialog1.Title = "XeditPC by AMBusy at Gmail.com " & Chr(169) & "2007-2021.    >>> " & SysMsg(12) & " <<<"
             OpenFileDialog1.FileName = ""
             OpenFileDialog1.CheckFileExists = False
             OpenFileDialog1.Multiselect = True
@@ -262,19 +289,23 @@ reopenFile:
                 Dim r As New Recent()
                 Recent.ShowDialog()
                 If Recent.res <> "" Then
-                    rc = InitAndRunEdit(Recent.res, False)
+                    rc = InitAndRunEdit(Recent.res)
                 Else
                     rc = 16
                 End If
             Else
                 For Each s In files
                     If s.Length() > 0 Then
-                        rc = InitAndRunEdit(s, False)
+                        Dim optstr As String = ""
+                        If Not IsNothing(OptionsScreen.CmdString) Then
+                            optstr = OptionsScreen.CmdString
+                        End If
+                        rc = RunEdit(s, optstr)
                     End If
                 Next
             End If
         Else
-            rc = InitAndRunEdit(CommandLine, True)
+            rc = InitAndRunEdit(CommandLine)
         End If
     End Sub
     Friend Sub helpPr(ByVal sender As Object, ByVal e As System.EventArgs) Handles OpenFileDialog1.HelpRequest
@@ -731,9 +762,9 @@ opn:
                             CommandLine = Recent.res
                         End If
                     End If
-                    RunEdit(CommandLine, "")
+                    InitAndRunEdit(CommandLine)
                 Else
-                    InitAndRunEdit(CommandLine, False)
+                    InitAndRunEdit(CommandLine)
                 End If
             End If
             If CancelCmd Then Exit Sub
@@ -1111,6 +1142,8 @@ opn:
                     CurrEdtSession.InsOvertype = False
                     If CurrEdtSession.EncodingType = "8"c Then CurrEdtSession.EncodingType = "A"c
                 End If
+            ElseIf Abbrev(FirstWord, "NULLS", 3) Then ' set NULLSA ON/OFF
+                CurrEdtSession.Nulls = (NxtWordFromStr(CommandLine, "OFF") = "ON")
             ElseIf Abbrev(FirstWord, "LRECL", 2) Then ' set LRECL nnn
                 CurrEdtSession.Lrecl = CShort(Math.Max(1, CIntUserCor(NxtWordFromStr(CommandLine, "32767"))))
             ElseIf Abbrev(FirstWord, "CURLINE", 4) Then  ' set CURLINE ON line
@@ -2957,7 +2990,7 @@ FileDeleteErrorRes:
             If ssd.SrcLength = -1 Then ' Ied line
                 ssd.SrcLength = 0
             End If
-            If ssd.SrcStart = 0 Then
+            If ssd.SrcStart < 1 Then
                 ssd.SrcStart = 1
             End If
             l = ssd.SrcLength
@@ -2983,7 +3016,7 @@ FileDeleteErrorRes:
                 ssd.SrcStart = 1
             End If
             EditRdFile.Seek(ssd.SrcStart - 1, SeekOrigin.Begin)
-            EditRdFile.Read(buf, StrtWrt, ssd.SrcLength)
+            EditRdFile.Read(buf, StrtWrt, Math.Min(l, ssd.SrcLength))
             If CurrEdtSession.EncodingType = "U"c Then
                 If FirstLine Then
                     buf(0) = 255
@@ -4043,6 +4076,7 @@ FileDeleteErrorRes:
     End Sub
     Private Sub XeditPc_Resize(ByVal sender As Object, ByVal e As System.EventArgs) Handles Me.Resize
         Logg("XeditPc_Resize")
+        SaveAllModifiedLines()
         ScrList.Clear()
         ForcePaint()
     End Sub
@@ -5000,7 +5034,7 @@ FileDeleteErrorRes:
         Dim dsScr As ScreenLine = DirectCast(ScrList.Item(CurrEdtSession.CursorDisplayLine), ScreenLine)
         dsScr.CurRepaint = True
         If Not dsScr.CurSrcRead Then ReadSourceInScrBuf(dsScr)
-        Logg("Currv line: " & dsScr.CurLinSrc)
+        Logg("Curr. line: " & dsScr.CurLinSrc)
         Dim vpNibble As Boolean
         ps = EditPosSrc(vp, vpNibble, dsScr)
         If ps > -1 Or CurrEdtSession.CursorDisplayColumn < 0 Then
@@ -5051,6 +5085,11 @@ FileDeleteErrorRes:
                             Else
                                 nChrBef = ps - 1
                                 nChrAft = nChrBef + 1 ' replace
+                            End If
+                            If CurrEdtSession.Nulls And dsScr.CurLinType = "L"c AndAlso Not CurrEdtSession.RecfmV AndAlso (nChrBef > CurrEdtSession.Lrecl Or (CurrEdtSession.InsOvertype And strng.Length() = CurrEdtSession.Lrecl)) Then
+                                If strng.EndsWith(" ") Then
+                                    strng = strng.Substring(0, strng.Length - 1)
+                                End If
                             End If
                             If dsScr.CurLinType = "L"c AndAlso Not CurrEdtSession.RecfmV AndAlso (nChrBef > CurrEdtSession.Lrecl Or (CurrEdtSession.InsOvertype And strng.Length() = CurrEdtSession.Lrecl)) Then
                                 rc = 16 ' kan niet invoegen als de regel al vol is
@@ -6229,15 +6268,6 @@ FileDeleteErrorRes:
         End If
         e.rc = rc
     End Sub
-    '    Sub RexxNewRexx(ByVal env As String, ByVal cmd As String, ByVal parms As String, ByVal e As RexxEvent, ByRef RexxEnv As Rexx) Handles Rx.doNewRexx
-    '#If CreLogFile Then
-    '        Logg("RexxNewRexx env/cmd """ & env.ToUpper(CultInf) & """/""" & cmd & """")
-    '#End If
-    '        Dim rx As New DoRexx(cmd, parms)
-    '        e.rc = rx.DrRc
-    '    End Sub
-
-
 End Class
 
 

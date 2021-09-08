@@ -29,6 +29,7 @@ Public Class EdtSession
     Public AutoSavNames As New Collection
     Public RecfmV As Boolean ' from SET RECFM
     Public Lrecl As Short ' from SET LRECL
+    Public Nulls As Boolean ' from SET NULLS ON/OFF
     Public Trunc As Short ' from SET TRUNC
     Public InsOvertype As Boolean ' true = insert
     Public ScopeAllDisplay As Boolean ' true = Scope all

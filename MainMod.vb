@@ -1,5 +1,5 @@
 ﻿Imports VB = Microsoft.VisualBasic
-#Const CreLogFile = True
+#Const CreLogFile = False
 
 Module MainMod
     Public FormShown As Boolean = False ' Initial form after startup has been shown: paint is now possible
@@ -40,6 +40,7 @@ Module MainMod
     Public MacroState As Integer
     Public MacroClicked As Boolean
 
+    Public RecentFiles As New Collection 'list of recent files
     Public ScrList As New Collection 'contents of actual screen
     Public EditRdFile As FileStream ' file to read from (wrkfile or original file)
     Public EditFileWrk As FileStream ' workfile (if opened)
@@ -122,8 +123,18 @@ Module MainMod
             End If
         Catch ex As Exception
         End Try
+
+        For i = 1 To 100
+            Dim fn As String = GetRegistryKey("XeditPc", "File" & CStr(i), "")
+            If fn <> "" Then
+                RecentFiles.Add(fn)
+            Else
+                Exit For
+            End If
+        Next
+
         If cmdArgs.GetUpperBound(0) > -1 Then
-            CommandLine = cmdArgs(0).Trim()
+            CommandLine = Join(cmdArgs, " ")
         Else
             CommandLine = ""
         End If
@@ -134,6 +145,11 @@ Module MainMod
             SaveRegistryKey("XeditPc", "Width", Str(myForm.Width))
             SaveRegistryKey("XeditPc", "Height", Str(myForm.Height))
         End If
+        i = 0
+        For Each fn As String In RecentFiles
+            i += 1
+            SaveRegistryKey("XeditPc", "File" & CStr(i), fn)
+        Next
         Logg("Main finishes ")
         LoggC()
 #If CreLogFile Then
