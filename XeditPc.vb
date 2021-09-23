@@ -6,12 +6,31 @@ Imports System.Xml.Schema
 Public Class XeditPc
     Dim TimerEnabled As Boolean = False
     Dim TimerInterval As Integer = 50
+    Dim optionsSpecified As Boolean
     Dim MousePosX, MousePosY As Integer ' if cursor on scrollbar, act on changes of value
     Public WithEvents Rxs As New Rexx
+    Private Sub XeditPc_Load(ByVal sender As Object, ByVal e As System.EventArgs) Handles Me.Load
+        RepaintAllScreenLines = True
+        DecimalSepPt = CultureInfo.CurrentCulture.NumberFormat.NumberDecimalSeparator = "."
+        Me.Cursor = System.Windows.Forms.Cursors.WaitCursor
+        Logg("Main vers. 15 mar 2015 DirectoryPath " & ExecutablePath)
+        If Not QuitPgm Then
+            rc = InitAndRunEdit(CommandLine)
+        End If
+        If Not QuitPgm AndAlso rc = 0 Then
+            FormShown = True
+            Me.Invalidate()
+            Me.Show()
+            SendKeys.Send("{DOWN}") ' if not: VSB intercepts first "keydown" !?!?
+        Else
+            Me.Close()
+        End If
+    End Sub
     Public Function InitAndRunEdit(ByVal CommandLine As String) As Integer
         Dim i As Integer
         Dim Filename As String
-        i = InStr(CommandLine, "(") ' XEDIT  file (options) comment
+        i = InStr(CommandLine, "|") ' XEDIT  file |options) comment
+        optionsSpecified = (i > -1) ' might be empty string
         If i > 0 Then
             Filename = CommandLine.Substring(0, i - 1).Trim()
             CommandLine = CommandLine.Substring(i)
@@ -58,55 +77,16 @@ Public Class XeditPc
             Me.SetFormCaption()
             found = True
         End If
-        If Not found Then ' new file
+        If Not found Then '  file not yet in edit-ring
             CurrEdtSession = New EdtSession
             CurrEdtSession.EditFileName = Filename
             EdtSessions.Add(CurrEdtSession)
             CurrEditSessionIx = EdtSessions.Count()
-            ProcessCommandOptions(CommandLine)
+            CommandLine = RecentFiles.SetOptions(Filename, CommandLine, False)
             If Not QuitPgm Then
-                Dim f As Integer = 0
-                Dim fn As String = ""
-                Dim opt As String = ""
-                i = 0
-                For Each fnx As String In RecentFiles
-                    fn = fnx
-                    i += 1
-                    Dim ix As Integer = fn.IndexOf("|")
-                    If ix > -1 Then
-                        opt = fn.Substring(ix + 1)
-                        fn = fn.Substring(0, ix).Trim()
-                    End If
-                    If fn = Filename Then
-                        f = i
-                        Exit For
-                    End If
-                Next
-                If f = 0 Then ' add
-                    If RecentFiles.Count = 100 Then
-                        RecentFiles.Remove(100)
-                    End If
-                    If CommandLine = "" Then
-                        RecentFiles.Add(Filename,, 1)
-                    Else
-                        RecentFiles.Add(Filename & " |" & CommandLine,, 1) ' | shown as ( in recents screen
-                        ProcessCommandOptions(CommandLine)
-                    End If
-                Else ' replace
-                    If HelpCmd Then ' opt was previous, commandline is new options
-                        opt = CommandLine
-                    End If
-                    RecentFiles.Remove(f)
-                    If opt = "" Then
-                        RecentFiles.Add(Filename,, f)
-                    Else
-                        RecentFiles.Add(Filename & " |" & opt,, f)
-                        ProcessCommandOptions(opt)
-                    End If
-                End If
+                ProcessCommandOptions(CommandLine)
                 ReadEditFile(Filename)
-                    ' FormShown = true
-                    SetFormCaption()
+                SetFormCaption()
                 CurrEdtSession.SeqOfFirstSourcelineOnScreen = 1
             End If
         End If
@@ -123,7 +103,7 @@ Public Class XeditPc
 reopenFile:
         Logg("InitEditFile start " & Filename)
         Try
-            CurrEdtSession.EditFile = New FileStream(Filename, FileMode.Open, FileAccess.Read)
+            CurrEdtSession.EditFile = New FileStream(Filename, FileMode.Open, FileAccess.Read, FileShare.ReadWrite)
             CurrEdtSession.FileUsesEndlineLF = False
             CurrEdtSession.FileUsesEndlineCR = False
             lFile = CurrEdtSession.EditFile.Length()
@@ -274,45 +254,7 @@ reopenFile:
         RexxCmdActive = prevRexxCmdActive
         Logg("ProcessCommandOptions end")
     End Sub
-    Friend Sub AskFiles(ByVal CommandLine As String)
-        If CommandLine.Length() = 0 Then
-            Dim files(), s As String
-            OpenFileDialog1.Title = "XeditPC by AMBusy at Gmail.com " & Chr(169) & "2007-2021.    >>> " & SysMsg(12) & " <<<"
-            OpenFileDialog1.FileName = ""
-            OpenFileDialog1.CheckFileExists = False
-            OpenFileDialog1.Multiselect = True
-            OpenFileDialog1.ShowHelp = True
-            HelpCmd = False
-            OpenFileDialog1.ShowDialog()
-            files = OpenFileDialog1.FileNames
-            If files(0) = "" Then
-                Dim r As New Recent()
-                Recent.ShowDialog()
-                If Recent.res <> "" Then
-                    rc = InitAndRunEdit(Recent.res)
-                Else
-                    rc = 16
-                End If
-            Else
-                For Each s In files
-                    If s.Length() > 0 Then
-                        Dim optstr As String = ""
-                        If Not IsNothing(OptionsScreen.CmdString) Then
-                            optstr = OptionsScreen.CmdString
-                        End If
-                        rc = RunEdit(s, optstr)
-                    End If
-                Next
-            End If
-        Else
-            rc = InitAndRunEdit(CommandLine)
-        End If
-    End Sub
-    Friend Sub helpPr(ByVal sender As Object, ByVal e As System.EventArgs) Handles OpenFileDialog1.HelpRequest
-        HelpCmd = True
-        OptionsScreen.ShowDialog()
-        Logg("helpPr asked")
-    End Sub
+
     Public Function SysMsg(ByVal i As Integer) As String
         Dim s As String
         s = "SYSMSG" & CStr(i)
@@ -322,31 +264,7 @@ reopenFile:
             SysMsg = s & " not defined in 'system messages.txt'"
         End If
     End Function
-    Public Sub ReadSysMsg(ByVal Filename As String)
-        Dim w As String
-        Logg("ReadSysMsg start")
-        Try
-            Using sr As StreamReader = New StreamReader(Filename)
-                Dim line As String
-                ' Read and display the lines from the file until the end 
-                ' of the file is reached.
-                line = sr.ReadLine()
-                While Not (line Is Nothing)
-                    w = NxtWordFromStr(line)
-                    If w.Length() > 6 AndAlso w.Substring(0, 6) = "SYSMSG" Then
-                        SysMessages.Add(line, w)
-                    End If
-                    line = sr.ReadLine()
-                End While
-                sr.Close()
-            End Using
-        Catch E As Exception
-            Logg("ReadSysMsg catch")
-            MsgBox("File: " & Filename & " not found, cancelling program", MsgBoxStyle.Exclamation)
-            QuitPgm = True
-        End Try
-        Logg("ReadSysMsg end")
-    End Sub
+
     Private Function GetPointLine(PointName As String) As Integer
         Dim ret As Integer = 0
         Dim iSrPt As Integer = 0
@@ -446,24 +364,7 @@ reopenFile:
         End If
         Return res
     End Function
-    Private Function NxtWordFromStr(ByRef s As String, Optional ByVal Def As String = "", Optional ByVal sep As String = " ", Optional ByVal uppcase As Boolean = True) As String ' modifies s .............
-        ' get next word from string, and strip from string s
-        Dim i As Integer
-        s = s.TrimStart()
-        If s.StartsWith(sep) Then s = s.Substring(1)
-        i = InStr(1, s, sep)
-        If i = 0 Then
-            NxtWordFromStr = s
-            s = ""
-        Else
-            NxtWordFromStr = s.Substring(0, i - 1)
-            s = s.Substring(i)
-        End If
-        If NxtWordFromStr = "" Then If Not IsNothing(Def) Then NxtWordFromStr = Def
-        If uppcase Then
-            NxtWordFromStr = NxtWordFromStr.ToUpper(CultInf)
-        End If
-    End Function
+
     Private Function NxtNumFromStr(ByRef s As String, Optional ByVal Def As String = "") As Integer
         Dim u As String
         If Not IsNothing(Def) Then
@@ -749,19 +650,9 @@ opn:
                 RunEdit("", "")
             Else
                 If CommandLine = "?" Then
-                    OpenFileDialog1.FileName = "" 'CurrEdtSession.EditFileName
-                    OpenFileDialog1.CheckFileExists = False
-                    OpenFileDialog1.ShowHelp = True
-                    OpenFileDialog1.Multiselect = False
-                    OpenFileDialog1.ShowDialog()
-                    CommandLine = OpenFileDialog1.FileName
-                    If OpenFileDialog1.FileNames(0) = "" Then
-                        Dim r As New Recent()
-                        Recent.ShowDialog()
-                        If Recent.res <> "" Then
-                            CommandLine = Recent.res
-                        End If
-                    End If
+                    Dim sForm As New AskFileName()
+                    sForm.ShowDialog() ' sets commandline
+                    CommandLine = sForm.commandLine
                     InitAndRunEdit(CommandLine)
                 Else
                     InitAndRunEdit(CommandLine)
@@ -3851,10 +3742,10 @@ FileDeleteErrorRes:
             s = s & CurrEdtSession.EditFileName
             If s.Length() > 30 Then
                 Dim nmAr() As String = Split(s, "\")
-                If nmAr.Length < 4 Then
+                If nmAr.Length < 5 Then
                     s = s
-                ElseIf nmAr.Length = 4 Then
-                    s = nmAr(0) & "\...\" & nmAr(2) & "\" & nmAr(3)
+                ElseIf nmAr.Length = 5 Then
+                    s = nmAr(0) & "\" & nmAr(1) & "\...\" & nmAr(3) & "\" & nmAr(4)
                 Else
                     s = nmAr(0) & "\" & nmAr(1) & "\...\" & nmAr(nmAr.Length - 2) & "\" & nmAr(nmAr.Length - 1)
                 End If
@@ -5706,29 +5597,36 @@ FileDeleteErrorRes:
                 mClipbVk = False
             End If
             If Not mClipbVk Then
+                Dim Sep As String = vbCrLf
+                If temp.IndexOf(vbCrLf) = -1 AndAlso temp.IndexOf(vbLf) > -1 Then
+                    Sep = vbLf
+                ElseIf temp.IndexOf(vbCrLf) = -1 AndAlso temp.IndexOf(vbCr) > -1 Then
+                    Sep = vbCr
+                End If
                 sbRest = False
                 While temp.Length() > 0
-                    If temp.Length() >= 2 Then
-                        S2 = temp.Substring(0, 2)
+                    If temp.Length() >= Sep.Length Then
+                        S2 = temp.Substring(0, Sep.Length)
                     Else
                         S2 = ""
                     End If
-                    If S2 = vbCrLf Then
+                    If S2 = Sep Then
                         'SaveModifiedLine(dsScr)
                         DoCmd1("INPUT", False)
                         dsScr = DirectCast(ScrList.Item(CurrEdtSession.CurLineNr), ScreenLine)
                         dsScr.CurSrcRead = True
-                        temp = temp.Substring(2)
+                        temp = temp.Substring(Sep.Length)
                         LineIns = LineIns + 1S
                         multiLine = True
                     Else
-                        i = InStr(1, temp, vbCrLf)
-                        If i = 0 Then
+                        'i = InStr(1, temp, Sep)
+                        i = temp.IndexOf(Sep)
+                        If i = -1 Then
                             s = temp
                             temp = ""
                         Else
-                            s = temp.Substring(0, i - 1)
-                            temp = temp.Substring(i - 1)
+                            s = temp.Substring(0, i)
+                            temp = temp.Substring(i)
                             multiLine = True
                         End If
                         If dsScr.CurLinType = "T"c Then
@@ -6197,38 +6095,7 @@ FileDeleteErrorRes:
         System.Windows.Forms.Application.DoEvents()
         nrCyclesEv = 0
     End Sub
-    Private Sub XeditPc_Load(ByVal sender As Object, ByVal e As System.EventArgs) Handles Me.Load
-        Timer1.Interval = 10
-        Timer1.Enabled = True
-    End Sub
-    Sub DoTimer()
-        Dim fn As String
-        RepaintAllScreenLines = True
-        DecimalSepPt = CultureInfo.CurrentCulture.NumberFormat.NumberDecimalSeparator = "."
-        Me.Cursor = System.Windows.Forms.Cursors.WaitCursor
-        fn = ExecutablePath
-        Logg("Main vers. 15 mar 2015 DirectoryPath " & fn)
-        ReadSysMsg(fn & "system messages.txt")
-        If VB.Left(CommandLine, 1) = """" Then ' EXPLORER sometimes puts filename between " "
-            CommandLine = VB.Mid(CommandLine, 2)
-            If VB.Right(CommandLine, 1) = """" Then CommandLine = VB.Mid(CommandLine, 1, CommandLine.Length() - 1)
-        End If
-        If Not QuitPgm Then
-            AskFiles(CommandLine)
-        End If
-        If Not QuitPgm AndAlso rc = 0 Then
-            FormShown = True
-            Me.Invalidate()
-            Me.Show()
-            SendKeys.Send("{DOWN}") ' if not: VSB intercepts first "keydown" !?!?
-        Else
-            Me.Close()
-        End If
-    End Sub
-    Private Sub Timer1_Tick(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles Timer1.Tick
-        Timer1.Enabled = False
-        DoTimer()
-    End Sub
+
     Sub RexxCmd(ByVal env As String, ByVal s As String, ByVal e As RexxEvent) Handles Rxs.doCmd
 #If CreLogFile Then
         Logg("RexxCmd env/cmd """ & env.ToUpper(CultInf) & """/""" & s & """")
@@ -6269,6 +6136,3 @@ FileDeleteErrorRes:
         e.rc = rc
     End Sub
 End Class
-
-
-

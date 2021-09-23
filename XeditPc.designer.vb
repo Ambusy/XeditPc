@@ -37,15 +37,11 @@ Partial Class XeditPc
         Me.FontDialog1 = New System.Windows.Forms.FontDialog()
         Me.PrintDialog1 = New System.Windows.Forms.PrintDialog()
         Me.PageSetupDialog1 = New System.Windows.Forms.PageSetupDialog()
-        Me.Timer1 = New System.Windows.Forms.Timer(Me.components)
         Me.VSB = New System.Windows.Forms.VScrollBar()
         Me.TimerBar = New System.Windows.Forms.Timer(Me.components)
         Me.ColorDialog1 = New System.Windows.Forms.ColorDialog()
         Me.ContextMenuStrip1.SuspendLayout()
         Me.SuspendLayout()
-        '
-        'OpenFileDialog1
-        '
         '
         'ContextMenuStrip1
         '
@@ -97,9 +93,6 @@ Partial Class XeditPc
         '
         Me.PrintDialog1.UseEXDialog = True
         '
-        'Timer1
-        '
-        '
         'VSB
         '
         Me.VSB.Location = New System.Drawing.Point(0, 0)
@@ -139,7 +132,6 @@ Partial Class XeditPc
     Friend WithEvents FontDialog1 As System.Windows.Forms.FontDialog
     Friend WithEvents PrintDialog1 As System.Windows.Forms.PrintDialog
     Friend WithEvents PageSetupDialog1 As System.Windows.Forms.PageSetupDialog
-    Friend WithEvents Timer1 As System.Windows.Forms.Timer
     Friend WithEvents menu_Macro As System.Windows.Forms.ToolStripMenuItem
     Friend WithEvents ToolStripSeparator2 As System.Windows.Forms.ToolStripSeparator
     Friend WithEvents VSB As System.Windows.Forms.VScrollBar

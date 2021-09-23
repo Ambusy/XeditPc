@@ -40,7 +40,9 @@ Module MainMod
     Public MacroState As Integer
     Public MacroClicked As Boolean
 
-    Public RecentFiles As New Collection 'list of recent files
+    Public RecentFiles As New RecentFilesCollection 'list of recent files
+    Public RFsep As String = vbTab & "   -   " & vbTab
+
     Public ScrList As New Collection 'contents of actual screen
     Public EditRdFile As FileStream ' file to read from (wrkfile or original file)
     Public EditFileWrk As FileStream ' workfile (if opened)
@@ -68,8 +70,8 @@ Module MainMod
     Friend CommandLine As String
     Public nMakebufs As Integer = 0
     Public Makebufs As New Collection
-    ' <Global.System.Diagnostics.DebuggerStepThroughAttribute()> _
-    <Conditional("CreLogFile")> _
+    <Global.System.Diagnostics.DebuggerStepThroughAttribute()>
+    <Conditional("CreLogFile")>
     Public Sub LoggO()
         logFile = File.CreateText(Path.GetTempPath() & "\XeditDNet.Log.txt")
     End Sub
@@ -78,7 +80,7 @@ Module MainMod
     Public Sub LoggC()
         logFile.Close()
     End Sub
-    ' <Global.System.Diagnostics.DebuggerStepThroughAttribute()> _
+    <Global.System.Diagnostics.DebuggerStepThroughAttribute()>
     <Conditional("CreLogFile")>
     Public Sub Logg(ByVal s As String)
         If logFile Is Nothing Then Return
@@ -123,39 +125,85 @@ Module MainMod
             End If
         Catch ex As Exception
         End Try
-
-        For i = 1 To 100
-            Dim fn As String = GetRegistryKey("XeditPc", "File" & CStr(i), "")
-            If fn <> "" Then
-                RecentFiles.Add(fn)
-            Else
-                Exit For
+        ReadSysMsg(ExecutablePath & "system messages.txt")
+        QuitPgm = False
+        If cmdArgs.Length > 0 Then
+            If cmdArgs(0).StartsWith("""") Then ' EXPLORER sometimes puts filename between " "
+                cmdArgs(0) = cmdArgs(0).Substring(1, cmdArgs(0).Length - 2)
             End If
-        Next
-
-        If cmdArgs.GetUpperBound(0) > -1 Then
+            If cmdArgs.Length > 1 Then
+                If cmdArgs(1).TrimStart.StartsWith("(") Then ' options intern start with |
+                    cmdArgs(1) = "|" & cmdArgs(1).Substring(1)
+                End If
+            End If
             CommandLine = Join(cmdArgs, " ")
         Else
             CommandLine = ""
         End If
-        Application.Run(myForm)
-        If myForm.WindowState = FormWindowState.Normal Then
-            SaveRegistryKey("XeditPc", "Top", Str(myForm.Top))
-            SaveRegistryKey("XeditPc", "Left", Str(myForm.Left))
-            SaveRegistryKey("XeditPc", "Width", Str(myForm.Width))
-            SaveRegistryKey("XeditPc", "Height", Str(myForm.Height))
+        If CommandLine = "" Then
+            Dim sForm As New AskFileName()
+            sForm.ShowDialog()
+            CommandLine = sForm.commandLine
         End If
-        i = 0
-        For Each fn As String In RecentFiles
-            i += 1
-            SaveRegistryKey("XeditPc", "File" & CStr(i), fn)
-        Next
-        Logg("Main finishes ")
-        LoggC()
+        If Not QuitPgm Then
+            Application.Run(myForm)
+            If myForm.WindowState = FormWindowState.Normal Then
+                SaveRegistryKey("XeditPc", "Top", Str(myForm.Top))
+                SaveRegistryKey("XeditPc", "Left", Str(myForm.Left))
+                SaveRegistryKey("XeditPc", "Width", Str(myForm.Width))
+                SaveRegistryKey("XeditPc", "Height", Str(myForm.Height))
+            End If
+            RecentFiles.Dispose()
+            Logg("Main finishes ")
+            LoggC()
+        End If
 #If CreLogFile Then
         logFile.Close()
 #End If
     End Sub
+    Public Sub ReadSysMsg(ByVal Filename As String)
+        Dim w As String
+        Logg("ReadSysMsg start")
+        Try
+            Using sr As StreamReader = New StreamReader(Filename)
+                Dim line As String
+                ' Read and display the lines from the file until the end 
+                ' of the file is reached.
+                line = sr.ReadLine()
+                While Not (line Is Nothing)
+                    w = NxtWordFromStr(line)
+                    If w.Length() > 6 AndAlso w.Substring(0, 6) = "SYSMSG" Then
+                        SysMessages.Add(line, w)
+                    End If
+                    line = sr.ReadLine()
+                End While
+                sr.Close()
+            End Using
+        Catch E As Exception
+            Logg("ReadSysMsg catch")
+            MsgBox("File: " & Filename & " not found, cancelling program", MsgBoxStyle.Exclamation)
+            QuitPgm = True
+        End Try
+        Logg("ReadSysMsg end")
+    End Sub
+    Friend Function NxtWordFromStr(ByRef s As String, Optional ByVal Def As String = "", Optional ByVal sep As String = " ", Optional ByVal uppcase As Boolean = True) As String ' modifies s .............
+        ' get next word from string, and strip from string s
+        Dim i As Integer
+        s = s.TrimStart()
+        If s.StartsWith(sep) Then s = s.Substring(1)
+        i = InStr(1, s, sep)
+        If i = 0 Then
+            NxtWordFromStr = s
+            s = ""
+        Else
+            NxtWordFromStr = s.Substring(0, i - 1)
+            s = s.Substring(i)
+        End If
+        If NxtWordFromStr = "" Then If Not IsNothing(Def) Then NxtWordFromStr = Def
+        If uppcase Then
+            NxtWordFromStr = NxtWordFromStr.ToUpper(CultInf)
+        End If
+    End Function
     Public Function GetRegistryKey(ByVal KeyName As String, ByVal ValueName As String, ByVal Defaultval As String) As String
         If ValidKeyName(KeyName) Then
             Dim readValue As String
@@ -173,6 +221,15 @@ Module MainMod
         If ValidKeyName(KeyName) Then
             My.Computer.Registry.CurrentUser.CreateSubKey("Software\AMBusy\" & KeyName)
             My.Computer.Registry.SetValue("HKEY_CURRENT_USER\Software\AMBusy\" & KeyName, ValueName, ValueData)
+        End If
+    End Sub
+    Public Sub DelRegistryKeyValue(ByRef KeyName As String, ByVal ValueName As String)
+        If ValidKeyName(KeyName) Then
+            Dim readValue As String = CStr(My.Computer.Registry.GetValue("HKEY_CURRENT_USER\Software\AMBusy\" & KeyName, ValueName, Nothing))
+            If Not (readValue Is Nothing) Then
+                Dim x As Microsoft.Win32.RegistryKey = My.Computer.Registry.CurrentUser.OpenSubKey("Software\AMBusy\" & KeyName, True)
+                x.DeleteValue(ValueName)
+            End If
         End If
     End Sub
     Private Function ValidKeyName(ByRef KeyName As String) As Boolean
