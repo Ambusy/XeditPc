@@ -3887,9 +3887,10 @@ FileDeleteErrorRes:
             ElseIf CurrEdtSession.EncodingType = "8"c Then
                 Dim isUtf As Boolean = True
                 Dim inUtf As Boolean = False
+                Dim tryAscii As Boolean = False
                 For i As Integer = 0 To buf.Length - 2
                     If Not inUtf AndAlso buf(i) > 127 Then
-                        If buf(i + 1) < 128 Then 'invalid UTF8. probably Ascii with accented letters
+                        If buf(i + 1) < 128 Then 'invalid UTF8. probably Ascii with accented letters, will be treated as ASCII with default code table
                             isUtf = False
                             If Not WarnUtf8 Then
                                 WarnUtf8 = True
@@ -3901,9 +3902,10 @@ FileDeleteErrorRes:
                         End If
                     ElseIf inUtf AndAlso buf(i) < 128 Then
                         inUtf = False
+                        tryAscii = True
                     End If
                 Next
-                If isUtf Then
+                If isUtf And Not tryAscii Then
                     Dim enc As System.Text.Encoding = New System.Text.UTF8Encoding()
                     value = enc.GetString(buf)
                 Else ' change to ascii encoding
@@ -5781,6 +5783,7 @@ FileDeleteErrorRes:
             e.Cancel = True
             FormAlreadyClosed = False
         End If
+        CancelCmd = True
     End Sub
     Private Sub menu_Copy_Click(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles menu_Copy.Click
         CopySelectedToClipboard()
