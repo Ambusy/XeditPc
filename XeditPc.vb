@@ -4409,8 +4409,16 @@ FileDeleteErrorRes:
                     If ssd.SrcLength < 0 Then ' not yet touched by user
                         Logg("RestoreIedLines " & CStr(ie.Linenr))
                         MoveToSourceLine(ie.Linenr)
+                        l = CurrEdtSession.LineCommands.Count ' remove linecommands on empty I-lines
+                        While l > 0
+                            Dim mLnCmd As LineCommand = DirectCast(CurrEdtSession.LineCommands.Item(l), LineCommand)
+                            If mLnCmd.Linenr = ie.Linenr Then
+                                CurrEdtSession.LineCommands.Remove(l)
+                            End If
+                            l -= 1
+                        End While
                         dsScr = DirectCast(ScrList.Item(CurrEdtSession.CurLineNr), ScreenLine)
-                        DeleteLine()
+                            DeleteLine()
                     End If
                 End If
             Next
