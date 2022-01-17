@@ -2,7 +2,7 @@
 Imports System.Drawing.Printing
 Imports System.Xml.Schema
 #Const CreLogFile = False
-#Const tracen = False
+'#Const tracen = True
 Public Class XeditPc
     Dim TimerEnabled As Boolean = False
     Dim TimerInterval As Integer = 50
@@ -3260,6 +3260,7 @@ FileDeleteErrorRes:
                 Dim dsCmd As New ScreenLine
                 If CurrEdtSession.CmdLineNr = -1 Then
                     dsCmd = DirectCast(ScrList.Item(ScrList.Count), ScreenLine)
+                    Logg("Scrlist remove last line: " + CStr(ScrList.Count))
                     ScrList.Remove(ScrList.Count)
                     LinesScreenVisible -= 1S
                 End If
@@ -3270,6 +3271,7 @@ FileDeleteErrorRes:
                         SaveModifiedLine(dsScr)
                     End If
                     dsScr = Nothing
+                    Logg("Scrlist remove line: " + CStr(crLine))
                     ScrList.Remove(crLine)
                 End While
                 If CurrEdtSession.CmdLineNr = -1 Then
@@ -3549,7 +3551,7 @@ FileDeleteErrorRes:
                 End If
                 Dim chRsa As Array = Array.CreateInstance(GetType(CharacterRange), PntPiece)
                 Array.Copy(chRs, 0, chRsa, 0, PntPiece)
-                aRectangle = New Rectangle(0, CInt((crLine - 1) * RectHeight) - 2, ClientSize.Width - VSB.Width, RectHeight) ' x, y, w, h 
+                aRectangle = New Rectangle(0, CInt((crLine - 1) * RectHeight) - 2, ClientSize.Width - VSB.Width, RectHeight * 2) ' x, y, w, h 
                 ' Set string format.
                 Dim stringFormat As New StringFormat
                 stringFormat.SetMeasurableCharacterRanges(chRsa)
@@ -3970,7 +3972,10 @@ FileDeleteErrorRes:
     Private Sub XeditPc_Resize(ByVal sender As Object, ByVal e As System.EventArgs) Handles Me.Resize
         Logg("XeditPc_Resize")
         SaveAllModifiedLines()
-        ScrList.Clear()
+        If ScrList.Count > 0 Then
+            Dim dsScr As ScreenLine = DirectCast(ScrList.Item(CurrEdtSession.CurLineNr), ScreenLine) ' fill screen  
+            FillScreenBuffer(dsScr.CurSrcNr, False)
+        End If
         ForcePaint()
     End Sub
     Private Sub ForcePaint()
@@ -4574,6 +4579,7 @@ FileDeleteErrorRes:
             If i < ScrList.Count AndAlso DirectCast(ScrList.Item(i), ScreenLine).CurLinType = "R"c Then
                 ResIx.Add(i)
                 ResLines.Add(DirectCast(ScrList.Item(i), ScreenLine))
+                Logg("Scrlist down remove line: " + CStr(i))
                 ScrList.Remove(i)
                 deleted = True
             Else
@@ -4596,6 +4602,7 @@ FileDeleteErrorRes:
             End If
             dsScr = DirectCast(ScrList.Item(CurrEdtSession.SrcOnScrn(CurrEdtSession.nSrcOnScrn)), ScreenLine)
             SaveModifiedLine(dsScr)
+            Logg("Scrlist down remove line: " + CStr(CurrEdtSession.SrcOnScrn(CurrEdtSession.nSrcOnScrn)))
             ScrList.Remove(CurrEdtSession.SrcOnScrn(CurrEdtSession.nSrcOnScrn))
             ScrI = from
             ScrList.Add(dsScr, , ScrI)
@@ -4625,7 +4632,7 @@ FileDeleteErrorRes:
             If i < ScrList.Count AndAlso DirectCast(ScrList.Item(i), ScreenLine).CurLinType = "R"c Then
                 ResIx.Add(i)
                 ResLines.Add(DirectCast(ScrList.Item(i), ScreenLine))
-                Logg("ScrList.Remove screenline: " & CStr(i))
+                Logg("ScrList.Remove up screenline: " & CStr(i))
                 ScrList.Remove(i)
                 deleted = True
             Else
@@ -4644,6 +4651,7 @@ FileDeleteErrorRes:
             End If
             dsScr = DirectCast(ScrList.Item(from), ScreenLine)
             SaveModifiedLine(dsScr)
+            Logg("ScrList.Remove up 2e screenline: " & CStr(from))
             ScrList.Remove(from)
             ScrI = CurrEdtSession.SrcOnScrn(CurrEdtSession.nSrcOnScrn) - 1
             Logg("MovLine: " & CStr(from) & " " & CStr(ScrI) & " " & dsScr.CurLinSrc)
