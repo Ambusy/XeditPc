@@ -3551,7 +3551,7 @@ FileDeleteErrorRes:
                 End If
                 Dim chRsa As Array = Array.CreateInstance(GetType(CharacterRange), PntPiece)
                 Array.Copy(chRs, 0, chRsa, 0, PntPiece)
-                aRectangle = New Rectangle(0, CInt((crLine - 1) * RectHeight) - 2, ClientSize.Width - VSB.Width, RectHeight * 2) ' x, y, w, h 
+                aRectangle = New Rectangle(0, CInt((crLine - 1) * RectHeight) - 2, ClientSize.Width - VSB.Width, RectHeight) ' x, y, w, h 
                 ' Set string format.
                 Dim stringFormat As New StringFormat
                 stringFormat.SetMeasurableCharacterRanges(chRsa)
@@ -5676,8 +5676,6 @@ FileDeleteErrorRes:
                                     cScrPos = CShort(CurrEdtSession.CursorDisplayColumn)
                                 End If
                             End If
-                            Dim ii = s.Length
-                            Dim ss As String = s.Substring(0, Math.Min(s.Length, 80))
                             sNl = sN.Substring(0, cScrPos - 1) & s
                             If dsScr.CurLinSsd.SrcLength = -1 Then
                                 dsScr.CurLinSsd.SrcLength = 0 ' paste on Ied line
