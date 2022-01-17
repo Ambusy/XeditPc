@@ -106,6 +106,7 @@ SET
      SELECT n°lines/* level
      SHADOW ON/OFF
      SHIFT-? command                        (set any single symbol key with SHIFT pressed to a command)
+     SPLIT line char 
      STAY ON/OFF
      SYNONYM newname oldname n°chars
      TABS ON [nn nn nn nn ..... ] / OFF
