@@ -15,72 +15,79 @@ return ya
 
 Compiled code:
      a = "artist";
-1 lin 0 2
-2 lod 2 L
-3 sto 4 0
+ 1 lin 0 2
+ 2 lod 2 L        load literal 2 ("artist")
+ 3 sto 4 0        store in variable 4 
      say xx(a);
-4 lin 0 3
-5 lod 4 V
-6 sto 6 1
-7 cal 15 1
-8 cll 6 1100
-9 lod 1 V
-10 say 0 0
+ 4 lin 0 3
+ 5 lod 4 V        load var 4
+ 6 sto 6 1        store in var 6 ("P 1100")
+ 7 cal 15 1       call routine at 15
+ 8 cll 6 1100     define 1st parameter, identified as P 1100
+ 9 lod 1 V        load var 1 (RESULT)
+10 say 0 0        say highest stack element
      exit;
 11 lin 0 4
-12 lod 1 L
-13 sto 1 0
-14 exi 1 0
+12 lod 1 L        load lit "0"		
+13 sto 1 0        store in var 1 (RESULT) 
+14 exi 1 0        exit 
      xx: procedure ;
 15 lin 0 6
 16 lbl 1 51
      parse arg xa ;
 17 lin 0 7
 18 arg 1 1
-19 parv 7 1
+19 parv 7 1       copy value of parameter 1 (P 1100) to variable 7 (XA)
      xa=yy(xa,2) ;
 20 lin 0 8
-21 lod 7 V
-22 sto 9 1
-23 lod 4 L
-24 sto 10 1
-25 cal 34 2
-26 cll 9 2101
-27 cll 10 2102
-28 lod 1 V
-29 sto 7 0
+21 lod 7 V        load var 7
+22 sto 9 1        store in var 9
+23 lod 3 L        load lit 3 ("2") 
+24 sto 10 1       store in var 10 (P 2101) 
+25 cal 34 2       call routine at 34
+26 cll 9 2101     define 1st parameter, identified as P 2101
+27 cll 10 2102    define 2nd parameter, identified as P 2102
+28 lod 1 V        load var 1 (RESULT) 
+29 sto 7 0        store in var 7 (XA)
      return xa ;
 30 lin 0 9
-31 lod 7 V
-32 sto 1 0
-33 ret 1 0
+31 lod 7 V        load var 7 (XA)
+32 sto 1 0        store in var 1 (RESULT) 
+33 ret 1 0        return from call
      yy: procedure ;
 34 lin 0 11
 35 lbl 2 51
      parse arg ba, l ;
 36 lin 0 12
 37 arg 2 2
-38 parv 11 1
-39 parv 12 2
+38 parv 11 1      copy value of parameter 1 (P 2101) to variable 11 (BA)
+39 parv 12 2      copy value of parameter 2 (P 2102) to variable 12 (L)
      ya=left(ba,l) ;
-40 lin 0 13
-41 lod 11 V
-42 sto 15 0
-43 lod 12 V
-44 sto 16 0
-45 jbr 19 2
-46 cll 15 3103
-47 cll 16 3104
-48 lod 1 V
-49 sto 13 0
+40 lin 0 13     
+41 lod 11 V       load var 11 (BA)
+42 sto 15 0       store in var 15 (P 3103)
+43 lod 12 V       load var 12 (L)
+44 sto 16 0       store in var 16 (P 3104)
+45 jbr 19 2       call internal routine 19 (LEFT)
+46 cll 15 3103    define 1st parameter, identified as P 3104
+47 cll 16 3104    define 2nd parameter, identified as P 3105
+48 lod 1 V        load var 1 (RESULT)
+49 sto 13 0       store in var 13 (YA)
      return ya ;
 50 lin 0 14
-51 lod 13 V
-52 sto 1 0
-53 ret 1 0
-54 lod 1 L
-55 sto 1 0
-56 exi 1 0
+51 lod 13 V       load var 13 (YA)
+52 sto 1 0        store in var 1 (RESULT)
+53 ret 1 0        return from call
+                  3 extra statements to return to caller, in case program contains no exit statement
+54 lod 1 L        load literal 1 ("0")
+55 sto 1 0        store in var 1 (RESULT)
+56 exi 1 0        exit from r
+
+Literals
+Literal 1 = "0"        auto generated
+Literal 2 = "artist"   in line 2
+Literal 3 = "2"        in line 7
+
 
 Defined variables: seqnr, 'NAME', type 1=procedure, 2=variable
  

@@ -40,7 +40,7 @@ __ LOG CONNECTOR __ MENU
 __ OPER __ MENU
 |+|-| |*|/|%|//|**
 __ LOG OP __ MENU
-!>!>=!<!<=!=!^=!&!|
+*>*>=*<*<=*=*^=*&*|
 __ IF __ 
 If {logical expression} then do
    {statement}..;

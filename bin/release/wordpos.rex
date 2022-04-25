@@ -1,4 +1,4 @@
-/* wordpos(needle,haystack) */
+/*  wp = wordpos(needle,haystack) returns the word number of the first word of phrase found in string or returns 0*/                                 
 wordpos: procedure expose  
    trace n
    parse arg ndl, hst  

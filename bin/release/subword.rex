@@ -1,4 +1,4 @@
-/* subword(text,[from],[n° words]) */
+/* subword(text,[from],[nr words]) */
 subword: 
   trace n
   parse arg txt, strt, nr  

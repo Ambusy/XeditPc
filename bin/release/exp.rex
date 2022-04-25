@@ -1,4 +1,6 @@
 /* LSE type expand token */ 
+trace n
+parse arg dbg
 signal on novalue
 IdentifierChars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890$_"
 BracketToken="{}"
@@ -39,7 +41,7 @@ err:
   say 'ERROR:' a 
   exit 4
    
-MoveCursor: 
+MoveCursor:  
 ":" Crsrl
 'extract /curline'                                                                          
 if substr(curline.3,crsrc-1,1)<> BracketOpenL then do
@@ -73,8 +75,9 @@ if substr(curline.3,crsrc-1,1)<> BracketOpenL then do
 end
 return 
    
-subsToken:  
+subsToken:   
 parse var token t1 (BracketOpenL) t2 (BracketOpenR) t3
+call trsay ("Token = '" || token || "', t1="|| t1 ||", t2="||t2 ||", t3="||t3)                             
 if length(t1)>0 | t2 = "" | length(t3)>0 then do 
   "R" olp || token || olf
   Crsrc = length(olp)+1
@@ -84,7 +87,7 @@ upper t2
 fnd = 0
 menu = ""
 nx = 0
-"extract /ftype/exepath"
+"extract /ftype/exepath/"
 tfn = exepath.1 || "\" || ftype.1 || ".LSE"
 Y=stream(tfn,'C','CLOSE')
 nl = LINES(tfn)
@@ -98,6 +101,7 @@ else do i=1 to nl
        if fnd=1 then do
          Y=stream(tfn,'C','CLOSE')
          if menu = "MENU" then do
+            if nx<1 then call err("no contents specidied for this token")
             token = l.1
             do j=2 to nx
               token = token || l.j
@@ -146,7 +150,7 @@ Crsrc = length(olp)+1
 if CrsRc < 2 then CrsRc=2
 return 
   
-getToken: 
+getToken:  
 token = ""
 Optional = 0
 Repeat = 0
@@ -223,12 +227,12 @@ else do /* no { */
 end
 return 
   
-MakeChoice: 
+MakeChoice:  
 nt = 0 
 tok = strip(token)
 ChoiceChars = left(tok,1)
 tok = substr(tok,2)
-s = ""
+s = "Enter a choice or enter text for subsitution of token" || x2c("0D0A")
 i = pos(ChoiceChars,tok) 
 do while i > 0 
   nt = nt + 1 
@@ -248,16 +252,22 @@ if tok <> "" then do
   tt.nt = tok
   s = s || x2c("0D0A") ||" " || nt DblAmp(t.nt)
 end
-i = 0
-do while i < 1 | i > nt
-  say s
-  pull i
+say s
+parse pull i
+dt = datatype(i)
+if dt = "NUM" then do
+  if i >= 1 & i <= nt then do
+    token = tt.i  
+  end
+  else token = i
 end
-token = tt.i 
+else do
+  token = i
+end
 call trsay ("Token = '" || token || "', Rp="|| repeat ||", Ch="||choice ||", Opt="||optional  ||", RpOpt="||repeatoptional )                             
 return 
   
-ProcOptBrack: 
+ProcOptBrack:  
 OptPart = substr(curline.3,OptionalSt,OptionalEn-OptionalSt+1)
 l1 = optionalSt 
 if repeatoptional > 0 then do
@@ -285,7 +295,7 @@ TokenEnRep = TokenEnRep - 1
 Crsrc = Crsrc -1
 return
   
-DblAmp: 
+DblAmp:  
 parse arg DbArg 
 dbI = pos("&", DbArg,1) 
 do while dbI > 0 
@@ -294,7 +304,7 @@ do while dbI > 0
 end
 return dbArg
  
-ProcRepeat: 
+ProcRepeat:   
 TokPart = substr(curline.3,TokenSt,TokenEnRep-TokenSt+1)
 if Repeat = 1 then do
 curline.3 = substr(curline.3,1,TokenEnRep) || BracketOOpenL || tokPart || BracketOOpenR || substr(curline.3,TokenEnRep+1) 
@@ -307,6 +317,8 @@ else do
 end 
 return
   
-trSay: 
-parse arg aaa
+trSay:
+if dbg <> "" then do
+   parse arg aaa
+end
 return 

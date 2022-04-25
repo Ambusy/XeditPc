@@ -1,4 +1,4 @@
-/* space(text, [n° chars], [pad_char]) return words with exact spacing with indicated spacechar*/
+/* space(text, [nr chars], [pad_char]) return words with exact spacing with indicated spacechar*/
 space: trace n  
   parse arg txt, ns, pad
   if ns = "" then ns = 1
@@ -17,14 +17,8 @@ space: trace n
         cp = 0
         txtn = txtn || copies(pad,ns)
      end
-     else if c = " " then do /* 2nd, 3rd, ... space */
-        nop
-     end
-     else if inw = 1 then do /* 2nd, 3rd, ... non-blank */  
-        nop
-     end
-     else do /* start of a word */
-        if cp = 0 then cp = 1 /* restart copying */
+     else if c <> " " | inw = 1 then do /* start of a word */
+        if cp = 0 then cp = 1 /* (re)start copying */
         inw = 1
      end
      if cp then txtn = txtn || c
