@@ -4,7 +4,7 @@
     Private Sub AskFileName_Load(sender As Object, e As EventArgs) Handles MyBase.Load
         Me.StartPosition = FormStartPosition.Manual
         Me.Location = New Point(0, 0)
-        Me.Text = "XeditPC by AMBusy at Gmail.com " & Chr(169) & "2007-2021. "
+        Me.Text = "XeditPC by AMBusy@Duck.com after IBM XEDIT" & Chr(169) & "2007-2022. "
         Empty.Text = SysMsg(26)
         RecentFiles.GetList(RecentList)
         TimerAsk.Enabled = True
@@ -18,7 +18,7 @@
         OpenFileDialog1.Title = Me.Text & SysMsg(12)
         OpenFileDialog1.FileName = ""
         OpenFileDialog1.CheckFileExists = False
-        OpenFileDialog1.Multiselect = True
+        OpenFileDialog1.Multiselect = False
         OpenFileDialog1.ShowHelp = True
         HelpCmd = False
         OpenFileDialog1.ShowDialog()

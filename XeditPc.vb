@@ -1184,6 +1184,8 @@ opn:
                 CurrEdtSession.DoUnDo = (CurrEdtSession.UndoSet > 0)
             ElseIf Abbrev(FirstWord, "SYNONYM", 3) Then
                 DefSynonym(CommandLine)
+            ElseIf Abbrev(FirstWord, "SYNONYM", 3) Then
+                DefSynonym(CommandLine)
             ElseIf Abbrev(FirstWord, "FONTSIZE", 4) Then ' set FONTSIZE size
                 FontSizeOnForm = Math.Max(5, CIntUserCor(NxtWordFromStr(CommandLine, "8")))
                 RepaintAllScreenLines = True
@@ -1900,7 +1902,7 @@ opn:
             exi = File.Exists(dbx)
             If exi Then
                 FileOpen(1, dbx, OpenMode.Input)
-                While Not EOF(1) And Not found
+                While Not EOF(1) 'And Not found until last
                     s = LineInput(1)
                     If Mid(s, 10, 16) = fnd And Mid(s, 1, 8) = selectName Then
                         got = s
@@ -1921,6 +1923,35 @@ opn:
         If Not found Then rc = 4
     End Sub
     Private Sub GlobalvPut(ByVal w As String, ByVal selectName As String, ByVal fnd As String)
+        Dim exi As Boolean
+        Dim s, Variab, Val, dbx As String
+        Dim cvr As DefVariable = Nothing
+        Dim i As Integer
+        Dim n As String = "", en As String = "", m As String
+        Variab = NxtWordFromStr(fnd).PadRight(16)
+        Val = fnd
+        dbx = "TEMP"
+        If w = "PUTS" Then
+            dbx = "SESSION"
+        ElseIf w = "PUTP" Then
+            dbx = "LASTING"
+        End If
+        dbx = Path.GetTempPath() & dbx & ".GLOBALV"
+        exi = File.Exists(dbx)
+        If exi Then
+            If Not WritableFile(dbx, "GLOBALV") Then Exit Sub
+            FileOpen(1, dbx, OpenMode.Append)
+        Else
+            FileOpen(1, dbx, OpenMode.Output)
+        End If
+        i = Rxs.SourceNameIndexPosition(Variab.Trim(), Rexx.tpSymbol.tpUnknown, cvr)
+        m = Rxs.GetVar(i, en, n)
+        s = selectName & " " & Variab & " " & m
+        PrintLine(1, s)
+        FileClose(1)
+        'RenameFile(dbx & ".$$$", dbx)
+    End Sub
+    Private Sub GlobalvPutold(ByVal w As String, ByVal selectName As String, ByVal fnd As String)
         Dim exi As Boolean
         Dim s, Variab, Val, dbx, got As String
         Dim cvr As DefVariable = Nothing
@@ -2993,6 +3024,7 @@ FileDeleteErrorRes:
     Private Sub RenameFile(ByRef Fo As String, ByRef fn As String)
         Dim Msg As String, Response As Integer
 FileDeleteErrorRes:
+        Debug.WriteLine("RenameFile from " + Fo + " to " + fn)
         Try
             If File.Exists(Fo) And File.Exists(fn) Then
                 File.Delete(fn)
@@ -3008,6 +3040,7 @@ FileDeleteErrorRes:
             End If
         End Try
         Try
+            Debug.WriteLine("RenameFile move " + Fo + " to " + fn)
             File.Move(Fo, fn)
         Catch ex As Exception
             Msg = SysMsg(1) & Fo
@@ -3047,9 +3080,6 @@ FileDeleteErrorRes:
     Private Sub AddUndo(ByVal TypeOfChange As Integer, ByVal dsScr As ScreenLine)
         Dim LowKeep, i As Integer
         Dim lUndo As sUndo
-        If CurrEdtSession.IncrUnDoCnt Then
-            CurrEdtSession.AutosaveModifications += 1
-        End If
         If CurrEdtSession.DoUnDo Then
             If TypeOfChange = 3 AndAlso CurrEdtSession.UndoLineP = CurrEdtSession.CursorDisplayLine AndAlso (CurrEdtSession.UndoPosP + 1) = CurrEdtSession.CursorDisplayColumn Then
                 CurrEdtSession.IncrUnDoCnt = False ' continous changes in one line counts as one
@@ -3067,6 +3097,9 @@ FileDeleteErrorRes:
                 CurrEdtSession.UnDoCnt = CurrEdtSession.UnDoCnt + 1
             End If
             If Not (TypeOfChange = 3 AndAlso CurrEdtSession.UndoLineP = CurrEdtSession.CursorDisplayLine AndAlso (CurrEdtSession.UndoPosP + 1) = CurrEdtSession.CursorDisplayColumn) Then
+                If CurrEdtSession.IncrUnDoCnt Then
+                    CurrEdtSession.AutosaveModifications += 1
+                End If
                 lUndo = New sUndo ' change is not continous
                 lUndo.UndoGrp = CurrEdtSession.UnDoCnt
                 lUndo.UndoCursorLine = CurrEdtSession.CursorDisplayLine
@@ -3616,7 +3649,7 @@ FileDeleteErrorRes:
     End Sub
     Sub UnPrint(buf() As Byte)
         For i As Integer = 0 To buf.Length - 1 ' remove unprintables"
-            If buf(i) < 32 Or buf(i) = 127 Or buf(i) = 129 Or buf(i) = 131 Or buf(i) = 136 Or buf(i) = 144 Or buf(i) = 152 Then
+            If buf(i) < 32 Or buf(i) = 127 Or buf(i) = 129 Or buf(i) = 131 Or buf(i) = 136 Or buf(i) = 141 Or buf(i) = 144 Or buf(i) = 150 Or buf(i) = 151 Or buf(i) = 152 Or buf(i) = 157 Then
                 buf(i) = 149
             End If
         Next
@@ -5549,7 +5582,6 @@ FileDeleteErrorRes:
             End If
             dsScr = DirectCast(ScrList.Item(CurrEdtSession.CurLineNr), ScreenLine)
             RetLine = dsScr.CurSrcNr
-            Dim vp As VerifyPair = DirectCast(CurrEdtSession.Verif.Item(1), VerifyPair)
             CurrEdtSession.mseSelLeftVer = CurrEdtSession.mseSelLeft
             CurrEdtSession.mseSelRightVer = CurrEdtSession.mseSelRight
             MoveToSourceLine(CurrEdtSession.mseSelTop)
@@ -5585,7 +5617,7 @@ FileDeleteErrorRes:
         Dim AfterFirstLine As Boolean = False ' line 1 respects first visible column, 2, 3, 4 etc not
         Dim vScrPos, cScrPos As Short
         Dim RetLine, i As Integer
-        Dim LineIns, RetCP, RetCL As Short
+        Dim LineIns As Integer, RetCP, RetCL As Short
         Dim vp As New VerifyPair
         Pasting = True
         ReshowMsgSrc(True) ' away with all messages
@@ -5628,13 +5660,13 @@ FileDeleteErrorRes:
                     Else
                         S2 = ""
                     End If
-                    If S2 = Sep Then
+                    If S2 = Sep Then ' when multiple lines are present, I loop twice: first I create an empty line for each separatot, next I add the contents
                         'SaveModifiedLine(dsScr)
                         DoCmd1("INPUT", False)
                         dsScr = DirectCast(ScrList.Item(CurrEdtSession.CurLineNr), ScreenLine)
                         dsScr.CurSrcRead = True
                         temp = temp.Substring(Sep.Length)
-                        LineIns = LineIns + 1S
+                        LineIns = LineIns + 1
                         multiLine = True
                     Else
                         'i = InStr(1, temp, Sep)
