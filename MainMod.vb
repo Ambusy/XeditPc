@@ -70,6 +70,15 @@ Module MainMod
     Friend CommandLine As String
     Public nMakebufs As Integer = 0
     Public Makebufs As New Collection
+
+    Public VSCREENarea(33, 134, 2) As Char ' (0): text (1) attr of next area (2) color of area
+    Public VSCREENlines As Integer
+    Public VSCREENcols As Integer
+    Public VSCREENname As String
+    Public VSCREENcursorline As Integer = 1
+    Public VSCREENcursorcol As Integer = 2
+    Public VSCREENRexx As Rexx
+
     <Global.System.Diagnostics.DebuggerStepThroughAttribute()>
     <Conditional("CreLogFile")>
     Public Sub LoggO()

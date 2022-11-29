@@ -20,6 +20,7 @@ Public Class XeditPc
         If Not QuitPgm AndAlso rc = 0 Then
             FormShown = True
             Me.Invalidate()
+            Me.Focus()
             Me.Show()
             SendKeys.Send("{DOWN}") ' if not: VSB intercepts first "keydown" !?!?
         Else
@@ -1518,6 +1519,11 @@ opn:
                 End If
             Next
             CurrEdtSession.LineCommands.Clear()
+        ElseIf Abbrev(FirstWord, "VMFCLEAR", 8) Then
+            VSCREENarea.Initialize()
+        ElseIf Abbrev(FirstWord, "VSCREEN", 4) Then
+            VSCREENProcs(CommandLine)
+        ElseIf Abbrev(FirstWord, "WINDOW", 6) Then
         Else
             Dim cmdOk As Boolean = False
             Dim Syn As Synonym, prevRexxCmdActive As Boolean, rrc As Integer
@@ -3183,6 +3189,71 @@ FileDeleteErrorRes:
         CurrEdtSession.UndoLineP = 0
         CurrEdtSession.UndoPosP = 0
     End Sub
+    Sub VSCREENProcs(Commandline As String)
+        Dim cmd As String = NxtWordFromStr(Commandline, "")
+        Select Case cmd
+            Case "DEFINE"
+                VSCREENname = NxtWordFromStr(Commandline, "screen")
+                VSCREENlines = NxtNumFromStr(Commandline, "24")
+                VSCREENcols = NxtNumFromStr(Commandline, "80")
+            Case "WRITE"
+                VSCREENname = NxtWordFromStr(Commandline, "screen")
+                Dim ln As Integer = NxtNumFromStr(Commandline, "1") - 1
+                Dim cl As Integer = NxtNumFromStr(Commandline, "1") - 1
+                Dim nc As Integer = NxtNumFromStr(Commandline, "0")
+                VSCREENarea(ln, cl, 1) = "U" ' attr unprot
+                VSCREENarea(ln, cl, 2) = "7" ' color black
+                Dim options As String = Commandline.Substring(Commandline.IndexOf("(") + 1)
+                While options.Length > 0
+                    Dim op As String = NxtWordFromStr(options, " ").ToUpper()
+                    If Abbrev(op, "UNPROT", 4) Then
+                        VSCREENarea(ln, cl, 1) = "U" ' attr unprot
+                    ElseIf Abbrev(op, "PROT", 2) Then
+                        VSCREENarea(ln, cl, 1) = "P" ' attr prot
+                    ElseIf op = "FIELD" Then
+                        For i = 1 To options.Length
+                            VSCREENarea(ln, cl + i, 0) = options.Substring(i - 1, 1)
+                            VSCREENarea(ln, cl + i, 1) = "T"c
+                            VSCREENarea(ln, cl + i, 2) = " "c
+                        Next
+                        If VSCREENarea(ln, cl + options.Length + 1, 1) = vbNullChar OrElse VSCREENarea(ln, cl + options.Length + 1, 1) = " "c Then
+                            VSCREENarea(ln, cl + options.Length + 1, 1) = "E" ' end of field
+                        End If
+                        options = ""
+                    ElseIf Abbrev(op, "BLUE", 1) Then
+                        VSCREENarea(ln, cl, 2) = "1" ' color
+                    ElseIf Abbrev(op, "RED", 1) Then
+                        VSCREENarea(ln, cl, 2) = "2" ' color
+                    ElseIf Abbrev(op, "PINK", 1) Then
+                        VSCREENarea(ln, cl, 2) = "3" ' color
+                    ElseIf Abbrev(op, "GREEN", 1) Then
+                        VSCREENarea(ln, cl, 2) = "4" ' color
+                    ElseIf Abbrev(op, "TURQUOISE", 1) Then
+                        VSCREENarea(ln, cl, 2) = "5" ' color
+                    ElseIf Abbrev(op, "YELLOW", 1) Then
+                        VSCREENarea(ln, cl, 2) = "6" ' color
+                    ElseIf Abbrev(op, "WHITE", 1) Then
+                        VSCREENarea(ln, cl, 2) = "7" ' color BLACK
+                    ElseIf Abbrev(op, "BLACK", 2) Then
+                        VSCREENarea(ln, cl, 2) = "7" ' color BLACK
+                    ElseIf Abbrev(op, "DEFAULT", 1) Then
+                        VSCREENarea(ln, cl, 2) = "7" ' color
+                    End If
+                End While
+            Case "CURSOR"
+                VSCREENname = NxtWordFromStr(Commandline, "screen")
+                VSCREENcursorline = NxtNumFromStr(Commandline, "1") - 1
+                VSCREENcursorcol = NxtNumFromStr(Commandline, "1")
+            Case "WAITREAD"
+                VSCREENname = NxtWordFromStr(Commandline, "screen")
+                Dim vsc As New Vscreen
+                VSCREENRexx = Rxs
+                vsc.ShowDialog()
+                vsc.Close()
+                vsc.Dispose()
+                vsc = Nothing
+        End Select
+    End Sub
 #If DEBUG Or tracen Then
     Public Sub DumpScr() ' for testing only : display  the actual screenbuffer
         Dim i As Integer, dsScr As ScreenLine, s As String
@@ -3916,6 +3987,17 @@ FileDeleteErrorRes:
             EditRdFile = FileWithData(ssd.SrcFileIx)
             EditRdFile.Seek(ssd.SrcStart - 1, SeekOrigin.Begin)
             EditRdFile.Read(buf, 0, ssd.SrcLength)
+            ' unclear what error is solved here.
+            'Dim chag As Boolean = False
+            'For lb As Integer = buf.Length - 1 To 1 Step -2
+            '    If buf(lb) = 0 AndAlso buf(lb - 1) = 0 Then
+            '        chag = True
+            '        ssd.SrcLength -= 2
+            '    End If
+            'Next
+            'If chag Then
+            '    Array.Resize(buf, ssd.SrcLength)
+            'End If
             If CurrEdtSession.EncodingType = "U"c Then
                 Dim enc As System.Text.Encoding = New System.Text.UnicodeEncoding(False, True, True)
                 value = enc.GetString(buf)
@@ -4456,7 +4538,7 @@ FileDeleteErrorRes:
                             l -= 1
                         End While
                         dsScr = DirectCast(ScrList.Item(CurrEdtSession.CurLineNr), ScreenLine)
-                            DeleteLine()
+                        DeleteLine()
                     End If
                 End If
             Next
