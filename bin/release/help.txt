@@ -51,6 +51,9 @@ SHOWEOL
 TOP
 UNDO
 UP [n/*] 
+VMFCLEAR
+VWINDOW DEFINE/DELETE
+VSCREEN DEFINE / WRITE / CURSOR / WAITREAD         (WRITE options available (UN)PROT color FIELD)
 XEDIT [next file] / ?        ? to use FileOpenDialog
 =
 &.......
@@ -219,6 +222,8 @@ MSG, EMSG, SMSG  message
        limited version, displays message only
 CMSG message 
        message will be the next command on the command-line 
+VSCREEN / VWINDOW / VMFCLEAR
+       for creation of a dialog while executing a rexx script.
 
 
 Edit commands implemented in Rexx:
