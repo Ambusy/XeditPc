@@ -3,6 +3,8 @@
     Dim textboxWithFocus As TextBox = Nothing
     Dim cursorLine, cursorCol As Integer
     Private Sub Vscreen_Load(sender As Object, e As EventArgs) Handles MyBase.Load
+        Dim Height = 10
+        Dim Width = 10
         Dim measureWidth As Integer = 8
         Dim measureHeight As Integer = 19
         Dim TypObj As Char = " "c
@@ -28,7 +30,7 @@
                     numberOfFields += 1
                     protectedField = New Label()
                     protectedField.AutoSize = True
-                    protectedField.Location = New System.Drawing.Point(cl * measureWidth, ln * measureHeight)
+                    protectedField.Location = New System.Drawing.Point(cl * measureWidth, (ln - 1) * measureHeight)
                     protectedField.Name = "Labl" & CStr(numberOfFields)
                     protectedField.Size = New System.Drawing.Size(measureWidth * numberOfChars, measureHeight)
                     protectedField.TabIndex = numberOfFields - 1
@@ -36,6 +38,14 @@
                     protectedField.Visible = True
                     protectedField.ForeColor = getColor(VSCREENarea(ln - 1, cl - 1, 2))
                     TypObj = "L"c
+                    Dim w = protectedField.Width + protectedField.Left
+                    Dim h = protectedField.Height + protectedField.Top
+                    If w > Width Then
+                        Width = w
+                    End If
+                    If h > Height Then
+                        Height = h
+                    End If
                     Me.Controls.Add(protectedField)
                 ElseIf VSCREENarea(ln - 1, cl - 1, 1) = "T"c AndAlso TypObj = "L"c Then
                     protectedField.Text += VSCREENarea(ln - 1, cl - 1, 0)
@@ -50,7 +60,7 @@
                     Next
                     numberOfFields += 1
                     textField = New TextBox()
-                    textField.Location = New System.Drawing.Point(cl * measureWidth, ln * measureHeight)
+                    textField.Location = New System.Drawing.Point(cl * measureWidth, (ln - 1) * measureHeight)
                     textField.Name = "Txtb" & CStr(numberOfFields)
                     textField.Size = New System.Drawing.Size(measureWidth * numberOfChars, measureHeight)
                     textField.TabIndex = numberOfFields - 1
@@ -66,6 +76,14 @@
                         textboxWithFocus = textField
                     End If
                     TypObj = "T"c
+                    Dim w = textField.Width + textField.Left
+                    Dim h = textField.Height + textField.Top
+                    If w > Width Then
+                        Width = w
+                    End If
+                    If h > Height Then
+                        Height = h
+                    End If
                     Me.Controls.Add(textField)
                     AddHandler textField.Enter, AddressOf TextBox1_Enter
                     AddHandler textField.MouseEnter, AddressOf TextBox1_Enter
@@ -75,6 +93,11 @@
                 End If
             Next
         Next
+        Me.Top = Screen.PrimaryScreen.Bounds.Height - Height - 25
+        Me.Left = Screen.PrimaryScreen.Bounds.Width - Width
+        Me.Width = Width
+        Me.Height = Height + 25
+        Me.TopMost = True
         Timer1.Enabled = True
     End Sub
     Function getColor(typ As Char) As Color

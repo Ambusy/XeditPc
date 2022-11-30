@@ -1520,7 +1520,8 @@ opn:
             Next
             CurrEdtSession.LineCommands.Clear()
         ElseIf Abbrev(FirstWord, "VMFCLEAR", 8) Then
-            VSCREENarea.Initialize()
+            'VSCREENarea.Initialize()
+            Array.Clear(VSCREENarea, 0, VSCREENarea.Length())
         ElseIf Abbrev(FirstWord, "VSCREEN", 4) Then
             VSCREENProcs(CommandLine)
         ElseIf Abbrev(FirstWord, "WINDOW", 6) Then
@@ -3248,6 +3249,10 @@ FileDeleteErrorRes:
                 VSCREENname = NxtWordFromStr(Commandline, "screen")
                 Dim vsc As New Vscreen
                 VSCREENRexx = Rxs
+
+
+
+
                 vsc.ShowDialog()
                 vsc.Close()
                 vsc.Dispose()
