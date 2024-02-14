@@ -23,11 +23,14 @@
         Response.Focus()
         Me.Refresh()
     End Sub
-
     Private Sub Response_KeyDown(sender As Object, e As KeyEventArgs) Handles Response.KeyDown
         If e.KeyCode = 13 Then
             OkB_Click(sender, New EventArgs())
         End If
-
+    End Sub
+    Private Sub InputBoxDialog_Load(sender As Object, e As EventArgs) Handles MyBase.Load
+        Me.Top = MeTop  ' overlap xeditscreen
+        Me.Left = MeLeft
+        Me.Font = New Font(Me.Font.Style, MeFontSize)
     End Sub
 End Class

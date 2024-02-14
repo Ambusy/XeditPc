@@ -100,6 +100,7 @@ Partial Class XeditPc
         Me.VSB.Name = "VSB"
         Me.VSB.Size = New System.Drawing.Size(10, 20)
         Me.VSB.TabIndex = 1
+        Me.VSB.Value = 20005
         '
         'TimerBar
         '

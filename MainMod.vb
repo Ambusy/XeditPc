@@ -62,6 +62,9 @@ Module MainMod
     Public tMdX, tMdY As Integer ' for Timer1: where was mouse?
     Public sMdX, sMdY As Integer ' for Select: where was initial mouse?
     Public mMdX, mMdY As Short ' for move: where was mouse?
+    Public MeTop As Integer
+    Public MeLeft As Integer
+    Public MeFontSize As Single = 8.25
     Public forTest As Boolean ' to stop in next PAINT (debugging only)
     Public CultInf As New CultureInfo("en-US", False)
     Public logFile As StreamWriter
@@ -122,7 +125,6 @@ Module MainMod
         If i > 0 Then ExecutablePath = ExecutablePath.Substring(i - 1)
         Logg(ExecutablePath)
         Dim myForm As New XeditPc()
-
         Try
             myForm.Top = Math.Min(Math.Max(0, CInt(GetRegistryKey("XeditPc", "Top", Str(myForm.Top)))), Screen.PrimaryScreen.Bounds.Height - 100)
             myForm.Left = Math.Min(Math.Max(0, CInt(GetRegistryKey("XeditPc", "Left", Str(myForm.Left)))), Screen.PrimaryScreen.Bounds.Width - 100)

@@ -171,6 +171,9 @@
     <Compile Include="SourceLine.vb" />
     <Compile Include="sUndo.vb" />
     <Compile Include="Synonym.vb" />
+    <Compile Include="TBox3270.vb">
+      <SubType>Component</SubType>
+    </Compile>
     <Compile Include="VerifyPair.vb" />
     <Compile Include="Vscreen.Designer.vb">
       <DependentUpon>Vscreen.vb</DependentUpon>
@@ -211,6 +214,7 @@
     </EmbeddedResource>
     <EmbeddedResource Include="XeditPc.resx">
       <DependentUpon>XeditPc.vb</DependentUpon>
+      <SubType>Designer</SubType>
     </EmbeddedResource>
   </ItemGroup>
   <ItemGroup>

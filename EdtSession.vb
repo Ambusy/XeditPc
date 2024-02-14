@@ -19,6 +19,7 @@ Public Class EdtSession
     Public FileUsesEndlineCR As Boolean
 
     Public EncodingType As Char ' A Ascii U Unicode 8 Utf8
+    Public fileHasUtf8BOM As Boolean ' file has utf8 bom
     Public LinEndOff As Boolean ' from SET LINEND ON char
     Public LinEndChar As Char
     Public EditZoneLeft As Short ' from SET ZONE min max
@@ -42,6 +43,8 @@ Public Class EdtSession
     Public HexM As Boolean ' from SET HEX
     Public MsgMode As Boolean ' from SET MSGMode
     Public ExpTabs As Boolean ' from SET EXPANDTAB 
+    Public StreamsOn As Boolean ' from SET STREAM ON/OFF 
+    Public TabChar As Char ' from SET STREAM ON/OFF 
 
     Public EditTextHeight, EditTextWidth As Single, mMouseDown, mMouseDownCmd As Boolean, RectHeight As Double
     Public mseSelLeft, mseSelLeftVer As Short ' selected by mouse (and CTRL) 
@@ -89,6 +92,7 @@ Public Class EdtSession
         InsOvertype = True
         EncodingType = "8"c ' utf8
         Shadow = True
+        TabChar = Nothing
         SessionInited = False
         LinEndChar = "#"c
         Dim vp As VerifyPair

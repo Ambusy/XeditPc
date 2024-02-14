@@ -31,16 +31,18 @@ Partial Class Vscreen
         'Label1
         '
         Me.Label1.AutoSize = True
-        Me.Label1.Location = New System.Drawing.Point(336, 194)
+        Me.Label1.Font = New System.Drawing.Font("Courier New", 9.75!, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, CType(0, Byte))
+        Me.Label1.Location = New System.Drawing.Point(696, 37)
         Me.Label1.Name = "Label1"
-        Me.Label1.Size = New System.Drawing.Size(39, 13)
+        Me.Label1.Size = New System.Drawing.Size(56, 16)
         Me.Label1.TabIndex = 0
         Me.Label1.Text = "Label1"
         Me.Label1.Visible = False
         '
         'TextBox1
         '
-        Me.TextBox1.Location = New System.Drawing.Point(429, 187)
+        Me.TextBox1.Font = New System.Drawing.Font("Courier New", 9.75!, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, CType(0, Byte))
+        Me.TextBox1.Location = New System.Drawing.Point(699, 12)
         Me.TextBox1.Name = "TextBox1"
         Me.TextBox1.Size = New System.Drawing.Size(89, 20)
         Me.TextBox1.TabIndex = 1
@@ -53,6 +55,7 @@ Partial Class Vscreen
         '
         Me.AutoScaleDimensions = New System.Drawing.SizeF(6.0!, 13.0!)
         Me.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font
+        Me.BackColor = System.Drawing.Color.Black
         Me.ClientSize = New System.Drawing.Size(800, 450)
         Me.Controls.Add(Me.TextBox1)
         Me.Controls.Add(Me.Label1)

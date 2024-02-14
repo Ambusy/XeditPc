@@ -46,7 +46,7 @@ Public Class Rexx
     Friend Shared SayLine(24) As String ' say buffer for all routines
     Friend Shared lSay, nSay As Integer
     Friend Shared RexxWords As New Collection ' symbols for compiler
-    Friend Shared RexxFunctions(45) As String ' builtin functions with parameter definitions
+    Friend Shared RexxFunctions(46) As String ' builtin functions with parameter definitions
     Friend Shared SymsStr(78) As String ' names of symbols for errors
     Friend Shared SysMessages As New Collection ' text of messages
     Public Shared QStack As New Collection ' Queue/Pull currRexxRun.Stack
@@ -70,9 +70,7 @@ Public Class Rexx
     Private Const ExtRoutineTagstring = "External Routine Parameters: "
     Private Const ExtRoutineParmSep = "0501040203"
 
-
     Friend InputBx As New InputBoxDialog()
-
 
     Public Enum Symbols ' Rexx symbols
         addresym = 1
@@ -2227,6 +2225,7 @@ Public Class Rexx
         i = i + 1 : RexxFunctions(i) = "02SIS      RIGHT"
         i = i + 1 : RexxFunctions(i) = "01RI       ROUND"
         i = i + 1 : RexxFunctions(i) = "01R        SIGN"
+        i = i + 1 : RexxFunctions(i) = "02SSS      SPLIT"
         i = i + 1 : RexxFunctions(i) = "02SSS      STREAM"
         i = i + 1 : RexxFunctions(i) = "01SSS      STRIP"
         i = i + 1 : RexxFunctions(i) = "02SII      SUBSTR"
@@ -2890,6 +2889,14 @@ Public Class Rexx
                         Case "DELSTR"
                             If Not pm(3) Then pi(3) = ps(1).Length() - pi(2) + 1
                             m = Mid(ps(1), 1, pi(2) - 1) & Mid(ps(1), pi(2) + pi(3))
+                        Case "SPLIT"
+                            Dim st() As String = ps(2).Split(ps(3))
+                            Dim cvr As New DefVariable
+                            For i = 1 To st.Length
+                                j = SourceNameIndexPosition(ps(1) & "." & CStr(i), Rexx.tpSymbol.tpUnknown, cvr)
+                                StoreVar(j, st(i - 1), k, en, n) ' new value
+                            Next
+                            m = CStr(st.Length)
                         Case "ROUND"
                             If cL < 2 Then pi(2) = 0
                             m = CStr(Math.Round(pr(1), pi(2)))
@@ -4442,9 +4449,9 @@ Public Class Rexx
                     If iFile = 1 AndAlso ch = 63 AndAlso CurrEdtSession.EncodingType = "8"c Then
                         ssd.SrcStart = 2 ' skip ?: BOM indicator for windows utf8 file encoder
                     End If
-                    If iFile = 1 AndAlso ch = 255 Then
+                    If iFile = 1 AndAlso ch = &HFF Then
                         IsUnicodeh = True
-                    ElseIf iFile = 2 AndAlso IsUnicodeh AndAlso ch = 254 Then
+                    ElseIf iFile = 2 AndAlso IsUnicodeh AndAlso ch = &HFE Then
                         IsUnicode = True
                         ssd.SrcStart = 3
                     Else
