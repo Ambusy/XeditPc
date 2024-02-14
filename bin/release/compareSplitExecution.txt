@@ -1,0 +1,20 @@
+/* compare splitting */
+trace n
+tot=180000
+tab = '09'X
+     curline.3="B1-0051-0051-1832-O0051	Wijst	Geert van der	landbouwer	bouwland	85.70	270"
+say time()
+do i=1 to tot
+   regex = "[^"||tab||"]*"; 
+     retc = REGEXP("mel", curline.3, regex); 
+end
+say time()
+do i=1 to tot
+     mel.0 = split("MEL",curline.3,tab)
+ end
+say time()
+do i=1 to tot
+    parse var curline.3 m1 (tab) m2 (tab) m3 (tab) m4 (tab) m5 (tab) m6 (tab) m7 (tab) .
+ end
+say time()
+  return  

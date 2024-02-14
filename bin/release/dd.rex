@@ -15,5 +15,6 @@ else do
    n = pending.1 - pn + 1
    ":" pn
    "DELETE" n
+   ':'line.1
 end
 exit

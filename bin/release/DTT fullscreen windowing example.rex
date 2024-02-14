@@ -1,6 +1,27 @@
 /* REXX  FULL SCREEN data entry: fill-in form to call DITTO to copy part of a VSAM file*/
 /* note that scripts DTTL and DT are not included, as this is only to show FULLSCREEN as example*/
-/*      the invoked DITTO utility exists only in VM/CMS with a VSE/DOS system */
+/*    the invoked DITTO utility exists only in VM/CMS with a VSE/DOS system */
+/*                                                                          */
+/* create the screen with init_screen                                       */
+/* create the labels and textboxes                                          */
+/* Literals (= Label): lit row col color text                               */
+/* Fields (Textbox)  : vld row col color variablename type max-length fill  */
+/*     row can be absolute, relative or same (symbol *)                     */
+/*     col can be absolute, relative or adjacent (symbol *)                 */
+/*     color = blue red pink green turquoise yellow white default (is white)*/
+/*     variablename is the name if the variable that contains               */
+/*                  the initial value when "screen" is called               */
+/*                  the final value when "screen" has finished              */
+/*     type = X of N                                                        */
+/*     fill = L or T and a paddingchar. L for leading, T for trailing,      */
+/*          the paddingchar will be removed  from the final value           */
+/*          the T type paddingchar will also be removed while typing a value*/
+/* Cursor_pos contains the initial and final cursor position                */
+/* assign initial values and call the screen                                */
+/* the variabels will contain the final values, pfkey is the termination key*/
+/*                                                                          */
+/* on line 247 the @tonen routine shows how to use the original XEDIT cmds  */
+/*                                                                          */
 call init_screen PFKEY3
 call lit ' 1  2 red DITTO copy VSAM to CMS'
 call lit ' * 55 green' date()
@@ -18,6 +39,7 @@ call lit ' +1 2 green number of records to skip:'
 call vld ' *  * white skip N 6 L0'
 call lit ' +2 2 red PF1 lists all fienames'
 call lit ' +1 2 red A name may end in * to list a group of files.'
+ 
 'globalv select dittovgz get vol'
 if vol = '' then vol = 'TST...'
 old_vol = vol
@@ -32,6 +54,7 @@ if ft = '' then ft = 'DATA'
 old_ft = ft
 nrecs = 999999
 skip = 0
+ 
 call screen
 if pfkey = 'PFKEY1' | pos('*',dsn)>0 then do /* create list of satisfying files */
    if pos('*',dsn)>0 then x = dsn
@@ -258,8 +281,8 @@ screen: /* toon scherm en handel controles af */
         do @j = 1 to @nv
            if @lv.@j = 'V' then do
               if @lv.@j.@lnr @lv.@j.@cnr-1 = @rk then do
-                 @x = strip(subword(waitread.@i,4),@lv.@j.@strip,@lv.@j.@stripc)
-                 if @lv.@j.@strip = "L" & @lv.@j.@stripc = "0" & @x = "" then @x = "0"
+                 @x = strip(strip(subword(waitread.@i,4),"T"," "),@lv.@j.@strip,@lv.@j.@stripc)
+                 if @lv.@j.@strip = "L" & @lv.@j.@stripc = "0" & @x = "" then @x = "0"  /leave at least one zero */
                  call @put_assgn @lv.@j.@veld @x
               end
            end

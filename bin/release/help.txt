@@ -53,7 +53,7 @@ UNDO
 UP [n/*] 
 VMFCLEAR
 VWINDOW DEFINE/DELETE
-VSCREEN DEFINE / WRITE / CURSOR / WAITREAD         (WRITE options available (UN)PROT color FIELD)
+VSCREEN DEFINE / WRITE / CURSOR / WAITREAD         (WRITE options available (UN)PROT color FIELD) (WAITREAD extra option: Topmost)
 XEDIT [next file] / ?        ? to use FileOpenDialog
 =
 &.......
@@ -112,6 +112,7 @@ SET
      SPLIT line char 
      STAY ON/OFF
      SYNONYM newname oldname n°chars
+     TABCHAR OFF/char                       (if set, this char in a commandline will be replaced by X'09', before executing the command)
      TABS ON [nn nn nn nn ..... ] / OFF
      TRUNC rightcol/*
      UNDO number
@@ -145,6 +146,7 @@ EXTRACT
      RECFM
      RING
      SCOPE
+     SELECT
      SELECTSET
      SHADOW
      SIZE
@@ -334,6 +336,9 @@ Not all functions are present. Available:
    ROUND         LINES
                  LINEIN
                  LINEOUT 
+Extra:
+   SPLIT(arrayName, string, splitchar) returns number of elements in arrayName
+   REGEXP(arrayName, string, regularExpression) 
  
 Not all operators are implemented. Those available are:
    +(plus) -(minus) *(times) /(divide) %(int. divide) //(mod) **(power)

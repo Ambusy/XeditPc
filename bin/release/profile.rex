@@ -4,7 +4,7 @@ trace n
 "SET LRECL 32670"
 "EXTRACT /FTYPE/"
 upper ftype.1
-if ftype.1 = "EXE" | ftype.1 = "DLL"  | ftype.1 = "JPG"  | ftype.1 = "" then do
+if ftype.1 = "EXE" | ftype.1 = "DLL"  | ftype.1 = "JPG"  then do
   "SET RECFM F"
   "SET LRECL 64"
 end

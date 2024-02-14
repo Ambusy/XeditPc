@@ -1,57 +1,48 @@
 /* rexx */
 TRACE n
-parse arg col .
-if col = "" then col = 1
-"extract /size/line/linend/temp/Fullfilename/"
-"set linend off"
-if size.1 > 1000 then do
-   say "SORT is for small files only (uses external DOS-sort), continue (Y/N)?"
-   pull a
-   if left(a,1) = "N" then exit
+parse arg parm
+if parm = "" then parm = "1"
+nc=0 
+keyl = 0
+do while parm <> "" 
+  parse var parm cl le parm 
+  if le = "" then le = 128
+  nc = nc + 1 
+  scol.nc = cl 
+  slen.nc = le 
+  keyl = keyl + le
 end 
+"extract /size/line/linend/temp/Fullfilename/RexxPath/"
+"set linend off"
 tmp = temp.1
 inf = tmp || "$s$x$.tmp"
 ouf = tmp || "$s$x$2.tmp"
 "erase" inf
 "erase" ouf
+rc = Stream(inf,"C",'OPEN WRITE')
 "top" 
 "down 1"  
 n = 0
 do while rc = 0   
   "extract /curline/"    
+  key=""
+  do i=1 to nc 
+     key = key || substr(curline.3,scol.i,slen.i) 
+  end 
   n = n + 1
-  "R" format(n,6) || curline.3     
+  rc = Lineout(inf, key || format(n,6) || curline.3)     
   "down 1"
 end         
-"Bot"
-"up 1"
-"I" " " 
-"save" inf 
-coln = col + 6
-"CMS SORT /+"||coln inf "/O" ouf
-"XEDIT" ouf
+rc = Stream(inf,"C",'CLOSE')
+"CMS SORT" inf "/O" ouf
+rc = Stream(ouf,"C",'OPEN READ')
+do l=1 to n
+   curline = LINEIN(ouf) 
+   ln = substr(curline,keyl+1,6) /* line in original text */   
+   text=substr(curline,keyl+7)
+   ":" l
+   "R" text
+end
+rc = Stream(ouf,"C",'CLOSE')
 "top"
-"down 1"  
-do i=1 to n+1 while rc = 0   
-  "extract /curline/"    
-  ln = substr(curline.3,1,6)     
-  if datatype(ln)="NUM" then do  /* empty line on top! */
-    "xedit" Fullfilename.1
-    ":" ln
-    "extract /curline/"    
-    tx = substr(curline.3,7)
-    "Bot"
-    "up 1"
-    "I" tx 
-    "xedit" ouf  
-  end
-  "down 1"   
-end         
-"quit"  /* temp file */
-"xedit" Fullfilename.1
-"extract /size/"
-":1"
-"del" size.1 - n   /* keep only inserted lines */
-"top"
-"set linend" linend.1
 exit
