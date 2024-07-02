@@ -49,6 +49,7 @@ Module MainMod
     Public WrkFileName As String ' name
     Public WrkMaxWritePos As Integer ' used up to pos
     Public RexxTrace As Boolean = False
+    Friend TracingSay As Boolean = False
     Public RexxPath As String = ""
     Public RexxFilePath As String = ""
     Public ExecutablePath As String

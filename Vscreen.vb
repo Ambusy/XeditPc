@@ -11,9 +11,11 @@
         Dim protectedField As Label
         Dim textField As TBox3270
         Dim numberOfFields As Integer = 0
+        Dim numberOfTextboxes As Integer = 0
         Dim numberOfChars As Integer
         cursorLine = 0
         For ln As Integer = 1 To VSCREENlines
+            Dim fieldnr As Integer = 0
             For cl As Integer = 1 To VSCREENcols
                 If VSCREENarea(ln - 1, cl - 1, 1) = vbNullChar Then
                     VSCREENarea(ln - 1, cl - 1, 1) = " "c
@@ -62,11 +64,15 @@
                         End If
                     Next
                     numberOfFields += 1
+                    numberOfTextboxes += 1
+                    If fieldnr = 0 Then fieldnr = numberOfTextboxes ' remember seqnr of each first field on a line
                     textField = New TBox3270 With {
                         .Location = New System.Drawing.Point(cl * measureWidth, (ln - 1) * measureHeight),
                         .Name = "Txtb" & CStr(numberOfFields),
                         .Size = New System.Drawing.Size(measureWidth * numberOfChars, measureHeight - 3),
                         .TabIndex = numberOfFields - 1,
+                        .Linenumber = ln,
+                        .Fieldnumber = numberOfTextboxes,
                         .Text = "",
                         .Font = TextBox1.Font,
                         .BorderStyle = BorderStyle.FixedSingle,
@@ -262,6 +268,37 @@
             End If
             e.Handled = True
         End If
+        If e.KeyCode = Keys.Down Then ' arrow down
+            For i As Integer = 1 To Tboxes.Count
+                Dim t As TBox3270 = Tboxes(i)
+                If t.Linenumber > myBox.Linenumber Then
+                    t.Focus()
+                    t.SelectAll()
+                    Exit For
+                End If
+            Next
+            e.Handled = True
+        End If
+        If e.KeyCode = Keys.Up Then ' arrow up
+            For i As Integer = Tboxes.Count To 1 Step -1
+                Dim t As TBox3270 = Tboxes(i)
+                If t.Linenumber < myBox.Linenumber Then
+                    For j As Integer = i - 1 To 1 Step -1
+                        Dim tv As TBox3270 = Tboxes(j)
+                        If tv.Linenumber = t.Linenumber Then
+                            t = Tboxes(j)
+                            t.SelectAll()
+                        Else
+                            Exit For
+                        End If
+                    Next
+                    t.Focus()
+                    Exit For
+                End If
+            Next
+            e.Handled = True
+        End If
+
         If e.Handled Then
             myBox.SelectionStart = st
             myBox.SelectionLength = 0

@@ -144,7 +144,7 @@ reopenFile:
                         If (ch = 10 Or ch = 13) AndAlso (nxCh = 0 Or CurrEdtSession.EncodingType <> "U"c) Then
                             If ch = 13 Then CurrEdtSession.FileUsesEndlineLF = True
                             If ch = 10 Then CurrEdtSession.FileUsesEndlineCR = True
-                            If (vCh = 10 Or vCh = 13) Then
+                            If (vCh = 10 And ch <> 10 Or vCh = 13 And ch <> 13) Then
                                 ch = 0 ' Lf after CR or Cr after LF has no meaning
                                 If CurrEdtSession.EncodingType = "U"c Then
                                     nSkip = 1
@@ -3080,7 +3080,7 @@ FileDeleteErrorRes:
     Private Sub RenameFile(ByRef Fo As String, ByRef fn As String)
         Dim Msg As String, Response As Integer
 FileDeleteErrorRes:
-        Debug.WriteLine("RenameFile from " + Fo + " to " + fn)
+        'Debug.WriteLine("RenameFile from " + Fo + " to " + fn)
         Try
             If File.Exists(Fo) And File.Exists(fn) Then
                 File.Delete(fn)
@@ -3091,13 +3091,13 @@ FileDeleteErrorRes:
             If Response = MsgBoxResult.Retry Then ' user requests RETRY.
                 GoTo FileDeleteErrorRes
             Else
-                Debug.WriteLine("rc = 48")
+                'Debug.WriteLine("rc = 48")
                 rc = 48
                 Exit Sub
             End If
         End Try
         Try
-            Debug.WriteLine("RenameFile move " + Fo + " to " + fn)
+            'Debug.WriteLine("RenameFile move " + Fo + " to " + fn)
             File.Move(Fo, fn)
         Catch ex As Exception
             Msg = SysMsg(1) & Fo
@@ -3105,7 +3105,7 @@ FileDeleteErrorRes:
             If Response = MsgBoxResult.Retry Then ' user requests RETRY.
                 GoTo FileDeleteErrorRes
             Else
-                Debug.WriteLine("rc = 48")
+                'Debug.WriteLine("rc = 48")
                 rc = 48
                 Exit Sub
             End If
@@ -3119,7 +3119,7 @@ FileDeleteErrorRes:
         Dim dr As New DirectoryInfo(f.Substring(0, 2))
         If dr.Attributes = -1 Then '  drive NReady
             MsgBox(SysMsg(15) & ": " & f.Substring(0, 2), , orig)
-            Debug.WriteLine("rc = 16")
+            'Debug.WriteLine("rc = 16")
             rc = 16
             Exit Function
         End If
@@ -3128,7 +3128,7 @@ FileDeleteErrorRes:
             Dim fi As New FileInfo(f)
             If CBool(fi.IsReadOnly) Then ' R/O file
                 MsgBox(SysMsg(14) & ": " & f, , orig)
-                Debug.WriteLine("rc = 20")
+                'Debug.WriteLine("rc = 20")
                 rc = 20
                 Exit Function
             End If
@@ -3787,7 +3787,7 @@ FileDeleteErrorRes:
     End Function
     Private Sub VScrollBar1_ValueChanged(sender As Object, e As EventArgs) Handles VSB.ValueChanged
         Logg("VBS start value ")
-        Debug.WriteLine("V -" + CStr(VSB.Minimum) + " v " + CStr(VSB.Value) + " + " + CStr(VSB.Maximum))
+        'Debug.WriteLine("V -" + CStr(VSB.Minimum) + " v " + CStr(VSB.Value) + " + " + CStr(VSB.Maximum))
         If Me.WindowState <> FormWindowState.Minimized Then
             If MousePosX > (Me.ClientSize.Width - VSB.Width - 3) Then
                 Logg("VBS strt timer")
@@ -4040,7 +4040,7 @@ FileDeleteErrorRes:
         fCl.CurSrcRead = True
         ssd = DirectCast(CurrEdtSession.SourceList.Item(fCl.CurSrcNr), SourceLine)
         fCl.CurLinSrc = ReadOneSourceLine(ssd)
-        Debug.WriteLine("read source " & CStr(fCl.CurSrcNr) & " " & CStr(ssd.SrcFileIx) & " " & CStr(ssd.SrcStart) & " " & CStr(ssd.SrcLength) & " " & fCl.CurLinSrc)
+        ' Debug.WriteLine("read source " & CStr(fCl.CurSrcNr) & " " & CStr(ssd.SrcFileIx) & " " & CStr(ssd.SrcStart) & " " & CStr(ssd.SrcLength) & " " & fCl.CurLinSrc)
         fCl.TabsinOrig = False
     End Sub
     Dim WarnUtf8 As Boolean = False
@@ -4074,7 +4074,7 @@ FileDeleteErrorRes:
                 Dim isUtf As Boolean = False
                 Dim tryAscii As Boolean = False
                 For i As Integer = 0 To buf.Length - 1
-                    If Not inUtf AndAlso buf(i) >= 192 AndAlso buf(i) <= 223 Then ' start of utf1 set
+                    If Not inUtf AndAlso buf(i) >= 192 AndAlso buf(i) <= 254 Then ' start of utf1 set was 223
                         inUtf = True
                         isUtf = True
                     ElseIf inUtf AndAlso buf(i) >= 128 AndAlso buf(i) <= 191 Then ' 2nd, 3rd, ... byte of utf8
@@ -4258,7 +4258,7 @@ FileDeleteErrorRes:
                 EditFileWrk.Seek(ssd.SrcStart - 1, SeekOrigin.Begin)
                 ssd.SrcLength = nBytes
                 EditFileWrk.Write(buf, 0, nBytes)
-                Debug.WriteLine("WRITE " & ssd.SrcFileIx & " " & CStr(ssd.SrcStart) & " " & CStr(ssd.SrcLength) & " " & CStr(dsScr.CurLinNr) & " " & CStr(dsScr.CurLinSrc.Length()) & " " & CStr(dsScr.CurLinSrc))
+                'Debug.WriteLine("WRITE " & ssd.SrcFileIx & " " & CStr(ssd.SrcStart) & " " & CStr(ssd.SrcLength) & " " & CStr(dsScr.CurLinNr) & " " & CStr(dsScr.CurLinSrc.Length()) & " " & CStr(dsScr.CurLinSrc))
                 WrkMaxWritePos = WrkMaxWritePos + nBytes
             End If
             dsScr.CurLinModified = False

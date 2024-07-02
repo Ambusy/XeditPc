@@ -9,6 +9,7 @@ Public Class Rexx
     Private tmpIntCode As New Collection, PrevTmpCode As Integer ' temporary executable code while compiling
     Private IntPp As Integer ' ix in asm codetable
     Private RexxFileName As String = ""
+    Friend sayFile As StreamWriter ' new name for each execution
     Private eofRexxFile As Boolean
     Private nErr As Integer
     Private DecimalSepPt As Boolean ' . is decimal separator and not ,
@@ -46,7 +47,7 @@ Public Class Rexx
     Friend Shared SayLine(24) As String ' say buffer for all routines
     Friend Shared lSay, nSay As Integer
     Friend Shared RexxWords As New Collection ' symbols for compiler
-    Friend Shared RexxFunctions(46) As String ' builtin functions with parameter definitions
+    Friend Shared RexxFunctions(47) As String ' builtin functions with parameter definitions
     Friend Shared SymsStr(78) As String ' names of symbols for errors
     Friend Shared SysMessages As New Collection ' text of messages
     Public Shared QStack As New Collection ' Queue/Pull currRexxRun.Stack
@@ -942,6 +943,8 @@ Public Class Rexx
                         GenerateAsm(fct.tra, tracInt, 3)
                     ElseIf Abbrev(cId, "INTERMEDIATES") Then
                         GenerateAsm(fct.tra, tracInt, 4)
+                    ElseIf Abbrev(cId, "SAY,3") Then ' trace SAY statements in file
+                        GenerateAsm(fct.tra, tracInt, 5)
                     Else
                         SigError(112)
                     End If
@@ -1950,6 +1953,9 @@ Public Class Rexx
 #If CreRexxLogFile Then
             Logg("say """ & s & """")
 #End If
+            If TracingSay Then
+                sayFile.WriteLine(s)
+            End If
             Dim m2 As String
             If (lSay > 0) Then
                 m2 = SayLine(lSay)
@@ -2027,6 +2033,10 @@ Public Class Rexx
             If CancRexx Then CallDepth = 1 ' abort all
             If CallDepth = 1 And lSay > 0 Then
                 AddLineToSaybuffer("", True)
+                If TracingSay Then
+                    sayFile.Close()
+                    TracingSay = False
+                End If
             End If
             CallDepth -= 1
         Else
@@ -2200,6 +2210,7 @@ Public Class Rexx
         i = i + 1 : RexxFunctions(i) = "01SII      CHARIN"
         i = i + 1 : RexxFunctions(i) = "02SSII     CHAROUT"
         i = i + 1 : RexxFunctions(i) = "01S        CHARS"
+        i = i + 1 : RexxFunctions(i) = "00S        CLIPBOARD"
         i = i + 1 : RexxFunctions(i) = "02SSS      COMPARE"
         i = i + 1 : RexxFunctions(i) = "02SS       CONTAINS"
         i = i + 1 : RexxFunctions(i) = "02SI       COPIES"
@@ -3215,13 +3226,19 @@ Public Class Rexx
                             Next
                             i = SourceNameIndexPosition(rVar & ".0", Rexx.tpSymbol.tpUnknown, cvr)
                             StoreVar(i, CStr(nv), k, en, n) ' new value
-                            If nv > 0 Then
-                                m = "1"
-                            Else
-                                m = "0"
-                            End If
-                    End Select
-                    StoreVar(CurrRexxRun.iRes, m, k, en, n) ' result
+                                If nv > 0 Then
+                                    m = "1"
+                                Else
+                                    m = "0"
+                                End If
+                            Case "CLIPBOARD"
+                                If Not pm(1) Then
+                                    m = My.Computer.Clipboard.GetText()
+                                Else
+                                    My.Computer.Clipboard.SetText(ps(1))
+                                End If
+                        End Select
+                        StoreVar(CurrRexxRun.iRes, m, k, en, n) ' result
                 Case fct.say
                     If CurrRexxRun.InInteractive Then
                         MsgBox(FromStack, MsgBoxStyle.OkOnly, "say")
@@ -3329,13 +3346,23 @@ Public Class Rexx
                     IntPp = IntPp + cL
                 Case fct.tra
                     If CurrRexxRun.InteractiveTracing <> 1 Then
-                        CurrRexxRun.InteractiveTracing = cL
-                        If (CurrRexxRun.TraceLevel <= 2 And cA > 2) Or CurrRexxRun.InteractiveTracing = 1 Then
-                            CurrRexxRun.TraceLevel = cA
-                            i = SrcLstLin
-                            traceLin(i)
+                        If cA = 5 Then ' start or stop trace of say
+                            If Not TracingSay Then
+                                sayFile = File.CreateText(RexxFileName & ".Say.Log.txt") ' new name for each rexxfile
+                                TracingSay = True
+                            Else
+                                sayFile.Close()
+                                TracingSay = False
+                            End If
                         Else
-                            CurrRexxRun.TraceLevel = cA
+                            CurrRexxRun.InteractiveTracing = cL
+                            If (CurrRexxRun.TraceLevel <= 2 And cA > 2) Or CurrRexxRun.InteractiveTracing = 1 Then
+                                CurrRexxRun.TraceLevel = cA
+                                i = SrcLstLin
+                                traceLin(i)
+                            Else
+                                CurrRexxRun.TraceLevel = cA
+                            End If
                         End If
                     Else
                         CurrRexxRun.TracingResume = cA
@@ -3511,6 +3538,7 @@ Public Class Rexx
         Try
             str.FileStr.Position = str.ReadPos
             Dim ch As Integer = str.FileStr.ReadByte()
+            If ch = -1 Then Return ("")
             Dim ch2 As Integer
             CrLf = 0
             While goOn And str.FileStr.Position() <= str.FileStr.Length()
@@ -4456,7 +4484,7 @@ Public Class Rexx
                         ssd.SrcStart = 3
                     Else
                         If (ch = 10 Or ch = 13) Then
-                            If (vCh = 10 Or vCh = 13) Then
+                            If (vCh = 10 And ch = 13 Or vCh = 13 And ch = 10) Then
                                 ch = 0 ' Lf after CR or Cr after LF has no meaning
                                 If IsUnicode Then
                                     nSkip = 1
