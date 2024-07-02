@@ -3,10 +3,10 @@ Clone of the IBM® editor for VM-CMS of the 1980's
 --------------------------------------------------
 
 
-As a sole USER, extract the "bin/release" folder somewhere on your disk (preferable in a Documents sub folder) and execute the XeditPc program. No need to install. Type the HELP command too view all extra commands and features. The program stores data in the HKEY-CURRENT-USER/Software/Ambusy/XeditPc about default screen sizes.
+As a USER of Xedit, without the need to view the sources of the project, extract the "bin/release" folder somewhere on your disk (preferable in a Documents sub folder) and execute the XeditPc program. No need to install. Needs the Net 8.0 libraries. Type the HELP command to view all extra commands and features. The program stores data in the HKEY-CURRENT-USER/Software/Ambusy/XeditPc about default screen sizes.
 
 
-As a DEVELOPER, open the vbproj file, verify (My Project tab) that you have the correct .NET framework or choose one you do have on your pc. Build the project and run it. I currently use VS 2019 Community
+As a DEVELOPER, open the vbproj file, verify (My Project tab) that you have the correct .NET framework or choose one you do have on your pc. Build the project and run it. I now use Microsoft Visual Studio Community 2022 (64-bit) - Current Version 17.9.4
 
 
 XeditPc contains about 95% of the possibilities that the IBM editor offered. 
