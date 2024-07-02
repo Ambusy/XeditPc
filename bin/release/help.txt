@@ -104,7 +104,7 @@ SET
      RECFM F/V/FB/VB
      RESERVED OFF / linen° [Colorname] [HIGH/NOHIGH] text to display (Colors/highlighting not active)
      REXXPATH path; path; ...
-     REXXTRACE ON/OFF
+     REXXTRACE ON/OFF                       to make each statement start with Trace ?i
      SCOPE ALL/DISPLAY
      SELECT n°lines/* level
      SHADOW ON/OFF
@@ -337,8 +337,12 @@ Not all functions are present. Available:
                  LINEIN
                  LINEOUT 
 Extra:
-   SPLIT(arrayName, string, splitchar) returns number of elements in arrayName
+   Trace SAY : writes all lines produced by Say to a file named lik the rexx source filename extended by Say.Log.txt
+   SPLIT(arrayName, string, splitchar) returns number of elements in arrayName 
+           rc=SPLIT("a,b,c,d", "ELEM", ",") returns rc=4, elem.1="a", elem.2="b", etc
    REGEXP(arrayName, string, regularExpression) 
+   string=CLIPBOARD()    : textual contents of clipboard goes into string
+   rc=CLIPBOARD(string)  : string goes to clipboard as text
  
 Not all operators are implemented. Those available are:
    +(plus) -(minus) *(times) /(divide) %(int. divide) //(mod) **(power)
