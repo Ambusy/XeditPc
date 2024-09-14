@@ -491,7 +491,7 @@ Public Class Rexx
                                     If asm.l > np Then
                                         SigErrorF(126, Mid(RexxFunctions(j), 12) & ": " & GetSLin(cLn))
                                     End If
-                                    If asm.l < CShort(Mid(RexxFunctions(j), 1, 2)) Then
+                                    If asm.l < CInt(Mid(RexxFunctions(j), 1, 2)) Then
                                         SigErrorF(125, Mid(RexxFunctions(j), 12) & ": " & GetSLin(cLn))
                                     End If
                                     Exit For
@@ -2561,7 +2561,7 @@ Public Class Rexx
                         IntPp = cA - 1
                     End If
                 Case fct.jbr ' builtin routines
-                    nParMin = CShort(Left(RexxFunctions(cA), 2))
+                    nParMin = CInt(Left(RexxFunctions(cA), 2))
                     nParMax = nParMin
                     While nParMax <= 10 And Mid(RexxFunctions(cA), 3 + nParMax, 1) <> " "
                         nParMax = nParMax + 1
@@ -3494,13 +3494,13 @@ Public Class Rexx
         Stack.Add(CurrRexxRun.ProcNum)
         Stack.Add(IntPp)
     End Sub
-    Private Function RestRegs() As Short
+    Private Function RestRegs() As Integer
         IntPp = CInt(FromStack())
-        CurrRexxRun.ProcNum = CShort(FromStack())
-        Dim i As Short = CShort(FromStack())
-        CurrRexxRun.TraceLevel = CShort(FromStack())
-        CurrRexxRun.InteractiveTracing = CShort(FromStack())
-        CurrRexxRun.SrcLine = CShort(FromStack())
+        CurrRexxRun.ProcNum = CInt(FromStack())
+        Dim i As Integer = CInt(FromStack())
+        CurrRexxRun.TraceLevel = CInt(FromStack())
+        CurrRexxRun.InteractiveTracing = CInt(FromStack())
+        CurrRexxRun.SrcLine = CInt(FromStack())
         'Debug.WriteLine("Rest regs " + IntPp.ToString + " " + Stack.Count.ToString)
         Return i
     End Function

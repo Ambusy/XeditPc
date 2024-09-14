@@ -819,7 +819,7 @@ opn:
                     CommandLine = Space(pCursor - 1)
                 End If
                 InsertOneLine(CommandLine)
-                CurrEdtSession.CursorDisplayColumn = CShort(pCursor)
+                CurrEdtSession.CursorDisplayColumn = CInt(pCursor)
                 DoCmd1("DOWN 1", False)
                 RepaintFromLine((CurrEdtSession.CurLineNr))
             Else
@@ -902,12 +902,12 @@ opn:
             Else
                 If NextWord = "ON" Then NextWord = NxtWordFromStr(CommandLine)
                 CurrEdtSession.mseSelTop = CIntUserCor(NextWord)
-                CurrEdtSession.mseSelLeft = CShort(NxtNumFromStr(CommandLine, "1"))
+                CurrEdtSession.mseSelLeft = CInt(NxtNumFromStr(CommandLine, "1"))
                 Dim vp As VerifyPair = DirectCast(CurrEdtSession.Verif.Item(1), VerifyPair)
-                CurrEdtSession.mseSelLeftVer = CurrEdtSession.mseSelLeft - CShort(vp.VerFrom + 1)
+                CurrEdtSession.mseSelLeftVer = CurrEdtSession.mseSelLeft - CInt(vp.VerFrom + 1)
                 CurrEdtSession.mseSelBot = NxtNumFromStr(CommandLine, "1")
-                CurrEdtSession.mseSelRight = CShort(NxtNumFromStr(CommandLine, "1"))
-                CurrEdtSession.mseSelRightVer = CurrEdtSession.mseSelRight - CShort(vp.VerFrom + 1)
+                CurrEdtSession.mseSelRight = CInt(NxtNumFromStr(CommandLine, "1"))
+                CurrEdtSession.mseSelRightVer = CurrEdtSession.mseSelRight - CInt(vp.VerFrom + 1)
                 CurrEdtSession.mSelRctg = (NxtWordFromStr(CommandLine, "") = "RECT")
                 SetmSelect(True)
                 RepaintSelectedLines()
@@ -947,15 +947,15 @@ opn:
             j = NxtNumFromStr(CommandLine, "1")
             If Abbrev(NextWord, "SCREEN") Then
                 If i > 0 And i <= LinesScreenVisible Then
-                    CurrEdtSession.CursorDisplayLine = CShort(i)
-                    CurrEdtSession.CursorDisplayColumn = CShort(j)
+                    CurrEdtSession.CursorDisplayLine = CInt(i)
+                    CurrEdtSession.CursorDisplayColumn = CInt(j)
                 Else
                     rc = 16
                 End If
             ElseIf Abbrev(NextWord, "FILE") Then
                 l = LineIxOnScreen(i)
                 If l > 0 Then
-                    CurrEdtSession.CursorDisplayLine = CShort(l)
+                    CurrEdtSession.CursorDisplayLine = CInt(l)
                     MoveToSourcePos(j)
                 Else
                     If i > 0 And i <= CurrEdtSession.SourceList.Count Then
@@ -1002,8 +1002,8 @@ opn:
         ElseIf Abbrev(FirstWord, "SET", 3) Then
             FirstWord = NxtWordFromStr(CommandLine)
             If Abbrev(FirstWord, "ZONE") Then ' ZONE leftcol° rightcol°/*
-                CurrEdtSession.EditZoneLeft = CShort(NxtNumFromStr(CommandLine, "1"))
-                CurrEdtSession.EditZoneRight = CShort(NumOrAst(CommandLine, "*", 32767))
+                CurrEdtSession.EditZoneLeft = CInt(NxtNumFromStr(CommandLine, "1"))
+                CurrEdtSession.EditZoneRight = CInt(NumOrAst(CommandLine, "*", 32767))
             ElseIf Abbrev(FirstWord, "PENDING", 4) Then ' set pending BLOCK commandnaam / OFF"
                 dsScr = DirectCast(ScrList.Item(CurrEdtSession.CurLineNr), ScreenLine)
                 FirstWord = NxtWordFromStr(CommandLine, "BLOCK")
@@ -1021,7 +1021,7 @@ opn:
                     End If
                 End If
             ElseIf Abbrev(FirstWord, "TRUNC", 5) Then ' set TRUNC rightcol/*
-                CurrEdtSession.Trunc = CShort(NumOrAst(CommandLine, "*", 32767))
+                CurrEdtSession.Trunc = CInt(NumOrAst(CommandLine, "*", 32767))
             ElseIf Abbrev(FirstWord, "SCOPE", 3) Then ' set SCOPE ALL/DISPLAY
                 Dim prvScope As Boolean = CurrEdtSession.ScopeAllDisplay
                 CurrEdtSession.ScopeAllDisplay = Not Abbrev(NxtWordFromStr(CommandLine, "DISPLAY"), "DISPLAY")
@@ -1043,11 +1043,11 @@ opn:
             ElseIf Abbrev(FirstWord, "NULLS", 3) Then ' set NULLSA ON/OFF
                 CurrEdtSession.Nulls = (NxtWordFromStr(CommandLine, "OFF") = "ON")
             ElseIf Abbrev(FirstWord, "LRECL", 2) Then ' set LRECL nnn
-                CurrEdtSession.Lrecl = CShort(Math.Max(1, CIntUserCor(NxtWordFromStr(CommandLine, "32767"))))
+                CurrEdtSession.Lrecl = CInt(Math.Max(1, CIntUserCor(NxtWordFromStr(CommandLine, "32767"))))
             ElseIf Abbrev(FirstWord, "CURLINE", 4) Then  ' set CURLINE ON line
                 FirstWord = NxtWordFromStr(CommandLine, "2")
                 If FirstWord = "ON" Then FirstWord = NxtWordFromStr(CommandLine, "2")
-                Dim nCl As Short = CShort(CIntUserCor(FirstWord))
+                Dim nCl As Integer = CInt(CIntUserCor(FirstWord))
                 If nCl < 2 Then nCl = 2
                 If CurrEdtSession.SessionInited Then
                     If nCl > LinesScreenVisible - 2 Then nCl = LinesScreenVisible - 2
@@ -1073,12 +1073,12 @@ opn:
                 If FirstWord = "OFF" Then
                     MsgBox("MSGLINE OFF not implemented", MsgBoxStyle.OkOnly)
                 Else
-                    CurrEdtSession.MsgLineNrF = CShort(CIntUserCor(FirstWord))
+                    CurrEdtSession.MsgLineNrF = CInt(CIntUserCor(FirstWord))
                     NextWord = NxtWordFromStr(CommandLine, "1")
                     If Abbrev(NextWord, "OVERLAY", 2) Then
                         CurrEdtSession.MsgLineNrT = CurrEdtSession.MsgLineNrF
                     Else
-                        CurrEdtSession.MsgLineNrT = CShort(CIntUserCor(NextWord))
+                        CurrEdtSession.MsgLineNrT = CInt(CIntUserCor(NextWord))
                         NextWord = NxtWordFromStr(CommandLine, "")
                     End If
                     CurrEdtSession.MsgOverlay = Abbrev(NextWord, "OVERLAY", 2)
@@ -1185,8 +1185,8 @@ opn:
                     RefrScrBuf()
                 End If
             ElseIf Abbrev(FirstWord, "DISPLAY", 4) Then ' set DISPLAY low high/*
-                CurrEdtSession.EditDisplayMin = CShort(CIntUserCor(NxtWordFromStr(CommandLine, "0")))
-                CurrEdtSession.EditDisplayMax = CShort(NumOrAst(CommandLine, "*", 32767))
+                CurrEdtSession.EditDisplayMin = CInt(CIntUserCor(NxtWordFromStr(CommandLine, "0")))
+                CurrEdtSession.EditDisplayMax = CInt(NumOrAst(CommandLine, "*", 32767))
                 If CurrEdtSession.SessionInited Then RefrScrBuf()
             ElseIf Abbrev(FirstWord, "UNDO", 4) Then ' set UNDO n
                 CurrEdtSession.UndoSet = CIntUserCor(NxtWordFromStr(CommandLine, "0"))
@@ -1435,7 +1435,7 @@ opn:
                                 s = "OFF"
                             Else
                                 s = "ON"
-                                For Each tab As Short In CurrEdtSession.Tabs
+                                For Each tab As Integer In CurrEdtSession.Tabs
                                     If tab > 0 Then s = s & " " & CStr(tab)
                                 Next
                             End If
@@ -1633,7 +1633,7 @@ opn:
                         dsScr = DirectCast(ScrList.Item(CurrEdtSession.CurLineNr), ScreenLine)
                         i = mLnCmd.Linenr - dsScr.CurSrcNr + LineIxOnScreen(dsScr.CurSrcNr) + 1
                         If i <= LinesScreenVisible Then
-                            CurrEdtSession.CursorDisplayLine = CShort(i)
+                            CurrEdtSession.CursorDisplayLine = CInt(i)
                         End If
                     Else
                         rc = 16
@@ -3383,9 +3383,9 @@ FileDeleteErrorRes:
         CurrEdtSession.RectHeight = RectHeight
         CurrEdtSession.EditTextHeight = EditTextHeight
         ExtraWidth1stChar = ExtraWidth1stChar - EditTextWidth 'extra width of 1st char on line
-        LinesScreenVisible = CShort(Math.Floor(ClientRectangle.Size.Height / RectHeight))
+        LinesScreenVisible = CInt(Math.Floor(ClientRectangle.Size.Height / RectHeight))
         pCharsScreenVisible = CharsOnScreen
-        CharsOnScreen = CShort(CSng(ClientSize.Width - VSB.Width) / EditTextWidth) - 7S
+        CharsOnScreen = CInt(CSng(ClientSize.Width - VSB.Width) / EditTextWidth) - 7S
         CharsOnScreenToShow = CharsOnScreen
         If CurrEdtSession.ShowEol Then CharsOnScreenToShow -= 1
         If InvalidatedWin Then ' we enter PAINT from a previous PAINT that modified parts of the window data
@@ -3394,7 +3394,7 @@ FileDeleteErrorRes:
         Else ' First, see if any part of the screen is modified: if so, invalidate those parts and invoke paint again
             If ScrList.Count = 0 Then ' first time around, create and fill SCREEN list
                 Logg("XeditPc_Paint build new screenbuf")
-                Dim NrLine As Short = 1 ' first line with filename etc.
+                Dim NrLine As Integer = 1 ' first line with filename etc.
                 If CurrEdtSession.CmdLineNr <= CurrEdtSession.CurLineNr And CurrEdtSession.CmdLineNr > -1 Then NrLine += 1S
                 If CurrEdtSession.MsgLineNrF <= CurrEdtSession.CurLineNr And Not CurrEdtSession.MsgOverlay Then NrLine += CurrEdtSession.MsgLineNrT
                 'CurrEdtSession.NrBeforeCurL = CurrEdtSession.CurLineNr - NrLine - 1S
@@ -3534,8 +3534,8 @@ FileDeleteErrorRes:
         VSB.Value = vv
         Debug.WriteLine("XeditPc_Paint start")
         Dim vp As VerifyPair = DirectCast(CurrEdtSession.Verif.Item(1), VerifyPair)
-        CurrEdtSession.mseSelLeftVer = CurrEdtSession.mseSelLeft - CShort(vp.VerFrom - 1)
-        CurrEdtSession.mseSelRightVer = CurrEdtSession.mseSelRight - CShort(vp.VerFrom - 1)
+        CurrEdtSession.mseSelLeftVer = CurrEdtSession.mseSelLeft - CInt(vp.VerFrom - 1)
+        CurrEdtSession.mseSelRightVer = CurrEdtSession.mseSelRight - CInt(vp.VerFrom - 1)
         Dim TxtCurLin As String
         TxtCurLinCr = " "
         Dim chRs(6) As CharacterRange
@@ -3673,7 +3673,7 @@ FileDeleteErrorRes:
                     UnPrint(buf)
                     StrToShow = System.Text.Encoding.Default.GetString(buf)
                 End If
-                dsScr.CharsOnScr = CShort(StrToShow.Length())
+                dsScr.CharsOnScr = CInt(StrToShow.Length())
                 CalcSelectedLineParts(dsScr, StrToShow, Bsl, Sel, Asl)
                 Dim PntPiece As Integer = 1
                 Logg("XeditPc_Paint line " & CStr(crLine) & " sel: " & CStr(Bsl) & " " & CStr(Sel) & " " & CStr(Asl))
@@ -3816,7 +3816,7 @@ FileDeleteErrorRes:
             i += 1
             If Not dsScr.CurLinFixTp Then
                 CurrEdtSession.nSrcOnScrn += 1S
-                CurrEdtSession.SrcOnScrn(CurrEdtSession.nSrcOnScrn) = CShort(i)
+                CurrEdtSession.SrcOnScrn(CurrEdtSession.nSrcOnScrn) = CInt(i)
                 ' s = s & CStr(i) & " "
             End If
         Next
@@ -4369,7 +4369,7 @@ FileDeleteErrorRes:
         If CurrEdtSession.CursorDisplayLine > 1 Then
             CurrEdtSession.CursorDisplayLine -= 1S
         Else
-            CurrEdtSession.CursorDisplayLine = CShort(LinesScreenVisible)
+            CurrEdtSession.CursorDisplayLine = CInt(LinesScreenVisible)
         End If
     End Sub
     Private Sub KeyArrowRight(ByRef dsScr As ScreenLine)
@@ -4893,7 +4893,7 @@ FileDeleteErrorRes:
                 fac = 1
             End If
             If PosNr >= vp.VerFrom AndAlso PosNr <= vp.VerTo Then
-                CurrEdtSession.CursorDisplayColumn = CShort(p + (PosNr - vp.VerFrom + 1) * fac)
+                CurrEdtSession.CursorDisplayColumn = CInt(p + (PosNr - vp.VerFrom + 1) * fac)
                 Exit For
             End If
             l = vp.VerTo - vp.VerFrom + 1
@@ -5221,7 +5221,7 @@ FileDeleteErrorRes:
                             Else
                                 CurrEdtSession.ModLineCmd(dsScr.CurSrcNr, lCmd)
                             End If
-                            CurrEdtSession.CursorDisplayColumn = CShort(-6 + lCmd.Length())
+                            CurrEdtSession.CursorDisplayColumn = CInt(-6 + lCmd.Length())
                         Else
                             rc = 16
                         End If
@@ -5270,7 +5270,7 @@ FileDeleteErrorRes:
                             Else
                                 CurrEdtSession.ModLineCmd(dsScr.CurSrcNr, lCmd)
                             End If
-                            CurrEdtSession.CursorDisplayColumn = CShort(-6 + lCmd.Length())
+                            CurrEdtSession.CursorDisplayColumn = CInt(-6 + lCmd.Length())
                         End If
                     End If
                 Case 27 ' escape
@@ -5314,13 +5314,13 @@ FileDeleteErrorRes:
         Dim dsScr As ScreenLine
         Dim Button As Integer = eventArgs.Button \ &H100000
         Dim Shift As Integer = System.Windows.Forms.Control.ModifierKeys \ &H10000
-        Dim MouseScrLine, MouseScrPos As Short
+        Dim MouseScrLine, MouseScrPos As Integer
         RepaintSelectedLines()
         CurLnLineLr = DirectCast(ScrList.Item(CurrEdtSession.CurLineNr), ScreenLine).CurSrcNr
         CurrEdtSession.IncrUnDoCnt = True
-        MouseScrPos = CShort(eventArgs.X / CurrEdtSession.EditTextWidth) - 7S
+        MouseScrPos = CInt(eventArgs.X / CurrEdtSession.EditTextWidth) - 7S
         If MouseScrPos = 0 Then MouseScrPos = 1
-        MouseScrLine = CShort(Math.Floor(CDbl(eventArgs.Y) / CurrEdtSession.RectHeight)) + 1S
+        MouseScrLine = CInt(Math.Floor(CDbl(eventArgs.Y) / CurrEdtSession.RectHeight)) + 1S
         Logg("MouseDown " & CStr(MouseScrLine) & " " & CStr(MouseScrPos))
         If MouseScrLine < 1 Then
             MouseScrLine = 1
@@ -5344,13 +5344,13 @@ FileDeleteErrorRes:
                 If MouseScrPos >= 0 AndAlso MouseScrLine >= CurrEdtSession.SrcOnScrn(1) AndAlso MouseScrLine <= CurrEdtSession.SrcOnScrn(CurrEdtSession.nSrcOnScrn) Then
                     If dsScr.CurLinType = "L"c Then
                         If vp.VerHex Then
-                            sMdX = CShort(Math.Floor((MouseScrPos - 1) / 2S)) + 1S + CShort(vp.VerFrom - 1) ' initial selection mouse position in the file
+                            sMdX = CInt(Math.Floor((MouseScrPos - 1) / 2S)) + 1S + CInt(vp.VerFrom - 1) ' initial selection mouse position in the file
                         Else
-                            sMdX = MouseScrPos + CShort(vp.VerFrom - 1) ' initial selection mouse position in the file
+                            sMdX = MouseScrPos + CInt(vp.VerFrom - 1) ' initial selection mouse position in the file
                         End If
                         sMdY = dsScr.CurSrcNr
-                        CurrEdtSession.mseSelLeft = CShort(sMdX)
-                        CurrEdtSession.mseSelRight = CShort(sMdX)
+                        CurrEdtSession.mseSelLeft = CInt(sMdX)
+                        CurrEdtSession.mseSelRight = CInt(sMdX)
                         CurrEdtSession.mseSelTop = sMdY
                         CurrEdtSession.mseSelBot = sMdY
                         CurrEdtSession.mSelRctg = (Shift = 2) ' Ctrl
@@ -5363,8 +5363,8 @@ FileDeleteErrorRes:
             If MouseScrLine = CurrEdtSession.CmdLineNr Or CurrEdtSession.CmdLineNr = -1 And MouseScrLine = LinesScreenVisible Then
                 sMdX = MouseScrPos ' initial position
                 CurrEdtSession.mseSelTop = -1 ' on cmdline
-                CurrEdtSession.mseSelLeft = CShort(sMdX)
-                CurrEdtSession.mseSelRight = CShort(sMdX)
+                CurrEdtSession.mseSelLeft = CInt(sMdX)
+                CurrEdtSession.mseSelRight = CInt(sMdX)
                 CurrEdtSession.mMouseDownCmd = True
             End If
         End If
@@ -5385,12 +5385,12 @@ FileDeleteErrorRes:
         Dim dsScr As ScreenLine
         Dim Button As Integer = eventArgs.Button \ &H100000
         Dim Shift As Integer = System.Windows.Forms.Control.ModifierKeys \ &H10000
-        Dim MouseScrPos, MouseScrLine, PrvMouseScrPos As Short
+        Dim MouseScrPos, MouseScrLine, PrvMouseScrPos As Integer
         MousePosX = eventArgs.X
         MousePosY = eventArgs.Y
         Dim Pchanged As Boolean, i As Integer
         If CurrEdtSession.mMouseDownCmd Then
-            MouseScrPos = CShort(eventArgs.X / CurrEdtSession.EditTextWidth) - 6S
+            MouseScrPos = CInt(eventArgs.X / CurrEdtSession.EditTextWidth) - 6S
             If MouseScrPos < 1 Then MouseScrPos = 1
             Pchanged = (CurrEdtSession.CursorDisplayColumn <> MouseScrPos)
             If Pchanged Then
@@ -5404,7 +5404,7 @@ FileDeleteErrorRes:
                 Else
                     CurrEdtSession.mseSelLeft = MouseScrPos
                     If sMdX > 0 Then
-                        CurrEdtSession.mseSelRight = CShort(sMdX - 1)
+                        CurrEdtSession.mseSelRight = CInt(sMdX - 1)
                     Else
                         CurrEdtSession.mseSelRight = 0
                     End If
@@ -5424,14 +5424,14 @@ FileDeleteErrorRes:
         If CurrEdtSession.mMouseDown Then
             If Not FormShown Then Exit Sub
             Dim vp As VerifyPair = DirectCast(CurrEdtSession.Verif.Item(1), VerifyPair)
-            MouseScrPos = CShort(eventArgs.X / CurrEdtSession.EditTextWidth) - 6S
+            MouseScrPos = CInt(eventArgs.X / CurrEdtSession.EditTextWidth) - 6S
             If MouseScrPos < 0 Then MouseScrPos = 1
-            MouseScrLine = CShort(Math.Floor(CDbl(eventArgs.Y) / CurrEdtSession.RectHeight)) + 1S
+            MouseScrLine = CInt(Math.Floor(CDbl(eventArgs.Y) / CurrEdtSession.RectHeight)) + 1S
             Logg("MouseMove " & CStr(MouseScrLine) & " " & CStr(MouseScrPos))
             If vp.VerHex Then
-                mMdX = CShort(Math.Floor((MouseScrPos - 1) / 2S)) + 1S + CShort(vp.VerFrom - 1) ' initial selection mouse position in the file
+                mMdX = CInt(Math.Floor((MouseScrPos - 1) / 2S)) + 1S + CInt(vp.VerFrom - 1) ' initial selection mouse position in the file
             Else
-                mMdX = MouseScrPos + CShort(vp.VerFrom - 1) ' initial selection mouse position in the file
+                mMdX = MouseScrPos + CInt(vp.VerFrom - 1) ' initial selection mouse position in the file
             End If
             If MouseScrLine < CurrEdtSession.SrcOnScrn(1) Then
                 TimerTick()
@@ -5441,7 +5441,7 @@ FileDeleteErrorRes:
                     dsScr = DirectCast(ScrList.Item(CurrEdtSession.SrcOnScrn(1)), ScreenLine)
                     CurrEdtSession.mseSelTop = dsScr.CurSrcNr
                     If CurrEdtSession.mseSelTop < 1 Then CurrEdtSession.mseSelTop = 1
-                    CurrEdtSession.mseSelLeft = CShort(mMdX) - 1S
+                    CurrEdtSession.mseSelLeft = CInt(mMdX) - 1S
                     MouseScrLine = MouseScrLine + 1S
                     tMdX = eventArgs.X ' used in Timer1 to select text
                     tMdY = eventArgs.Y
@@ -5457,7 +5457,7 @@ FileDeleteErrorRes:
                     dsScr = DirectCast(ScrList.Item(CurrEdtSession.SrcOnScrn(CurrEdtSession.nSrcOnScrn)), ScreenLine)
                     CurrEdtSession.mseSelBot = dsScr.CurSrcNr
                     If MouseScrPos > 0 Then
-                        CurrEdtSession.mseSelRight = CShort(mMdX) - 1S
+                        CurrEdtSession.mseSelRight = CInt(mMdX) - 1S
                     Else
                         CurrEdtSession.mseSelRight = 0
                     End If
@@ -5479,14 +5479,14 @@ FileDeleteErrorRes:
             If Pchanged AndAlso MouseScrLine >= CurrEdtSession.SrcOnScrn(1) AndAlso MouseScrLine <= CurrEdtSession.SrcOnScrn(CurrEdtSession.nSrcOnScrn) Then
                 dsScr = DirectCast(ScrList.Item(MouseScrLine), ScreenLine)
                 If dsScr.CurLinType = "L"c Or dsScr.CurLinType = "X"c Then
-                    mMdY = CShort(dsScr.CurSrcNr)
+                    mMdY = CInt(dsScr.CurSrcNr)
                     dsScr.CurRepaint = True
-                    PrvMouseScrPos = CShort(CurrEdtSession.mseSelRight)
+                    PrvMouseScrPos = CInt(CurrEdtSession.mseSelRight)
                     If (mMdX <> CurrEdtSession.mseSelRight Or mMdY <> CurrEdtSession.mseSelTop) Then
                         If Not CurrEdtSession.mSelRctg Then
                             If (mMdY * 100000) + mMdX >= (sMdY * 100000) + sMdX Then
-                                CurrEdtSession.mseSelLeft = CShort(sMdX)
-                                CurrEdtSession.mseSelTop = CShort(sMdY)
+                                CurrEdtSession.mseSelLeft = CInt(sMdX)
+                                CurrEdtSession.mseSelTop = CInt(sMdY)
                                 If mMdX > 0 Then
                                     CurrEdtSession.mseSelRight = mMdX - 1S
                                 Else
@@ -5497,7 +5497,7 @@ FileDeleteErrorRes:
                                 CurrEdtSession.mseSelLeft = mMdX
                                 CurrEdtSession.mseSelTop = mMdY
                                 If sMdX > 0 Then
-                                    CurrEdtSession.mseSelRight = CShort(sMdX - 1)
+                                    CurrEdtSession.mseSelRight = CInt(sMdX - 1)
                                 Else
                                     CurrEdtSession.mseSelRight = 0
                                 End If
@@ -5524,7 +5524,7 @@ FileDeleteErrorRes:
                             End If
                         End If
                     End If
-                    If CurrEdtSession.mseSelRight < (vp.VerFrom - 1) Then CurrEdtSession.mseSelRight = CShort(vp.VerFrom - 1)
+                    If CurrEdtSession.mseSelRight < (vp.VerFrom - 1) Then CurrEdtSession.mseSelRight = CInt(vp.VerFrom - 1)
                     SetmSelect(True)
                 End If
                 ForcePaint()
@@ -5607,14 +5607,14 @@ FileDeleteErrorRes:
             If CurrEdtSession.mseSelRight <= dsScr.CurLinSrc.Length Then
                 s = s & dsScr.CurLinSrc.Substring(CurrEdtSession.mseSelRight)
             End If
-            CurrEdtSession.CursorDisplayColumn -= CShort(CurrEdtSession.mseSelRight - CurrEdtSession.mseSelLeft + 1)
+            CurrEdtSession.CursorDisplayColumn -= CInt(CurrEdtSession.mseSelRight - CurrEdtSession.mseSelLeft + 1)
             If CurrEdtSession.CursorDisplayColumn < 1 Then CurrEdtSession.CursorDisplayColumn = 1
             SetmSelect(False)
             dsScr.CurLinSrc = s
             dsScr.CurRepaint = True
             ForcePaint()
         Else
-            Dim nLinesDeleted As Short, tScr, bScr As Integer
+            Dim nLinesDeleted As Integer, tScr, bScr As Integer
             dsScr = DirectCast(ScrList.Item(CurrEdtSession.SrcOnScrn(1)), ScreenLine)
             tScr = dsScr.CurSrcNr ' actual top line on screen
             dsScr = DirectCast(ScrList.Item(CurrEdtSession.SrcOnScrn(CurrEdtSession.nSrcOnScrn)), ScreenLine)
@@ -5630,7 +5630,7 @@ FileDeleteErrorRes:
                 DoCmd1("DOWN", False)
                 If CurrEdtSession.mseSelBot - CurrEdtSession.mseSelTop > 1 Then
                     If Not CurrEdtSession.mSelRctg Then
-                        nLinesDeleted += CShort(CurrEdtSession.mseSelBot - CurrEdtSession.mseSelTop - 1)
+                        nLinesDeleted += CInt(CurrEdtSession.mseSelBot - CurrEdtSession.mseSelTop - 1)
                         DoCmd1("DELETE " & CStr(CurrEdtSession.mseSelBot - CurrEdtSession.mseSelTop - 1), False)
                         CurrEdtSession.mseSelBot = CurrEdtSession.mseSelTop + 1
                     Else
@@ -5761,9 +5761,9 @@ FileDeleteErrorRes:
         Dim sRest As String = ""
         Dim sbRest, mClipbVk As Boolean
         Dim AfterFirstLine As Boolean = False ' line 1 respects first visible column, 2, 3, 4 etc not
-        Dim vScrPos, cScrPos As Short
+        Dim vScrPos, cScrPos As Integer
         Dim RetLine, i As Integer
-        Dim LineIns As Integer, RetCP, RetCL As Short
+        Dim LineIns As Integer, RetCP, RetCL As Integer
         Dim vp As New VerifyPair
         Pasting = True
         ReshowMsgSrc(True) ' away with all messages
@@ -5845,16 +5845,16 @@ FileDeleteErrorRes:
                                 sbRest = True
                                 LineIns = 1
                                 If Not AfterFirstLine Then
-                                    cScrPos = CShort(CurrEdtSession.CursorDisplayColumn + vp.VerFrom - 1)
+                                    cScrPos = CInt(CurrEdtSession.CursorDisplayColumn + vp.VerFrom - 1)
                                 Else
-                                    cScrPos = CShort(CurrEdtSession.CursorDisplayColumn)
+                                    cScrPos = CInt(CurrEdtSession.CursorDisplayColumn)
                                 End If
                                 sRest = sN.Substring(cScrPos - 1)
                             Else
                                 If LineIns = 1 Then
                                     cScrPos = cScrPos + 1S
                                 Else
-                                    cScrPos = CShort(CurrEdtSession.CursorDisplayColumn)
+                                    cScrPos = CInt(CurrEdtSession.CursorDisplayColumn)
                                 End If
                             End If
                             sNl = sN.Substring(0, cScrPos - 1) & s
@@ -5869,7 +5869,7 @@ FileDeleteErrorRes:
                             dsScr.CurLinSrc = sNl
                             dsScr.CurLinModified = True
                             dsScr.CurRepaint = True
-                            CurrEdtSession.CursorDisplayColumn = CShort(CurrEdtSession.CursorDisplayColumn + s.Length())
+                            CurrEdtSession.CursorDisplayColumn = CInt(CurrEdtSession.CursorDisplayColumn + s.Length())
                         End If
                         AfterFirstLine = True
                     End If
@@ -5925,7 +5925,7 @@ FileDeleteErrorRes:
                             End If
                             dsScr.CurLinSrc = sNl
                             dsScr.CurLinModified = True
-                            CurrEdtSession.CursorDisplayColumn = CShort(CurrEdtSession.CursorDisplayColumn + s.Length())
+                            CurrEdtSession.CursorDisplayColumn = CInt(CurrEdtSession.CursorDisplayColumn + s.Length())
                             RetCP = CurrEdtSession.CursorDisplayColumn
                         End If
                     End If
@@ -5937,7 +5937,7 @@ FileDeleteErrorRes:
         Else ' paste on commandline
             s = dsScr.CurLinSrc.PadRight(CurrEdtSession.CursorDisplayColumn)
             s = s.Substring(0, CurrEdtSession.CursorDisplayColumn - 1) & temp & s.Substring(CurrEdtSession.CursorDisplayColumn - 1)
-            If s.Length + CurrEdtSession.CursorDisplayColumn > Short.MaxValue Then s = s.Substring(0, Short.MaxValue - 1 - CurrEdtSession.CursorDisplayColumn)
+            If s.Length + CurrEdtSession.CursorDisplayColumn > Integer.MaxValue Then s = s.Substring(0, Integer.MaxValue - 1 - CurrEdtSession.CursorDisplayColumn)
             dsScr.CurLinSrc = s
             dsScr.CurRepaint = True
             CurrEdtSession.CursorDisplayColumn += temp.Length()

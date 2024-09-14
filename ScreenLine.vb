@@ -10,9 +10,9 @@ Public Class ScreenLine
     Public CurLinModified As Boolean ' source has been modified and not written to Temp-file?
     Public CurSrcRead As Boolean   ' CurLinSrc in memory?
     Public CurRepaint As Boolean   ' update line on next paint?
-    Public CharsOnScr As Short     ' nr of  chars painted on screenline
-    Public VerifPartFrom(255) As Short ' how the line is devided in verify parts, max 255 tabs
-    Public VerifPartLen(255) As Short
+    Public CharsOnScr As Integer     ' nr of  chars painted on screenline
+    Public VerifPartFrom(255) As Integer ' how the line is devided in verify parts, max 255 tabs
+    Public VerifPartLen(255) As Integer
     Public VerifPartHex(255) As Boolean
     Public TabsinOrig As Boolean    ' line has expanded tabs?
     Public Sub CopyFrom(ByVal orig As ScreenLine)

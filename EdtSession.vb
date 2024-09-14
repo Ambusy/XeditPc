@@ -2,15 +2,15 @@ Public Class EdtSession
     Public EditFileName As String
     Public EditFile As FileStream
     Public BakfileAlreadyCreated As Boolean ' Created .BAK (on first SAVE only)
-    Public CursorDisplayColumn, PrevEditPosScr, prevPressPos As Short ' of cursor
+    Public CursorDisplayColumn, PrevEditPosScr, prevPressPos As Integer ' of cursor
     Public CursorDisplayLine, PrevEditLineScr, prevPressLine As Integer ' of cursor
-    Public CmdLineNr, MsgLineNrF, MsgLineNrT, CurLineNr As Short ' from SET CMDLINE MSGLINE CURLINE 
+    Public CmdLineNr, MsgLineNrF, MsgLineNrT, CurLineNr As Integer ' from SET CMDLINE MSGLINE CURLINE 
     Public Msgs, ScrOverlayed As New Collection ' messages/source to be displayed
     Public MsgOverlay As Boolean ' Msg in overlay?
-    'Public NrBeforeCurL As Short ' nr of lines of source BEFORE curline
-    Public nSrcOnScrn As Short ' Nr of source dependent lines on screen
-    Public SrcOnScrn(255) As Short ' indices in Srclist of lines on screen that contain sources (excl title, fixed lines, etc)
-    Public Tabs(255) As Short
+    'Public NrBeforeCurL As Integer ' nr of lines of source BEFORE curline
+    Public nSrcOnScrn As Integer ' Nr of source dependent lines on screen
+    Public SrcOnScrn(255) As Integer ' indices in Srclist of lines on screen that contain sources (excl title, fixed lines, etc)
+    Public Tabs(255) As Integer
     Public FileChanged As Boolean ' file has changed?
     Public SessionInited As Boolean ' file has passed init phase and has been shown?
     Public SeqOfFirstSourcelineOnScreen As Integer ' Sourcenr of 1st line on screen
@@ -22,16 +22,16 @@ Public Class EdtSession
     Public fileHasUtf8BOM As Boolean ' file has utf8 bom
     Public LinEndOff As Boolean ' from SET LINEND ON char
     Public LinEndChar As Char
-    Public EditZoneLeft As Short ' from SET ZONE min max
-    Public EditZoneRight As Short
-    Public EditDisplayMin As Short ' from SET DISPLAY min max
-    Public EditDisplayMax As Short
+    Public EditZoneLeft As Integer ' from SET ZONE min max
+    Public EditZoneRight As Integer
+    Public EditDisplayMin As Integer ' from SET DISPLAY min max
+    Public EditDisplayMax As Integer
     Public EditAutoSave, AutosaveModifications, AutoSavedTimes As Integer ' >0: save
     Public AutoSavNames As New Collection
     Public RecfmV As Boolean ' from SET RECFM
-    Public Lrecl As Short ' from SET LRECL
+    Public Lrecl As Integer ' from SET LRECL
     Public Nulls As Boolean ' from SET NULLS ON/OFF
-    Public Trunc As Short ' from SET TRUNC
+    Public Trunc As Integer ' from SET TRUNC
     Public InsOvertype As Boolean ' true = insert
     Public ScopeAllDisplay As Boolean ' true = Scope all
     Public Wrap As Boolean ' true = WRAP on
@@ -47,9 +47,9 @@ Public Class EdtSession
     Public TabChar As Char ' from SET STREAM ON/OFF 
 
     Public EditTextHeight, EditTextWidth As Single, mMouseDown, mMouseDownCmd As Boolean, RectHeight As Double
-    Public mseSelLeft, mseSelLeftVer As Short ' selected by mouse (and CTRL) 
+    Public mseSelLeft, mseSelLeftVer As Integer ' selected by mouse (and CTRL) 
     Public mseSelTop As Integer
-    Public mseSelRight, mseSelRightVer As Short
+    Public mseSelRight, mseSelRightVer As Integer
     Public mseSelBot As Integer
     Public mSelect As Boolean ' there is selected text!
     Public mSelRctg As Boolean ' selected with CTRL = rectangle, not whole lines
@@ -81,7 +81,7 @@ Public Class EdtSession
     Public UndoS As New Collection ' undo stack
     Public UnDoCnt, chgCount, UndoSet As Integer ' n° undo's; n° of changes made by user
     Public DoUnDo, IncrUnDoCnt As Boolean ' Don't stack changes while UNDOing; increment Undo block counter once per User action
-    Public UndoLineP As Integer, UndoPosP As Short ' pos of cursor for previous change
+    Public UndoLineP As Integer, UndoPosP As Integer ' pos of cursor for previous change
 
     Dim RepeatFactorPresent As Boolean
     Dim RepeatFactor As Integer

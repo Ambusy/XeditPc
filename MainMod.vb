@@ -27,8 +27,8 @@ Module MainMod
     Public mRecentLineCmdFound As Integer
     Public CurLnLineLr As Integer ' source linenr on current line of last user-command, for UNDO
 
-    Public LinesScreenVisible As Short
-    Public CharsOnScreen, pCharsScreenVisible As Short
+    Public LinesScreenVisible As Integer
+    Public CharsOnScreen, pCharsScreenVisible As Integer
     Public EditTextHeight, EditTextWidth As Single
     Public RectHeight As Integer ' height of one line of source rectangle
 
@@ -47,7 +47,7 @@ Module MainMod
     Public EditRdFile As FileStream ' file to read from (wrkfile or original file)
     Public EditFileWrk As FileStream ' workfile (if opened)
     Public WrkFileName As String ' name
-    Public WrkMaxWritePos As Integer ' used up to pos
+    Public WrkMaxWritePos As Long ' used up to pos
     Public RexxTrace As Boolean = False
     Friend TracingSay As Boolean = False
     Public RexxPath As String = ""
@@ -62,7 +62,7 @@ Module MainMod
     Public RecalledCmd As Integer ' ix of last cmd that was "recalled"?
     Public tMdX, tMdY As Integer ' for Timer1: where was mouse?
     Public sMdX, sMdY As Integer ' for Select: where was initial mouse?
-    Public mMdX, mMdY As Short ' for move: where was mouse?
+    Public mMdX, mMdY As Integer ' for move: where was mouse?
     Public MeTop As Integer
     Public MeLeft As Integer
     Public MeFontSize As Single = 8.25
@@ -268,10 +268,10 @@ Module MainMod
     Public Function ConvertFromRbg(ByVal HexColor As Color) As String
         Return "#" & N2X(HexColor.R) & N2X(HexColor.G) & N2X(HexColor.B)
     End Function
-    Private Function N2X(ByVal x As Short) As String
+    Private Function N2X(ByVal x As Integer) As String
         Dim s As String = "0123456789ABCDEF"
-        Dim c1 As Short = x \ 16
-        Dim c2 As Short = x And &HFS
+        Dim c1 As Integer = x \ 16
+        Dim c2 As Integer = x And &HFS
         N2X = Mid(s, c1 + 1, 1) & Mid(s, c2 + 1, 1)
     End Function
 End Module
