@@ -233,8 +233,7 @@ Edit commands implemented in Rexx:
 FILE      to save and exit
 STACK n   stack n lines from currentline in program-stack for pulling    
 ALL       to view only lines containing given string(s), see program-structures eg. cobol: ALL /PERFORM/ to see perform-structures
-          all other lines will be excluded 
-PARSE     used in ALL by VM/SP
+          all other lines will be excluded. One can use & and | in search 
 SPLTJOIN  splits/joins 1 <-> 2 lines
 FNDDECL   Finds first occurence of the name to which the cursor points
 FNDSECT   Finds Cobol section, of the name to which the cursor points
@@ -252,6 +251,7 @@ LINUNIQ   Deletes succeeding lines with equal keyfields
 TRIMR     Strips trailing spaecs from all lines
 NUMMER    puts a sequencenumber in the visible lines
 COMPFILE  Compare contents of all files in a (sub)directory
+VISDBL    Show only lines that contain an identical text in a specified area on each line
 
 
 
