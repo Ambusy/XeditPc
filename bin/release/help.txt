@@ -159,8 +159,8 @@ EXTRACT
      ZONE
 
 LINE COMMANDS
-     I[n]  insert 1 / n empty lines that are deleted upon Enter, is contents is not modified / inserted
-     J[n]  insert 1 / n empty lines that remain if empty even if not touched
+     I[n]  insert 1 / n empty lines that are deleted upon Enter of its contents is not modified  
+     J[n]  insert 1 / n empty lines that remain as empty lines, even if not touched
      D[n]  delete 1/n lines
      X[n]  exclude 1 / n lines from view
      S     reinclude excluded lines 
@@ -193,7 +193,7 @@ MOUSE possibilities:
        OFF: no selection
        RECT: if specified indicates a rectangular select, as with CTRL-mouse
      EXTRACT /SELECTSET/ provides for coordinates of selected area (or all -1)
-     Escape-key cancels selection.
+     Escape-key cancels selection, unless an $ESC$.rex exists.
  
 LSE-type support, Language Sensitive Editor once on Dec Vms, now on HP,
   allows templates and expansion, aiding you to write in a rather unknown language. 
@@ -204,6 +204,34 @@ LSE-type support, Language Sensitive Editor once on Dec Vms, now on HP,
   ExpI (remove optional part, CTRL-I) and ExpN (jump to next token, CTRL-TAB).
   Want to give it a try: create a new file with type .REX, insert a line, type PROGRAM
   and press Ctrl-E and then Ctrl-E on various tokens. Look into REX.LSE to see why it happens
+
+VSCREEN is supported in a limited way.
+- to initialise:
+  VSCREEN DEFINE screen 24 80 0 0
+  WINDOW DEFINE screen 24 80 1 1
+  WINDOW SHOW screen ON screen
+- for each protected field:
+  VSCREEN WRITE screen line column 0 ( color PROT FIELD displayed_text
+- for each unprotected field:
+  VSCREEN WRITE screen line column length ( color FIELD displayed_text
+- for the cursor position (default first unprotected field)
+  VSCREEN CURSOR screen line column
+- to read the data on the screen:
+  VSCREEN WAITREAD screen [topmost] [click]
+  this creates a WAITREAD. dotted variable with:
+     WAITREAD.0: number of entries  
+     WAITREAD.1: pfkey used
+     WAITREAD.2: "CURSOR" line column
+     WAITREAD.x: one entry for each unprotected field. x = 3 to waitread.0
+                 "DATA" line column text_on_screen 
+     Option TOPMOST keeps the window on top of all other windows   
+     Option CLICK allows for a click on a label starting on column 1 to act as ENTER.
+- to terminate:
+  VSCREEN DELETE screen 
+  WINDOW DELETE screen
+An unprotected field behaves almost as a standard Textbox. 
+A special key is Escape, which restores the initial value in the field. 
+See the DTT rex command provided to have an extended example. This was written to call DITTO on a VSE machine.
    
 
 For details on XEDIT commands see: 
@@ -309,6 +337,10 @@ All statement types are implemented except:
    NUMERIC
    CONDITIONS and TRAPS
    SIGNAL is partly implemented: SIGNAL ON NOVALUE and SIGNAL label 
+   ADDRESS implements environments XEDIT, DOS, NOWAIT
+      XEDIT executes a xedit command
+      DOS executes a command in DOS-Cmd window
+      NOWAIT executes a DOS command without showing a window
 
 Not all functions are present. Available:
    ABBREV        QUEUED
@@ -337,7 +369,7 @@ Not all functions are present. Available:
                  LINEIN
                  LINEOUT 
 Extra:
-   Trace SAY : writes all lines produced by Say to a file named lik the rexx source filename extended by Say.Log.txt
+   Trace SAY : writes all lines produced by Say to a file named like the rexx source filename extended by Say.Log.txt
    SPLIT(arrayName, string, splitchar) returns number of elements in arrayName 
            rc=SPLIT("a,b,c,d", "ELEM", ",") returns rc=4, elem.1="a", elem.2="b", etc
    REGEXP(arrayName, string, regularExpression) 

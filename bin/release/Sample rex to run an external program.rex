@@ -9,7 +9,7 @@ SAY 'Enter the Program Name to Run?'
 PULL Program
 "extract /temp/"
 dsn = temp.1||"doIt.bat"
-address "DOS" "cmd /C del" dsn
+address "NOWAIT" "cmd /C del" dsn
 call STREAM(dsn,"C","OPEN WRITE")
 call LINEOUT(dsn,"@ECHO ON") 
 call LINEOUT(dsn,Drive||":") 
