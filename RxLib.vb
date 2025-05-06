@@ -2602,6 +2602,7 @@ Public Class Rexx
                                 m = Mid(ps(1), pi(2))
                             End If
                         Case "LEFT"
+                            If pi(2) < 0 Then pi(2) = 0
                             If ps(1).Length() >= pi(2) Then
                                 m = Left(ps(1), pi(2))
                             Else
@@ -2612,6 +2613,7 @@ Public Class Rexx
                                 End If
                             End If
                         Case "RIGHT"
+                            If pi(2) < 0 Then pi(2) = 0
                             If ps(1).Length() >= pi(2) Then
                                 m = Right(ps(1), pi(2))
                             Else

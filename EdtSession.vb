@@ -79,6 +79,8 @@ Public Class EdtSession
     Public ScrListSaved As Collection
 
     Public UndoS As New Collection ' undo stack
+    Public RedoS As New Collection ' redo stack
+    Public UnDoing As Boolean
     Public UnDoCnt, chgCount, UndoSet As Integer ' n° undo's; n° of changes made by user
     Public DoUnDo, IncrUnDoCnt As Boolean ' Don't stack changes while UNDOing; increment Undo block counter once per User action
     Public UndoLineP As Integer, UndoPosP As Integer ' pos of cursor for previous change
@@ -89,6 +91,7 @@ Public Class EdtSession
     Public Sub New()
         MyBase.New()
         CaseMU = True
+        UnDoing = False
         InsOvertype = True
         EncodingType = "8"c ' utf8
         Shadow = True

@@ -301,7 +301,7 @@ reopenFile:
         End If
         Return ret
     End Function
-    Private Function Target(ByRef s As String, dsScr As ScreenLine, Optional ByVal TypeColon As Boolean = True, Optional ByVal TypeNumber As Boolean = False) As String
+    Private Function Target(ByRef s As String, dsScr As ScreenLine, Optional ByVal TypeColon As Boolean = True, Optional ByVal TypeNumber As Boolean = False, Optional ByVal Backwards As Boolean = False) As String
         Dim OrgParmS As String = s
         Dim w As String = NxtWordFromStr(s, "", " ", False)
         If w.Length() = 1 AndAlso (w(0) = ":"c Or w(0) = "-"c Or w(0) = "+"c) Then  ' take 2nd part: LOCATE might have command specified
@@ -341,6 +341,11 @@ reopenFile:
                 If w.Length > 1 Then
                     If w(1) = "*" Then
                         res = "0 " & CStr(CurrEdtSession.EditZoneLeft) ' TOP of file
+                    ElseIf w(1) < "0" Or w(1) > "9" Then ' not a -number
+                        s = LocateString(OrgParmS.Substring(1), CurrEdtSession.EditZoneLeft, CurrEdtSession.EditZoneRight, LocLine, LocPos, True) ' backward locate command
+                        If rc = 0 Then
+                            res = CStr(LocLine) & " " & CStr(LocPos)
+                        End If
                     Else
                         Try
                             res = CStr(dsScr.CurSrcNr - CInt(w.Substring(1))) & " " & CStr(CurrEdtSession.EditZoneLeft)
@@ -508,7 +513,10 @@ opn:
         End If
         rc = 0
         If strng.Length() = 0 Then Exit Sub
-        If strng.Substring(0, 1) = "/" Or strng.Substring(0, 1) = "," Or strng.Substring(0, 1) = "." Or strng.Substring(0, 1) = ":" Or strng.Substring(0, 1) = "+" Or strng.Substring(0, 1) = "-" Or strng.Substring(0, 1) = "<" Then
+        If strng.Length() >= 1 AndAlso strng.Substring(0, 1) = "/" Or strng.Substring(0, 1) = "," Or strng.Substring(0, 1) = "." Or strng.Substring(0, 1) = ":" Or strng.Substring(0, 1) = "+" Or strng.Substring(0, 1) = "-" Or strng.Substring(0, 1) = "<" Then
+            CommandLine = "LOCATE " & strng
+        End If
+        If strng.Length() >= 2 AndAlso strng.Substring(0, 2) = "-/" Then ' Backward locate
             CommandLine = "LOCATE " & strng
         End If
         FirstWord = NxtWordFromStr(CommandLine)
@@ -924,6 +932,8 @@ opn:
             CurrEdtSession.ShowEol = (FirstWord <> "OFF")
         ElseIf Abbrev(FirstWord, "UNDO", 4) Then
             UnDo()
+        ElseIf Abbrev(FirstWord, "REDO", 4) Then
+            ReDo()
         ElseIf Abbrev(FirstWord, "HELP") Then
             FirstWord = NxtWordFromStr(CommandLine)
             If FirstWord = "" Then
@@ -2612,7 +2622,7 @@ opn:
         MoveToSourceLine(RetLine)
         rc = CInt(IIf(Found, 0, 4))
     End Sub
-    Private Function LocateString(ByVal CmdString As String, ByVal ZoneL As Integer, ByVal ZoneR As Integer, ByRef FinalLine As Integer, ByRef FinalPos As Integer) As String
+    Private Function LocateString(ByVal CmdString As String, ByVal ZoneL As Integer, ByVal ZoneR As Integer, ByRef FinalLine As Integer, ByRef FinalPos As Integer, Optional ByVal backWards As Boolean = False) As String
         Dim ixLineFound, toLine, fromLine, ixPosFound, savLine As Integer
         Dim RetString As String
         Dim sep As String
@@ -2661,9 +2671,15 @@ opn:
             LocStrings.Add(LocStr)
         End While
         RetString = CmdString
+        Dim moveDirection As Integer = 1
+        If backWards Then moveDirection = -1
         savLine = CurLine ' last line in case we restart locate from TOP
-        fromLine = savLine + 1
-        toLine = CurrEdtSession.SourceList.Count()
+        fromLine = savLine + moveDirection
+        If backWards Then
+            toLine = 1
+        Else
+            toLine = CurrEdtSession.SourceList.Count()
+        End If
         LocOper.Add("|")
         iPass = 1
         While iPass <= 2 ' curline to bot, top to curline-1 if wrap on
@@ -2684,7 +2700,7 @@ opn:
                         tL = ixLineFound
                     End If
                     bestLFound = 9999999
-                    ixPosFound = Locate1String(locString, OnLinenr, fl, tL, ZoneL, ZoneR, 0)
+                    ixPosFound = Locate1String(locString, OnLinenr, fl, tL, ZoneL, ZoneR, 0, backWards)
                     If CancelCmd Then Exit For
                     If ixPosFound > 0 Then
                         ixLineFound = OnLinenr
@@ -2714,10 +2730,14 @@ opn:
                     End If
                 Next
                 If CancelCmd Then Exit While
-                fromLine = PartFndLine + 1
+                fromLine = PartFndLine + moveDirection
                 If iPass = 1 AndAlso savLine > 0 AndAlso CurrEdtSession.Wrap AndAlso FinalLine = 9999999 Then ' wrap if not found
                     DoCmd1("MSG Wrap", False)
-                    fromLine = 1
+                    If backWards Then
+                        fromLine = CurrEdtSession.SourceList.Count()
+                    Else
+                        fromLine = 1
+                    End If
                     toLine = savLine
                 Else
                     iPass = 2
@@ -2730,22 +2750,26 @@ opn:
         If bestLFound = 9999999 Then rc = 3
         Return RetString
     End Function
-    Private Function Locate1String(ByVal LocString As String, ByRef OnLineNr As Integer, ByVal fromLine As Integer, ByVal toLine As Integer, ByVal ZoneL As Integer, ByVal ZoneR As Integer, NrOcc As Integer) As Integer
+    Private Function Locate1String(ByVal LocString As String, ByRef OnLineNr As Integer, ByVal fromLine As Integer, ByVal toLine As Integer, ByVal ZoneL As Integer, ByVal ZoneR As Integer, NrOcc As Integer, Optional ByVal Backwards As Boolean = False) As Integer
         Dim found, curLine, Leng As Integer
         Dim fStr, src As String
         Dim ssd As SourceLine
         Logg("Locate1String start")
         Logg("Locate1String loc = " & CStr(curLine))
+        Dim moveDirection As Integer = 1
+        If Backwards Then moveDirection = -1
         found = 0
         If fromLine < 1 Then
             fromLine = 1
+            If Backwards Then Return 0
         ElseIf fromLine > CurrEdtSession.SourceList.Count Then
-            Logg("Locate1String end")
-            Return 0
+            fromLine = CurrEdtSession.SourceList.Count
+            If Not Backwards Then Return 0
         End If
+        If toLine < 1 Then toLine = 1
         If toLine > CurrEdtSession.SourceList.Count Then toLine = CurrEdtSession.SourceList.Count
         curLine = fromLine
-        While rc = 0 And curLine <= toLine And found = 0
+        While rc = 0 And found = 0 And (curLine <= toLine And Not Backwards Or curLine >= toLine And Backwards)
             nrCyclesEv += 1
             If nrCyclesEv > 1000 Then
                 CallDoEvent()
@@ -2804,7 +2828,8 @@ opn:
                             End If
                         End If
                     Else
-                        found = InStr(1, fStr, lString)
+                        'found = InStr(1, fStr, lString)
+                        found = fStr.IndexOf(lString) + 1
                     End If
                 Else
                     found = 0 ' before left zone
@@ -2812,7 +2837,7 @@ opn:
             End If
             Logg("Locate1String found = " & CStr(found))
             If found = 0 Then
-                curLine += 1
+                curLine += moveDirection
             End If
         End While
         If found > 0 Then
@@ -3139,6 +3164,12 @@ FileDeleteErrorRes:
     End Function
     Private Sub AddUndo(ByVal TypeOfChange As Integer, ByVal dsScr As ScreenLine)
         Dim LowKeep, i As Integer
+        If Not CurrEdtSession.UnDoing Then  ' new change: no more redo!
+            For Each lRedos In CurrEdtSession.RedoS ' release memory
+                lRedos = Nothing
+            Next
+            CurrEdtSession.RedoS.Clear()
+        End If
         Dim lUndo As sUndo
         If CurrEdtSession.DoUnDo Then
             If TypeOfChange = 3 AndAlso CurrEdtSession.UndoLineP = CurrEdtSession.CursorDisplayLine AndAlso (CurrEdtSession.UndoPosP + 1) = CurrEdtSession.CursorDisplayColumn Then
@@ -3196,7 +3227,7 @@ FileDeleteErrorRes:
         Dim i As Integer, sUndo As Boolean
         Dim lUndo As sUndo
         Dim found, pScope, pLinend As Boolean
-        Dim dsScr As ScreenLine, retLine As Integer
+        Dim dsScr As ScreenLine, dsssrc As String, retLine As Integer
         pScope = CurrEdtSession.ScopeAllDisplay
         pLinend = CurrEdtSession.LinEndOff
         CurrEdtSession.LinEndOff = True
@@ -3210,20 +3241,34 @@ FileDeleteErrorRes:
             lUndo = DirectCast(CurrEdtSession.UndoS.Item(i), sUndo)
             If lUndo.UndoGrp = CurrEdtSession.UnDoCnt Then
                 found = True
+                CurrEdtSession.UnDoing = True ' don't disturb Redo queue
                 If lUndo.UndoT = 1 Then 'delete
                     MoveToSourceLine(lUndo.UndoLineNr - 1)
                     DoCmd1("INPUT " & lUndo.UndoSrc, False)
                 ElseIf lUndo.UndoT = 2 Then  'insert
                     MoveToSourceLine(lUndo.UndoLineNr)
+                    dsScr = DirectCast(ScrList.Item(CurrEdtSession.CurLineNr), ScreenLine)
+                    If Not dsScr.CurSrcRead Then
+                        ReadSourceInScrBuf(dsScr)
+                    End If
+                    dsssrc = dsScr.CurLinSrc
                     DoCmd1("DELETE 1", False)
+                    lUndo.UndoSrc = dsssrc ' source to re-insert in case of Redo
                 ElseIf lUndo.UndoT = 3 Then
                     MoveToSourceLine(lUndo.UndoLineNr)
+                    dsScr = DirectCast(ScrList.Item(CurrEdtSession.CurLineNr), ScreenLine)
+                    If Not dsScr.CurSrcRead Then
+                        ReadSourceInScrBuf(dsScr)
+                    End If
+                    dsssrc = dsScr.CurLinSrc
                     DoCmd1("REPLACE " & lUndo.UndoSrc, False)
+                    lUndo.UndoSrc = dsssrc ' source to re-replace in case of Redo
                 End If
+                CurrEdtSession.RedoS.Add(lUndo)
+                CurrEdtSession.UnDoing = False
                 CurrEdtSession.CursorDisplayColumn = lUndo.UndoCursorPos
                 CurrEdtSession.CursorDisplayLine = lUndo.UndoCursorLine
                 retLine = lUndo.UndoCurLine
-                lUndo = Nothing
                 CurrEdtSession.UndoS.Remove(i)
             Else
                 Exit For
@@ -3243,6 +3288,43 @@ FileDeleteErrorRes:
         CurrEdtSession.UndoLineP = 0
         CurrEdtSession.UndoPosP = 0
     End Sub
+    Private Sub ReDo()
+        If CurrEdtSession.RedoS.Count() > 0 Then
+            Dim pScope, pLinend As Boolean
+            Dim dsScr As ScreenLine, retline As Integer
+            pScope = CurrEdtSession.ScopeAllDisplay
+            pLinend = CurrEdtSession.LinEndOff
+            CurrEdtSession.LinEndOff = True
+            CurrEdtSession.ScopeAllDisplay = True
+            dsScr = DirectCast(ScrList.Item(CurrEdtSession.CurLineNr), ScreenLine) ' current line
+            retline = dsScr.CurSrcNr
+            Dim lRedo As sUndo = DirectCast(CurrEdtSession.RedoS.Item(CurrEdtSession.RedoS.Count()), sUndo)
+            Dim RedoGrp As Integer = lRedo.UndoGrp
+            While CurrEdtSession.RedoS.Count() > 0 AndAlso lRedo.UndoGrp = RedoGrp
+                CurrEdtSession.UnDoing = True ' don't disturb Redo queue
+                If lRedo.UndoT = 2 Then 'insert deleted
+                    MoveToSourceLine(lRedo.UndoLineNr - 1)
+                    DoCmd1("INPUT " & lRedo.UndoSrc, False)
+                ElseIf lRedo.UndoT = 1 Then  'delete inserted
+                    MoveToSourceLine(lRedo.UndoLineNr)
+                    DoCmd1("DELETE 1", False)
+                ElseIf lRedo.UndoT = 3 Then
+                    MoveToSourceLine(lRedo.UndoLineNr)
+                    DoCmd1("REPLACE " & lRedo.UndoSrc, False)
+                End If
+                CurrEdtSession.UnDoing = False
+                CurrEdtSession.CursorDisplayColumn = lRedo.UndoCursorPos
+                CurrEdtSession.CursorDisplayLine = lRedo.UndoCursorLine
+                retline = lRedo.UndoCurLine
+                lRedo = Nothing
+                CurrEdtSession.RedoS.Remove(CurrEdtSession.RedoS.Count())
+                If CurrEdtSession.RedoS.Count() > 0 Then lRedo = DirectCast(CurrEdtSession.RedoS.Item(CurrEdtSession.RedoS.Count()), sUndo)
+            End While
+            CurrEdtSession.LinEndOff = pLinend
+            CurrEdtSession.ScopeAllDisplay = pScope
+            MoveToSourceLine(retline)
+        End If
+    End Sub
     Sub VSCREENProcs(Commandline As String)
         Dim cmd As String = NxtWordFromStr(Commandline, "")
         Select Case cmd
@@ -3255,8 +3337,8 @@ FileDeleteErrorRes:
                 Dim ln As Integer = NxtNumFromStr(Commandline, "1") - 1
                 Dim cl As Integer = NxtNumFromStr(Commandline, "1") - 1
                 Dim nc As Integer = NxtNumFromStr(Commandline, "0")
-                VSCREENarea(ln, cl, 1) = "U" ' attr unprot
-                VSCREENarea(ln, cl, 2) = "7" ' color black
+                VSCREENarea(ln, cl, 1) = "U" ' attrbyte: unprot
+                VSCREENarea(ln, cl, 2) = "7" ' colorbyte: black
                 Dim options As String = Commandline.Substring(Commandline.IndexOf("(") + 1)
                 While options.Length > 0
                     Dim op As String = NxtWordFromStr(options, " ").ToUpper()
@@ -3266,12 +3348,14 @@ FileDeleteErrorRes:
                         VSCREENarea(ln, cl, 1) = "P" ' attr prot
                     ElseIf op = "FIELD" Then
                         For i = 1 To options.Length
-                            VSCREENarea(ln, cl + i, 0) = options.Substring(i - 1, 1)
-                            VSCREENarea(ln, cl + i, 1) = "T"c
-                            VSCREENarea(ln, cl + i, 2) = " "c
+                            If cl + i <= VSCREENarea.GetUpperBound(1) Then
+                                VSCREENarea(ln, cl + i, 0) = options.Substring(i - 1, 1) 'character on screen in this position
+                                VSCREENarea(ln, cl + i, 1) = "T"c ' attrbyte: processing a field 
+                                VSCREENarea(ln, cl + i, 2) = " "c ' colorByte: none
+                            End If
                         Next
-                        If VSCREENarea(ln, cl + options.Length + 1, 1) = vbNullChar OrElse VSCREENarea(ln, cl + options.Length + 1, 1) = " "c Then
-                            VSCREENarea(ln, cl + options.Length + 1, 1) = "E" ' end of field
+                        If options.Length < VSCREENarea.GetUpperBound(1) AndAlso (VSCREENarea(ln, cl + options.Length + 1, 1) = vbNullChar OrElse VSCREENarea(ln, cl + options.Length + 1, 1) = " "c) Then
+                            VSCREENarea(ln, cl + options.Length + 1, 1) = "E" ' end of field attribute byte, if next position is not occupied
                         End If
                         options = ""
                     ElseIf Abbrev(op, "BLUE", 1) Then
@@ -3302,7 +3386,11 @@ FileDeleteErrorRes:
                 VSCREENname = NxtWordFromStr(Commandline, "screen")
                 Dim vsc As New Vscreen
                 VSCREENRexx = Rxs
-                vsc.TopMost = NxtWordFromStr(Commandline, " ").ToUpper() = "TOPMOST"
+                While Commandline <> ""
+                    Dim nWrd As String = NxtWordFromStr(Commandline, " ").ToUpper()
+                    vsc.TopMost = (nWrd = "TOPMOST") Or vsc.TopMost
+                    vsc.ClickToEnter = (nWrd = "CLICK") Or vsc.ClickToEnter
+                End While
                 If vsc.TopMost Then Me.Visible = False
                 vsc.ShowDialog()
                 vsc.Close()
@@ -3591,6 +3679,8 @@ FileDeleteErrorRes:
                     End If
                     StrToShowExp = StrToShow ' with tabs expanded, if tabs on 
                     StrToShowTabs = StrToShow ' with tabs original for display hex in U8 and Unicode files
+                    Dim nTabs As Integer = -1
+                    dsScr.tabExpandPos(0) = 0
                     Dim i As Integer = StrToShowExp.IndexOf(vbTab)
                     If i > -1 Then
                         If CurrEdtSession.ExpTabs Then
@@ -3604,14 +3694,17 @@ FileDeleteErrorRes:
                                     End If
                                 Next
                                 If PosOfNextTab = -1 Then
-                                    PosOfNextTab = i + 2
+                                    PosOfNextTab = i + 2 ' replace tab by 1 space and continue there
                                 End If
                                 Dim st As String = StrToShowExp.Substring(0, i)
                                 If PosOfNextTab - i - 1 > 0 Then st = st + "".PadRight(PosOfNextTab - i - 1, " "c)
                                 StrToShowExp = st + StrToShowExp.Substring(i + 1)
+                                If nTabs < dsScr.tabExpandPos.Length - 1 Then
+                                    nTabs += 1
+                                End If
+                                dsScr.tabExpandPos(nTabs) = PosOfNextTab
                                 i = StrToShowExp.IndexOf(vbTab)
                             End While
-                            dsScr.TabsinOrig = True
                             dsScr.CurLinSrcExp = StrToShowExp ' if expanded text is changed, tabs dissapear from source, if not they remain: edit with tabs off
                         Else
                             If CurrEdtSession.EncodingType <> "A"c Then
@@ -3988,7 +4081,6 @@ FileDeleteErrorRes:
                 dsScr.CurLinNr = SourceI.ToString("000000")
                 dsScr.CurSrcRead = False
                 dsScr.CurLinSrc = ""
-                dsScr.TabsinOrig = False
             Else
                 SrcExcluded = True
                 dsScr.CurLinType = "X"c ' Line of source excluded
@@ -4041,7 +4133,6 @@ FileDeleteErrorRes:
         ssd = DirectCast(CurrEdtSession.SourceList.Item(fCl.CurSrcNr), SourceLine)
         fCl.CurLinSrc = ReadOneSourceLine(ssd)
         ' Debug.WriteLine("read source " & CStr(fCl.CurSrcNr) & " " & CStr(ssd.SrcFileIx) & " " & CStr(ssd.SrcStart) & " " & CStr(ssd.SrcLength) & " " & fCl.CurLinSrc)
-        fCl.TabsinOrig = False
     End Sub
     Dim WarnUtf8 As Boolean = False
     Private Function ReadOneSourceLine(ByVal ssd As SourceLine) As String
@@ -4480,15 +4571,23 @@ FileDeleteErrorRes:
         KeyPfTxt = "PF"
         If KeyCode < 121 Then KeyPfTxt = KeyPfTxt & "0"
         KeyPfTxt = KeyPfTxt & CStr(KeyCode - 111)
-        If KeyShift = 1 Then KeyPfTxt = "SHIFT-" & KeyPfTxt
-        If KeyShift = 2 Then KeyPfTxt = "CTRL-" & KeyPfTxt
-        If KeyShift = 4 Then KeyPfTxt = "ALT-" & KeyPfTxt
+        If KeyShift = 1 Then
+            KeyPfTxt = "SHIFT-" & KeyPfTxt
+        ElseIf KeyShift = 2 Then
+            KeyPfTxt = "CTRL-" & KeyPfTxt
+        ElseIf KeyShift = 3 Then
+            KeyPfTxt = "CTRL-SHIFT-" & KeyPfTxt
+        ElseIf KeyShift <> 0 Then '4 or 5
+            KeyPfTxt = "ALT-" & KeyPfTxt
+        End If
     End Function
     Private Function KeyCtrlAlt(ByVal KeyCode As Integer, ByVal Shift As Integer) As Boolean
         Dim s As String
         If Shift = 2 Then
             s = "CTRL-"
-        Else
+        ElseIf Shift = 3 Then
+            s = "CTRL-SHIFT-"
+        ElseIf Shift <= 3 > 0 Then ' 4 alt 5 sh/alt
             s = "ALT-"
         End If
         If KeyCode >= 112 And KeyCode <= 123 Then
@@ -4852,6 +4951,9 @@ FileDeleteErrorRes:
     Private Function EditPosSrc(ByRef vp As VerifyPair, ByRef LowNibble As Boolean, ByVal dsScr As ScreenLine) As Integer ' where is the cursor in the actual source?
         Dim CharPosInSource, OrigPos As Integer
         OrigPos = CurrEdtSession.CursorDisplayColumn
+        If CurrEdtSession.ExpTabs Then ' get real position in text with tabs not expanded
+
+        End If
         If CurrEdtSession.CursorDisplayColumn > -1 Then ' not in prefix area
             If dsScr.CurLinType = "L"c Then ' on a sourceline
                 For i As Integer = 0 To dsScr.VerifPartFrom.Length - 1
@@ -4866,11 +4968,31 @@ FileDeleteErrorRes:
                                 CharPosInSource = vp.VerFrom + Math.Floor((OrigPos + 1) / 2) - 1
                             End If
                         Else
-                            CharPosInSource = vp.VerFrom + OrigPos - 1
-                        End If
-                        If dsScr.TabsinOrig And Not vp.VerHex Then
-                            dsScr.CurLinSrc = dsScr.CurLinSrcExp
-                            dsScr.TabsinOrig = False
+                            If CurrEdtSession.ExpTabs Then
+                                Dim expSrcPos As Integer = 1
+                                Dim realSrcPos As Integer = 0
+                                Dim tabsSeen As Integer = 0
+                                For j = 0 To dsScr.CurLinSrc.Length - 1
+                                    If expSrcPos >= CurrEdtSession.CursorDisplayColumn Then
+                                        Exit For ' found the real pos
+                                    End If
+                                    If dsScr.CurLinSrc(j) <> vbTab Then
+                                        expSrcPos += 1
+                                    Else
+                                        tabsSeen += 1
+                                        ' find expanded pos in dsScr.tabExpandPos 
+                                        If dsScr.tabExpandPos(tabsSeen - 1) > 0 Then
+                                            expSrcPos = dsScr.tabExpandPos(tabsSeen - 1)
+                                        Else
+                                            expSrcPos += 1 ' tab becomes a space
+                                        End If
+                                    End If
+                                    realSrcPos = j + 1
+                                Next
+                                CharPosInSource = vp.VerFrom + realSrcPos
+                            Else
+                                CharPosInSource = vp.VerFrom + OrigPos - 1
+                            End If
                         End If
                         Return CharPosInSource
                     End If
@@ -4914,9 +5036,11 @@ FileDeleteErrorRes:
                 nL = nL - CurrEdtSession.CurLineNr
                 If nL > 0 Then
                     DoCmd1("DOWN " & CStr(nL), False)
+                    'Dim dsScrxx As ScreenLine = DirectCast(ScrList.Item(CurrEdtSession.CurLineNr), ScreenLine)
                     moved = True
                 Else
                     DoCmd1("UP " & CStr(-nL), False)
+                    'Dim dsScrxx As ScreenLine = DirectCast(ScrList.Item(CurrEdtSession.CurLineNr), ScreenLine)
                     moved = True
                 End If
             End If
@@ -4966,9 +5090,15 @@ FileDeleteErrorRes:
             FillScreenBuffer(dsscr.CurSrcNr, False)
         End If
     End Sub
+    Dim KeyDownCTRL As Boolean = False
+    Dim KeyDownALT As Boolean = False
+    Dim KeyDownSHIFT As Boolean = False
     Private Sub Form1_KeyDown(ByVal eventSender As System.Object, ByVal eventArgs As System.Windows.Forms.KeyEventArgs) Handles MyBase.KeyDown, VSB.KeyDown
         Dim Shift As Integer = eventArgs.KeyData \ &H10000
         Dim i As Integer
+        If eventArgs.Control Then KeyDownCTRL = True
+        If eventArgs.Alt Then KeyDownALT = True
+        If eventArgs.Shift Then KeyDownCTRL = True
         Dim dsScr As ScreenLine, KeyAlreadyProcessed As Boolean
         If ScrList.Count = 0 Then Exit Sub ' form not yet visible
         Logg("KeyDown start")
@@ -5156,16 +5286,6 @@ FileDeleteErrorRes:
                                 strng = C2X(strng)
                                 ps = (ps - 1) * 2 + 1
                                 If vpNibble Then ps += 1
-                                'If vpNibble Then ' typing 2nd half of byte
-                                '    NewCh = X2C(C2X(strng.Substring(ps - 1, 1)).Substring(0, 1) & NewCh)
-                                '    InsOver = False
-                                'Else
-                                '    If ps > strng.Length - 1 Then
-                                '        NewCh = "0"
-                                '    Else
-                                '        NewCh = X2C(NewCh & C2X(strng.Substring(ps - 1, 1)).Substring(1, 1))
-                                '    End If
-                                'End If
                             End If
                             If InsOver Then
                                 nChrBef = ps - 1
@@ -6320,7 +6440,13 @@ FileDeleteErrorRes:
             End If
             'MsgBox(env.ToUpper(CultInf) & " " & s & "!" & en & "!" & pa)
             Try
-                myProcess = Process.Start(en, pa)
+                myProcess.StartInfo.UseShellExecute = False
+                myProcess.StartInfo.CreateNoWindow = True
+                myProcess.StartInfo.FileName = en
+                myProcess.StartInfo.Arguments = pa
+                If env.ToUpper(CultInf) = "NOWAIT" Then myProcess.StartInfo.WindowStyle = ProcessWindowStyle.Minimized
+                myProcess.Start()
+                ' myProcess = Process.Start(en, pa)
                 If env.ToUpper(CultInf) = "NOWAIT" Then
                     rc = 0
                 Else

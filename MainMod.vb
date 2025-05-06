@@ -82,6 +82,10 @@ Module MainMod
     Public VSCREENcursorline As Integer = 1
     Public VSCREENcursorcol As Integer = 2
     Public VSCREENRexx As Rexx
+    'top,left of Vscreen remains when user moves screen, until xedit finishes
+    Public VSCREENLocOffsetX As Integer = 0
+    Public VSCREENLocOffsetY As Integer = 0
+    Public VSCREENFirstScreen As Boolean = True
 
     <Global.System.Diagnostics.DebuggerStepThroughAttribute()>
     <Conditional("CreLogFile")>

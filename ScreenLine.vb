@@ -14,7 +14,8 @@ Public Class ScreenLine
     Public VerifPartFrom(255) As Integer ' how the line is devided in verify parts, max 255 tabs
     Public VerifPartLen(255) As Integer
     Public VerifPartHex(255) As Boolean
-    Public TabsinOrig As Boolean    ' line has expanded tabs?
+    Public tabExpandPos(32) As Integer ' the character position before expanding tabs
+
     Public Sub CopyFrom(ByVal orig As ScreenLine)
         Me.CurLinType = orig.CurLinType
         Me.CurLinFixTp = orig.CurLinFixTp
@@ -31,7 +32,7 @@ Public Class ScreenLine
         Array.Copy(orig.VerifPartFrom, Me.VerifPartFrom, Me.VerifPartFrom.Length)
         Array.Copy(orig.VerifPartLen, Me.VerifPartLen, Me.VerifPartFrom.Length)
         Array.Copy(orig.VerifPartHex, Me.VerifPartHex, Me.VerifPartFrom.Length)
-        Me.TabsinOrig = orig.TabsinOrig
+        Array.Copy(orig.tabExpandPos, Me.tabExpandPos, Me.tabExpandPos.Length)
     End Sub
     Public Overrides Function ToString() As String
         Dim s As String = ""

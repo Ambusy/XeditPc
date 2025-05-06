@@ -32,9 +32,10 @@ Partial Class Vscreen
         '
         Me.Label1.AutoSize = True
         Me.Label1.Font = New System.Drawing.Font("Courier New", 9.75!, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, CType(0, Byte))
-        Me.Label1.Location = New System.Drawing.Point(696, 37)
+        Me.Label1.Location = New System.Drawing.Point(928, 46)
+        Me.Label1.Margin = New System.Windows.Forms.Padding(4, 0, 4, 0)
         Me.Label1.Name = "Label1"
-        Me.Label1.Size = New System.Drawing.Size(56, 16)
+        Me.Label1.Size = New System.Drawing.Size(69, 20)
         Me.Label1.TabIndex = 0
         Me.Label1.Text = "Label1"
         Me.Label1.Visible = False
@@ -42,9 +43,10 @@ Partial Class Vscreen
         'TextBox1
         '
         Me.TextBox1.Font = New System.Drawing.Font("Courier New", 9.75!, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, CType(0, Byte))
-        Me.TextBox1.Location = New System.Drawing.Point(699, 12)
+        Me.TextBox1.Location = New System.Drawing.Point(932, 15)
+        Me.TextBox1.Margin = New System.Windows.Forms.Padding(4)
         Me.TextBox1.Name = "TextBox1"
-        Me.TextBox1.Size = New System.Drawing.Size(89, 20)
+        Me.TextBox1.Size = New System.Drawing.Size(117, 26)
         Me.TextBox1.TabIndex = 1
         Me.TextBox1.Visible = False
         '
@@ -53,13 +55,14 @@ Partial Class Vscreen
         '
         'Vscreen
         '
-        Me.AutoScaleDimensions = New System.Drawing.SizeF(6.0!, 13.0!)
+        Me.AutoScaleDimensions = New System.Drawing.SizeF(8.0!, 16.0!)
         Me.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font
         Me.BackColor = System.Drawing.Color.Black
-        Me.ClientSize = New System.Drawing.Size(800, 450)
+        Me.ClientSize = New System.Drawing.Size(1067, 554)
         Me.Controls.Add(Me.TextBox1)
         Me.Controls.Add(Me.Label1)
         Me.KeyPreview = True
+        Me.Margin = New System.Windows.Forms.Padding(4)
         Me.Name = "Vscreen"
         Me.Text = "Vscreen"
         Me.ResumeLayout(False)

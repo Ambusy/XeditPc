@@ -2,6 +2,8 @@
     Dim Tboxes As New Collection
     Dim textboxWithFocus As TBox3270 = Nothing
     Dim cursorLine, cursorCol As Integer
+    Public ClickToEnter As Boolean = False
+
     Private Sub Vscreen_Load(sender As Object, e As EventArgs) Handles MyBase.Load
         Dim Height = 10
         Dim Width = 10
@@ -30,13 +32,14 @@
                         End If
                     Next
                     numberOfFields += 1
-                    protectedField = New Label With {
+                    protectedField = New TLbl3270 With {
                         .AutoSize = True,
                         .Location = New System.Drawing.Point(cl * measureWidth, (ln - 1) * measureHeight),
                         .Name = "Labl" & CStr(numberOfFields),
                         .Size = New System.Drawing.Size(measureWidth * numberOfChars, measureHeight - 3),
                         .TabIndex = numberOfFields - 1,
                         .Text = "",
+                        .Tag = CStr(ln) + " " + CStr(cl),
                         .Font = Label1.Font,
                         .Visible = True,
                         .ForeColor = getColor(VSCREENarea(ln - 1, cl - 1, 2)),
@@ -52,6 +55,7 @@
                         Height = h
                     End If
                     Me.Controls.Add(protectedField)
+                    If ClickToEnter Then AddHandler protectedField.MouseClick, AddressOf TLbl3270_Click
                 ElseIf VSCREENarea(ln - 1, cl - 1, 1) = "T"c AndAlso TypObj = "L"c Then
                     protectedField.Text += VSCREENarea(ln - 1, cl - 1, 0)
                 ElseIf VSCREENarea(ln - 1, cl - 1, 1) = "U"c Then
@@ -107,13 +111,22 @@
                     Tboxes.Add(textField)
                 ElseIf VSCREENarea(ln - 1, cl - 1, 1) = "T" AndAlso TypObj = "T"c Then
                     textField.Text += VSCREENarea(ln - 1, cl - 1, 0)
+                    textField.InitialText = textField.Text
                 End If
             Next
         Next
-        Me.Top = Screen.PrimaryScreen.Bounds.Height - Height - 25 - measureHeight
-        Me.Left = Screen.PrimaryScreen.Bounds.Width - Width
-        Me.Width = Width
         Me.Height = Height + 25 + measureHeight ' for message line
+        Me.Width = Width
+        If VSCREENFirstScreen Then ' first time executed in this Xedit session?
+            VSCREENFirstScreen = False
+            Me.Top = Screen.PrimaryScreen.Bounds.Height - Me.Height
+            Me.Left = Screen.PrimaryScreen.Bounds.Width - Me.Width
+            VSCREENLocOffsetX = Me.Top
+            VSCREENLocOffsetY = Me.Left
+        Else
+            Me.Top = VSCREENLocOffsetX
+            Me.Left = VSCREENLocOffsetY
+        End If
         Me.TopMost = True
         Timer1.Enabled = True
     End Sub
@@ -132,6 +145,8 @@
         If Not WantClose Then ' user cancelled form
             storeVarT("WAITREAD.0", "0")
         End If
+        VSCREENLocOffsetX = Me.Top
+        VSCREENLocOffsetY = Me.Left
     End Sub
     Dim WantClose As Boolean = False
     Dim KDeventArgs As KeyEventArgs
@@ -147,20 +162,23 @@
             End Select
         End If
         If KeyPfTxt <> "" Then
-            storeVarT("WAITREAD.0", CStr(Tboxes.Count + 2))
-            storeVarT("WAITREAD.1", KeyPfTxt)
-            storeVarT("WAITREAD.2", "CURSOR " + CStr(cursorLine) + " " + CStr(cursorCol))
-            For i As Integer = 1 To Tboxes.Count
-                Dim t As TBox3270 = Tboxes(i)
-                Dim ix As Integer = t.Tag.indexof(" ")
-                Dim ln, cl As Integer
-                ln = Convert.ToInt32(t.Tag.substring(0, ix))
-                cl = Convert.ToInt32(t.Tag.substring(ix + 1))
-                storeVarT("WAITREAD." & CStr(i + 2), "DATA " + CStr(ln) + " " + CStr(cl) + " " + t.Text)
-            Next
-            WantClose = True
-            MyBase.Close()
+            CloseScreen(KeyPfTxt)
         End If
+    End Sub
+    Private Sub CloseScreen(KeyPfTxt As String)
+        storeVarT("WAITREAD.0", CStr(Tboxes.Count + 2))
+        storeVarT("WAITREAD.1", KeyPfTxt)
+        storeVarT("WAITREAD.2", "CURSOR " + CStr(cursorLine) + " " + CStr(cursorCol))
+        For i As Integer = 1 To Tboxes.Count
+            Dim t As TBox3270 = Tboxes(i)
+            Dim ix As Integer = t.Tag.indexof(" ")
+            Dim ln, cl As Integer
+            ln = Convert.ToInt32(t.Tag.substring(0, ix))
+            cl = Convert.ToInt32(t.Tag.substring(ix + 1))
+            storeVarT("WAITREAD." & CStr(i + 2), "DATA " + CStr(ln) + " " + CStr(cl) + " " + t.Text)
+        Next
+        WantClose = True
+        MyBase.Close()
     End Sub
     Private Sub storeVarT(ByVal ky As String, ByVal S1 As String)
         Dim cvr As New DefVariable
@@ -175,7 +193,13 @@
         End If
         Timer1.Enabled = False
     End Sub
-
+    Private Sub TLbl3270_Click(sender As TLbl3270, e As EventArgs)
+        Dim ix As Integer = sender.Tag.indexof(" ")
+        Dim ln, cl As Integer
+        ln = Convert.ToInt32(sender.Tag.substring(0, ix))
+        cl = Convert.ToInt32(sender.Tag.substring(ix + 1))
+        If cl = 1 Then CloseScreen("ENTER")
+    End Sub
     Private Sub TBox3270_Enter(sender As TBox3270, e As EventArgs)
         Dim ix As Integer = sender.Tag.indexof(" ")
         Dim ln, cl As Integer
@@ -190,28 +214,34 @@
     End Sub
     Dim copiedText As String = ""
     Private Sub TBox3270_KeyPress(myBox As TBox3270, e As KeyPressEventArgs)
+        Dim st As Integer = myBox.SelectionStart
+        Dim sl As Integer = myBox.SelectionLength
         If e.KeyChar = vbBack Then
             e.Handled = True
             Exit Sub
         End If
         If e.KeyChar = ChrW(24) Then ' ctrl-x
-            copiedText = myBox.Text
-            myBox.Text = ""
+            copiedText = myBox.Text.Substring(st, sl)
+            myBox.Text = myBox.Text.Substring(0, st) + myBox.Text.Substring(st + sl)
             e.Handled = True
             Exit Sub
         End If
         If e.KeyChar = ChrW(3) Then ' ctrl-c
-            copiedText = myBox.Text
+            copiedText = myBox.Text.Substring(st, sl)
             e.Handled = True
             Exit Sub
         End If
         If e.KeyChar = ChrW(22) Then ' crtrl-v
-            myBox.Text = copiedText
+            myBox.Text = myBox.Text.Trim + copiedText
             e.Handled = True
             Exit Sub
         End If
-        Dim st As Integer = myBox.SelectionStart
-        Dim sl As Integer = myBox.SelectionLength
+        If e.KeyChar = ChrW(27) Then ' escape
+            myBox.Text = myBox.InitialText
+            e.Handled = True
+            Exit Sub
+        End If
+
         If myBox.OverlayOrInsertMode Then
             If st < myBox.MaxTextLength Then
                 If sl > 0 Then
@@ -219,6 +249,8 @@
                 End If
                 myBox.Text = (myBox.Text.Substring(0, st) + e.KeyChar + myBox.Text.Substring(st + 1)).PadRight(myBox.MaxTextLength, " "c)
                 st += 1
+            Else
+                Beep()
             End If
             e.Handled = True
         Else
@@ -233,12 +265,19 @@
             If myBox.Text.Length < myBox.MaxTextLength Then
                 myBox.Text = (myBox.Text.Substring(0, st) + e.KeyChar + myBox.Text.Substring(st)).PadRight(myBox.MaxTextLength, " "c)
                 st += 1
+            Else
+                Beep()
             End If
             e.Handled = True
         End If
         myBox.SelectionStart = st
         myBox.SelectionLength = 0
     End Sub
+
+    Private Sub Vscreen_MouseClick(sender As Object, e As MouseEventArgs) Handles MyBase.MouseClick
+        Dim i = 1
+    End Sub
+
     Private Sub TBox3270_KeyDown(myBox As TBox3270, e As KeyEventArgs)
         Dim st As Integer = myBox.SelectionStart
         Dim sl As Integer = myBox.SelectionLength
@@ -262,7 +301,7 @@
                 myBox.Text = (myBox.Text.Substring(0, st) + myBox.Text.Substring(st + sl)).PadRight(myBox.MaxTextLength, " "c)
                 st = Math.Max(0, st - sl)
             Else
-                If st <= myBox.MaxTextLength Then
+                If st < myBox.MaxTextLength Then
                     myBox.Text = (myBox.Text.Substring(0, st) + myBox.Text.Substring(st + 1)).PadRight(myBox.MaxTextLength, " "c)
                 End If
             End If
