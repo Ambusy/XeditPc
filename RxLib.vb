@@ -47,7 +47,7 @@ Public Class Rexx
     Friend Shared SayLine(24) As String ' say buffer for all routines
     Friend Shared lSay, nSay As Integer
     Friend Shared RexxWords As New Collection ' symbols for compiler
-    Friend Shared RexxFunctions(47) As String ' builtin functions with parameter definitions
+    Friend Shared RexxFunctions(48) As String ' builtin functions with parameter definitions
     Friend Shared SymsStr(78) As String ' names of symbols for errors
     Friend Shared SysMessages As New Collection ' text of messages
     Public Shared QStack As New Collection ' Queue/Pull currRexxRun.Stack
@@ -152,8 +152,11 @@ Public Class Rexx
     Enum fct ' internal assembly operation codes
         opr ' operation on stacked value(s)
         '                           code[].a = type of operation
-        lod ' load from currRexxRun.Stack
+        lod ' load var on currRexxRun.Stack
+        lodc ' load compound variable on currRexxRun.Stack
         sto ' store on currRexxRun.Stack code[].a = index in IdName
+        '                                code[].l = 0: my level, 1 Next level (params only)
+        stoc ' store compound variable from currRexxRun.Stack code[].a = index in IdName
         '                                code[].l = 0: my level, 1 Next level (params only)
         jmp ' jump                       code[].a = idx in interpretcode 
         jbr ' jump to builtin routine    code[].a = idx in interpretcode  
@@ -201,6 +204,7 @@ Public Class Rexx
         tpProcedure = 1
         tpVariable
         tpConstant
+        tpCompoundVar
     End Enum
 #If CreRexxLogFile Then
     Dim fn As String = System.IO.Path.GetTempFileName
@@ -581,8 +585,12 @@ Public Class Rexx
                         SigError(111)
                     End If
                     GetNextSymbol()
-                    Expression()
-                    GenerateAsm(fct.sto, 0, i)
+                    Condition() 'Expression()
+                    If vId.substring(vId.length - 1) = "." Then
+                        GenerateAsm(fct.stoc, 0, i)
+                    Else
+                        GenerateAsm(fct.sto, 0, i)
+                    End If
                     TestSymbolExpected(Symbols.semicolon, 118)
                 ElseIf (cSymb = Symbols.semicolon) Then  ' variabel command
                     i = SourceNameIndexPosition(vId, tpSymbol.tpVariable, DefVars)
@@ -1323,7 +1331,11 @@ Public Class Rexx
                 End If
             End If
             If CharAfterId <> "(" Then
-                GenerateAsm(fct.lod, tpSymbol.tpVariable, i)
+                If cIdx.substring(cIdx.length - 1) = "." Then
+                    GenerateAsm(fct.lodc, tpSymbol.tpVariable, i)
+                Else
+                    GenerateAsm(fct.lod, tpSymbol.tpVariable, i)
+                End If
             Else
                 If DefVars.Kind <> tpSymbol.tpProcedure Then
                     Dim Bltin As Boolean = False
@@ -2221,6 +2233,7 @@ Public Class Rexx
         i = i + 1 : RexxFunctions(i) = "01RIIII    FORMAT"
         i = i + 1 : RexxFunctions(i) = "02SS       INDEX"
         i = i + 1 : RexxFunctions(i) = "02SSIIS    INSERT"
+        i = i + 1 : RexxFunctions(i) = "02SSS      JOIN"
         i = i + 1 : RexxFunctions(i) = "02SSI      LASTPOS"
         i = i + 1 : RexxFunctions(i) = "02SIS      LEFT"
         i = i + 1 : RexxFunctions(i) = "01S        LENGTH"
@@ -2903,6 +2916,7 @@ Public Class Rexx
                             If Not pm(3) Then pi(3) = ps(1).Length() - pi(2) + 1
                             m = Mid(ps(1), 1, pi(2) - 1) & Mid(ps(1), pi(2) + pi(3))
                         Case "SPLIT"
+                            If Not pm(3) Then ps(3) = " "
                             Dim st() As String = ps(2).Split(ps(3))
                             Dim cvr As New DefVariable
                             For i = 1 To st.Length
@@ -2910,6 +2924,17 @@ Public Class Rexx
                                 StoreVar(j, st(i - 1), k, en, n) ' new value
                             Next
                             m = CStr(st.Length)
+                        Case "JOIN"
+                            If Not pm(3) Then ps(3) = " "
+                            Dim cvr As New DefVariable
+                            Dim nl As Integer = SourceNameIndexPosition(ps(1) & ".0", Rexx.tpSymbol.tpUnknown, cvr)
+                            Int32.TryParse(GetVar(nl, en, n), nl)
+                            m = ""
+                            For i = 1 To nl
+                                j = SourceNameIndexPosition(ps(1) & "." & CStr(i), Rexx.tpSymbol.tpUnknown, cvr)
+                                m = m + GetVar(j, en, n)
+                                If i < nl Then m += ps(3)
+                            Next
                         Case "ROUND"
                             If cL < 2 Then pi(2) = 0
                             m = CStr(Math.Round(pr(1), pi(2)))

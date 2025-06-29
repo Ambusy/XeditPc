@@ -55,12 +55,12 @@
         Me.Close()
     End Sub
     Private Sub Button1_Click(sender As Object, e As EventArgs) Handles Button1.Click
-        QuitPgm = True
+        If EdtSessions.Count = 0 Then QuitPgm = True
         IClose = True
         Me.Close()
     End Sub
     Private Sub AskFileName_FormClosing(sender As Object, e As FormClosingEventArgs) Handles MyBase.FormClosing
-        If Not IClose Then QuitPgm = True
+        If EdtSessions.Count = 0 Then If Not IClose Then QuitPgm = True
     End Sub
     Private Sub Empty_Click(sender As Object, e As EventArgs) Handles Empty.Click
         If MsgBox(SysMsg(26) & "?", vbOKCancel) = vbOK Then

@@ -1093,6 +1093,10 @@ opn:
                     End If
                     CurrEdtSession.MsgOverlay = Abbrev(NextWord, "OVERLAY", 2)
                 End If
+            ElseIf Abbrev(FirstWord, "ARBCHAR", 3) Then ' set ARBCHAR OFF / ON  arbchar * / 1
+                CurrEdtSession.ArbCharOO = (NxtWordFromStr(CommandLine, "OFF") = "ON")
+                CurrEdtSession.ArbChar = NxtWordFromStr(CommandLine, "$")
+                CurrEdtSession.ArbCharLen = NxtWordFromStr(CommandLine, "9999")
             ElseIf Abbrev(FirstWord, "WRAP", 2) Then ' set WRAP ON/OFF
                 CurrEdtSession.Wrap = (NxtWordFromStr(CommandLine, "OFF") = "ON")
             ElseIf Abbrev(FirstWord, "HEX", 3) Then ' set HEX ON/OFF
@@ -2830,6 +2834,31 @@ opn:
                     Else
                         'found = InStr(1, fStr, lString)
                         found = fStr.IndexOf(lString) + 1
+                        If found = 0 Then
+                            If CurrEdtSession.ArbCharOO Then ' Locate parts in sequence, all must exists
+                                Dim fiFound As Integer = 0
+                                Dim locFstr As String = fStr ' part of line still to be examined
+                                Dim LocParts() As String = lString.Split(CurrEdtSession.ArbChar)
+                                For li As Integer = 0 To LocParts.Count - 1
+                                    found = locFstr.IndexOf(LocParts(li)) + 1
+                                    If found = 0 Then
+                                        fiFound = 0
+                                        Exit For
+                                    End If
+                                    If fiFound = 0 Then
+                                        fiFound = found ' start of located string
+                                    End If
+                                    If found > 0 Then
+                                        If li > 0 AndAlso found - 1 > CurrEdtSession.ArbCharLen Then ' first part may start everywhere
+                                            fiFound = 0
+                                            found = 0
+                                        End If
+                                    End If
+                                    locFstr = locFstr.Substring(found - 1 + LocParts(li).Length)
+                                Next
+                                found = fiFound
+                            End If
+                        End If
                     End If
                 Else
                     found = 0 ' before left zone
@@ -3453,7 +3482,7 @@ FileDeleteErrorRes:
         Dim textBgBrush As New SolidBrush(CurrEdtSession.color_textbg)
         Dim textBrush As New SolidBrush(CurrEdtSession.color_text)
         Dim whiteBrush As New SolidBrush(Color.White)
-        Dim redPen As New Pen(CurrEdtSession.color_cursor, 2)
+        Dim cursorPen As New Pen(CurrEdtSession.color_cursor, 2)
         Dim aRectangle As Rectangle
         Dim EditSize As SizeF
         Dim EditFont As New Font("Courier New", FontSizeOnForm)
@@ -3856,7 +3885,7 @@ FileDeleteErrorRes:
         End If
         Dim pF As New Point(CuX, CuY)
         Dim pT As New Point(CuXt, CuYt)
-        g.DrawLine(redPen, pF, pT)
+        g.DrawLine(cursorPen, pF, pT)
         g.Dispose()
         RepaintAllScreenLines = False
         CalcIxInSLines()
@@ -4140,6 +4169,9 @@ FileDeleteErrorRes:
         If ssd.SrcLength > -1 Then
             Dim buf(ssd.SrcLength - 1) As Byte
             EditRdFile = FileWithData(ssd.SrcFileIx)
+            If Not EditRdFile.CanSeek Then
+                Exit Function
+            End If
             EditRdFile.Seek(ssd.SrcStart - 1, SeekOrigin.Begin)
             EditRdFile.Read(buf, 0, ssd.SrcLength)
             ' unclear what error is solved here.
@@ -4427,6 +4459,7 @@ FileDeleteErrorRes:
         End If
     End Sub
     Private Sub DefSynonym(ByVal CommandLine As String)
+        Debug.WriteLine(CommandLine)
         Dim abbrev As String
         Dim nSym As Synonym
         abbrev = NxtWordFromStr(CommandLine, "")
@@ -4437,7 +4470,7 @@ FileDeleteErrorRes:
         Else
             nSym = DirectCast(CurrEdtSession.Synonyms.Item(abbrev), Synonym)
         End If
-        If CommandLine(0) = """"c Then
+        If CommandLine.Length > 0 AndAlso CommandLine(0) = """"c Then
             CommandLine = CommandLine.Substring(1)
             Dim i As Integer = CommandLine.IndexOf(""""c)
             If i > 0 Then
@@ -4811,7 +4844,7 @@ FileDeleteErrorRes:
         If CurrEdtSession.CmdLineNr > 0 Then sI += 1
         Dim nMsgOverl = 0
         For i = 1 To LinesScreenVisible
-            If allocList Then
+            If allocList Or i > ScrList.Count - 1 Then ' Commandline disappears below window sometimes, seems to be rounding off
                 dsScr = New ScreenLine()
             Else
                 dsScr = DirectCast(ScrList.Item(i), ScreenLine)
