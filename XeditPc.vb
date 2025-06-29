@@ -20,8 +20,10 @@ Public Class XeditPc
         If Not QuitPgm AndAlso rc = 0 Then
             FormShown = True
             Me.Invalidate()
-            Me.Focus()
             Me.Show()
+            If Me.CanFocus Then
+                Me.Focus()
+            End If
             SendKeys.Send("{DOWN}") ' if not: VSB intercepts first "keydown" !?!?
         Else
             Me.Close()
