@@ -156,7 +156,7 @@ Public Class Rexx
         lodc ' load compound variable on currRexxRun.Stack
         sto ' store on currRexxRun.Stack code[].a = index in IdName
         '                                code[].l = 0: my level, 1 Next level (params only)
-        stoc ' store compound variable from currRexxRun.Stack code[].a = index in IdName
+        'stoc ' store compound variable from currRexxRun.Stack code[].a = index in IdName
         '                                code[].l = 0: my level, 1 Next level (params only)
         jmp ' jump                       code[].a = idx in interpretcode 
         jbr ' jump to builtin routine    code[].a = idx in interpretcode  
@@ -586,11 +586,11 @@ Public Class Rexx
                     End If
                     GetNextSymbol()
                     Condition() 'Expression()
-                    If vId.substring(vId.length - 1) = "." Then
-                        GenerateAsm(fct.stoc, 0, i)
-                    Else
-                        GenerateAsm(fct.sto, 0, i)
-                    End If
+                    'If vId.substring(vId.length - 1) = "." Then
+                    '    GenerateAsm(fct.stoc, 0, i)
+                    'Else
+                    GenerateAsm(fct.sto, 0, i)
+                    'End If
                     TestSymbolExpected(Symbols.semicolon, 118)
                 ElseIf (cSymb = Symbols.semicolon) Then  ' variabel command
                     i = SourceNameIndexPosition(vId, tpSymbol.tpVariable, DefVars)
