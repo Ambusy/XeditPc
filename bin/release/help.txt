@@ -8,7 +8,7 @@ ADD [n]
 ALTER c/XX c/XX [target [no [fo]]] 
 BOTTOM       
 CAPPEND text
-CDELETE target
+	Leggerartikel_ZLD02_457_REEKS1	457	11		-0160				2460	3-4					221					234-21	1416-11						
 CFIRST
 CINSERT text
 CLAST
@@ -71,7 +71,8 @@ where target stands for:
 Break-key or Alt-Break-key terminates a running command
 
 SET
-     ALT-? command                        set any single symbol key with ALT pressed to a command. Keys with different symbols in lower and uppercase are excluded
+     ARBCHAR off/on [char [count]]	 count specifies maximum length of arbitrary string, default: 0 or more. count=1: exactly 1 arbchar between locate-strings.
+     ALT-? command                       set any single symbol key with ALT pressed to a command. Keys with different symbols in lower and uppercase are excluded
      AUTOSAVE n / OFF
      CASE MIXED/UPPERCASE RESPECT/IGNORE  
      CMDLINE ON TOP/n°/BOTTOM
@@ -109,7 +110,6 @@ SET
      SELECT n°lines/* level
      SHADOW ON/OFF
      SHIFT-? command                        (set any single symbol key with SHIFT pressed to a command)
-     SPLIT line char 
      STAY ON/OFF
      SYNONYM newname oldname n°chars
      TABCHAR OFF/char                       (if set, this char in a commandline will be replaced by X'09', before executing the command)
@@ -358,16 +358,32 @@ Not all functions are present. Available:
    DELWORD       VALUE (note: Dos limitation, can't set a DOS environment variable)
    EXTERNALS     VERIFY
    FORMAT        WORD
-   INDEX         WORDINDEX
+   WORDINDEX     INDEX(haystack, needle)
    INSERT        WORDLENGTH
-   LASTPOS       WORDS
+   WORDS         LASTPOS(needle, haystack)
    LEFT          X2B
    LENGTH        X2C
+   X2D           D2X
    OVERLAY       XRANGE
-   POS           STREAM
+   LINEOUT       POS(needle, haystack)
    ROUND         LINES
-                 LINEIN
-                 LINEOUT 
+   EOF(file)     LINEIN
+   STREAM :      S
+                 D
+                 C OPEN READ
+                   WRITE
+                   WRITE REPLACE
+                   CLEARFILE
+                   CLOSE
+                   SEEK = offset
+                        < offset
+                        + offset
+                        - offset
+                   QUERY EXIST
+                         SIZE
+                         DATETIME
+   SPLIT("compoundVariable", string [, separator]) returns number of split elements, elements in compoundVariable.index
+   JOIN("compoundVariable", number_of_elements_in_variable [separator])
 Extra:
    Trace SAY : writes all lines produced by Say to a file named like the rexx source filename extended by Say.Log.txt
    SPLIT(arrayName, string, splitchar) returns number of elements in arrayName 
