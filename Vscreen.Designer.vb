@@ -22,55 +22,57 @@ Partial Class Vscreen
     'Do not modify it using the code editor.
     <System.Diagnostics.DebuggerStepThrough()> _
     Private Sub InitializeComponent()
-        Me.components = New System.ComponentModel.Container()
-        Me.Label1 = New System.Windows.Forms.Label()
-        Me.TextBox1 = New System.Windows.Forms.TextBox()
-        Me.Timer1 = New System.Windows.Forms.Timer(Me.components)
-        Me.SuspendLayout()
-        '
-        'Label1
-        '
-        Me.Label1.AutoSize = True
-        Me.Label1.Font = New System.Drawing.Font("Courier New", 9.75!, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, CType(0, Byte))
-        Me.Label1.Location = New System.Drawing.Point(928, 46)
-        Me.Label1.Margin = New System.Windows.Forms.Padding(4, 0, 4, 0)
-        Me.Label1.Name = "Label1"
-        Me.Label1.Size = New System.Drawing.Size(69, 20)
-        Me.Label1.TabIndex = 0
-        Me.Label1.Text = "Label1"
-        Me.Label1.Visible = False
-        '
-        'TextBox1
-        '
-        Me.TextBox1.Font = New System.Drawing.Font("Courier New", 9.75!, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, CType(0, Byte))
-        Me.TextBox1.Location = New System.Drawing.Point(932, 15)
-        Me.TextBox1.Margin = New System.Windows.Forms.Padding(4)
-        Me.TextBox1.Name = "TextBox1"
-        Me.TextBox1.Size = New System.Drawing.Size(117, 26)
-        Me.TextBox1.TabIndex = 1
-        Me.TextBox1.Visible = False
-        '
-        'Timer1
-        '
-        '
-        'Vscreen
-        '
-        Me.AutoScaleDimensions = New System.Drawing.SizeF(8.0!, 16.0!)
-        Me.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font
-        Me.BackColor = System.Drawing.Color.Black
-        Me.ClientSize = New System.Drawing.Size(1067, 554)
-        Me.Controls.Add(Me.TextBox1)
-        Me.Controls.Add(Me.Label1)
-        Me.KeyPreview = True
-        Me.Margin = New System.Windows.Forms.Padding(4)
-        Me.Name = "Vscreen"
-        Me.Text = "Vscreen"
-        Me.ResumeLayout(False)
-        Me.PerformLayout()
+        components = New ComponentModel.Container()
+        Dim resources As System.ComponentModel.ComponentResourceManager = New System.ComponentModel.ComponentResourceManager(GetType(Vscreen))
+        Label1 = New Label()
+        TextBox1 = New TextBox()
+        Timer1 = New Timer(components)
+        SuspendLayout()
+        ' 
+        ' Label1
+        ' 
+        Label1.AutoSize = True
+        Label1.Font = New Font("Courier New", 9.75F, FontStyle.Regular, GraphicsUnit.Point, CByte(0))
+        Label1.Location = New Point(928, 58)
+        Label1.Margin = New Padding(4, 0, 4, 0)
+        Label1.Name = "Label1"
+        Label1.Size = New Size(69, 20)
+        Label1.TabIndex = 0
+        Label1.Text = "Label1"
+        Label1.Visible = False
+        ' 
+        ' TextBox1
+        ' 
+        TextBox1.Font = New Font("Courier New", 9.75F, FontStyle.Regular, GraphicsUnit.Point, CByte(0))
+        TextBox1.Location = New Point(932, 19)
+        TextBox1.Margin = New Padding(4, 5, 4, 5)
+        TextBox1.Name = "TextBox1"
+        TextBox1.Size = New Size(117, 28)
+        TextBox1.TabIndex = 1
+        TextBox1.Visible = False
+        ' 
+        ' Timer1
+        ' 
+        ' 
+        ' Vscreen
+        ' 
+        AutoScaleDimensions = New SizeF(8.0F, 20.0F)
+        AutoScaleMode = AutoScaleMode.Font
+        BackColor = Color.Black
+        ClientSize = New Size(1067, 692)
+        Controls.Add(TextBox1)
+        Controls.Add(Label1)
+        Icon = CType(resources.GetObject("$this.Icon"), Icon)
+        KeyPreview = True
+        Margin = New Padding(4, 5, 4, 5)
+        Name = "Vscreen"
+        Text = "Vscreen"
+        ResumeLayout(False)
+        PerformLayout()
 
     End Sub
 
     Friend WithEvents Label1 As Label
     Friend WithEvents TextBox1 As TextBox
-    Friend WithEvents Timer1 As Windows.Forms.Timer
+    Friend WithEvents Timer1 As System.Windows.Forms.Timer
 End Class

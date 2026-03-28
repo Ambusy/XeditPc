@@ -98,7 +98,7 @@ Partial Class AskFileName
 
     Friend WithEvents OpenFileDialog1 As OpenFileDialog
     Friend WithEvents RecentList As ListBox
-    Friend WithEvents TimerAsk As Windows.Forms.Timer
+    Friend WithEvents TimerAsk As System.Windows.Forms.Timer
     Friend WithEvents Label1 As Label
     Friend WithEvents Button1 As Button
     Friend WithEvents Empty As Button

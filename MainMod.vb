@@ -1,4 +1,7 @@
-﻿Imports VB = Microsoft.VisualBasic
+﻿Imports System.Globalization
+Imports System.IO
+Imports System.Reflection
+Imports VB = Microsoft.VisualBasic
 #Const CreLogFile = False
 
 Module MainMod
@@ -23,6 +26,8 @@ Module MainMod
     Public CurrEdtSession As EdtSession
     Public CurrEditSessionIx As Integer
     Public InvalidatedWin As Boolean ' Form invalidated: needs repainting
+    Public Streams As New Collection ' open streams
+
 
     Public mRecentLineCmdFound As Integer
     Public CurLnLineLr As Integer ' source linenr on current line of last user-command, for UNDO
@@ -76,6 +81,9 @@ Module MainMod
     Public Makebufs As New Collection
 
     Public VSCREENarea(33, 134, 2) As Char ' (0): text (1) attr of next area (2) color of area
+    Public VSCREENfieldText As New Dictionary(Of String, String)
+    Public VSCREENfieldTextInitial As New Dictionary(Of String, String)
+    Public VSCREENfieldDefLen As Integer
     Public VSCREENlines As Integer
     Public VSCREENcols As Integer
     Public VSCREENname As String
@@ -92,8 +100,8 @@ Module MainMod
     Public Sub LoggO()
         logFile = File.CreateText(Path.GetTempPath() & "\XeditDNet.Log.txt")
     End Sub
-    <Global.System.Diagnostics.DebuggerStepThroughAttribute()> _
-    <Conditional("CreLogFile")> _
+    <Global.System.Diagnostics.DebuggerStepThroughAttribute()>
+    <Conditional("CreLogFile")>
     Public Sub LoggC()
         logFile.Close()
     End Sub
@@ -124,7 +132,7 @@ Module MainMod
      LoggO()
 #End If
         Logg("XEDIT start")
-        ExecutablePath = System.IO.Path.GetDirectoryName(System.Reflection.Assembly.GetExecutingAssembly().CodeBase)
+        ExecutablePath = System.IO.Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location)
         If ExecutablePath(ExecutablePath.Length() - 1) <> "\" Then ExecutablePath += "\"
         Dim i As Integer = ExecutablePath.LastIndexOf(":"c)
         If i > 0 Then ExecutablePath = ExecutablePath.Substring(i - 1)
@@ -170,6 +178,11 @@ Module MainMod
                 SaveRegistryKey("XeditPc", "Height", Str(myForm.Height))
             End If
             RecentFiles.Dispose()
+            Dim strf As aStream ' close all opened by STREAM statement
+            For Each strf In Streams
+                Dim fi As New FileInfo(strf.FileStr.Name)
+                CloseStream(fi.FullName)
+            Next
             Logg("Main finishes ")
             LoggC()
         End If
@@ -277,5 +290,24 @@ Module MainMod
         Dim c1 As Integer = x \ 16
         Dim c2 As Integer = x And &HFS
         N2X = Mid(s, c1 + 1, 1) & Mid(s, c2 + 1, 1)
+    End Function
+    Public Function CloseStream(ByVal fn As String) As String
+        Dim m As String
+        If Not Streams.Contains(fn) Then
+            m = "ERROR"
+        Else
+            Dim str As aStream
+            str = DirectCast(Streams.Item(fn), aStream)
+            Try
+                str.FileStr.Close()
+                str.FileStr.Dispose()
+                Streams.Remove(fn)
+                m = "READY"
+            Catch e As Exception
+                m = "ERROR"
+                str.ErrMsg = e.Message
+            End Try
+        End If
+        Return m
     End Function
 End Module

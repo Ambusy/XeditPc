@@ -1,6 +1,10 @@
 ﻿Imports VB = Microsoft.VisualBasic
 Imports System.Drawing.Printing
 Imports System.Xml.Schema
+Imports System.Globalization
+Imports System.IO
+Imports System.Text.RegularExpressions
+Imports System.Threading
 #Const CreLogFile = False
 '#Const tracen = True
 Public Class XeditPc
@@ -8,6 +12,7 @@ Public Class XeditPc
     Dim TimerInterval As Integer = 50
     Dim optionsSpecified As Boolean
     Dim MousePosX, MousePosY As Integer ' if cursor on scrollbar, act on changes of value
+#Disable Warning WFO1000
     Public WithEvents Rxs As New Rexx
     Private Sub XeditPc_Load(ByVal sender As Object, ByVal e As System.EventArgs) Handles Me.Load
         RepaintAllScreenLines = True
@@ -1282,7 +1287,7 @@ opn:
                 Dim s As String = NxtWordFromStr(CommandLine, "")
                 Dim c As String = NxtWordFromStr(CommandLine, "")
                 If c = "" Then
-                    If (ColorDialog1.ShowDialog() = Windows.Forms.DialogResult.OK) Then
+                    If (ColorDialog1.ShowDialog() = System.Windows.Forms.DialogResult.OK) Then
                         c = ConvertFromRbg(ColorDialog1.Color)
                         Call DoCmd1("MSG Selected color = " & c, False)
                     End If
@@ -2259,13 +2264,13 @@ opn:
         End While
         If Not DialShown Then
             With FontDialog1
-                If .ShowDialog <> Windows.Forms.DialogResult.OK Then Exit Sub
+                If .ShowDialog <> System.Windows.Forms.DialogResult.OK Then Exit Sub
             End With
             With PageSetupDialog1
                 .PageSettings = New PageSettings()
                 .AllowPrinter = False
                 .MinMargins = New Margins(1, 1, 1, 1)
-                If .ShowDialog <> Windows.Forms.DialogResult.OK Then Exit Sub
+                If .ShowDialog <> System.Windows.Forms.DialogResult.OK Then Exit Sub
             End With
             PrintCharSize = FontDialog1.Font.Size * 1.4F
             DialShown = True
@@ -2302,7 +2307,7 @@ opn:
                 .MinimumPage = fiPage
                 .MaximumPage = laPage
             End With
-            If .ShowDialog <> Windows.Forms.DialogResult.OK Then Exit Sub
+            If .ShowDialog <> System.Windows.Forms.DialogResult.OK Then Exit Sub
             If .PrinterSettings.PrintRange = PrintRange.SomePages Then
                 fiPage = .PrinterSettings.FromPage
                 laPage = .PrinterSettings.ToPage
@@ -2629,16 +2634,6 @@ opn:
         rc = CInt(IIf(Found, 0, 4))
     End Sub
     Private Function LocateString(ByVal CmdString As String, ByVal ZoneL As Integer, ByVal ZoneR As Integer, ByRef FinalLine As Integer, ByRef FinalPos As Integer, Optional ByVal backWards As Boolean = False) As String
-        Dim ixLineFound, toLine, fromLine, ixPosFound, savLine As Integer
-        Dim RetString As String
-        Dim sep As String
-        Dim LocStrings As New Collection
-        Dim LocOper As New Collection
-        Dim i, l, PartFndLine As Integer
-        Dim found, PartFnd As Boolean
-        Dim fl, tL, iPass, OnLinenr As Integer
-        Dim LocStr, TmpStr As String
-        Dim bestLFound, bestPosFound As Integer
         Dim CurLine As Integer
         Dim dsScr As ScreenLine
         rc = 0
@@ -2647,114 +2642,100 @@ opn:
         SaveAllModifiedLines()
         CmdString = CmdString.TrimStart()
         If CmdString.Length() = 0 Then Return ""
-        Dim FirstTime As Boolean = True
-        While CmdString.Length() > 0 AndAlso (FirstTime Or CmdString(0) = "|" Or CmdString(0) = "&")
-            If Not FirstTime Then
-                LocOper.Add(CmdString.Substring(0, 1))
-                CmdString = CmdString.Substring(1).TrimStart()
-            Else
-                LocOper.Add("|")
-                FirstTime = False
+        Dim lineSets As New Collection ' sequences of lines to be searched
+        Dim nLines As Integer = CurrEdtSession.SourceList.Count()
+        If Not backWards Then
+            If CurLine < nLines Then
+                lineSets.Add(CStr(CurLine + 1) + " " + CStr(nLines))
             End If
-            sep = CmdString.Substring(0, 1)
-            i = InStr(2, CmdString, sep)
-            If i > 0 Then
-                LocStr = CmdString.Substring(1, i - 2)
-                CmdString = CmdString.Substring(i).Trim
-            Else
-                LocStr = CmdString.Substring(1)
-                CmdString = ""
+            If CurrEdtSession.Wrap AndAlso CurLine > 1 AndAlso CurLine < nLines Then
+                lineSets.Add(CStr(1) + " " + CStr(CurLine - 1))
             End If
-            If CurrEdtSession.HexM AndAlso LocStr.Length() >= 5 Then
-                TmpStr = LocStr.ToUpper()
-                If TmpStr.Substring(0, 2) = "X'" And TmpStr.Substring(TmpStr.Length() - 1, 1) = "'" Then
-                    LocStr = X2C(LocStr.Substring(2, LocStr.Length() - 3))
-                End If
-            End If
-            If CurrEdtSession.CaseIR Then
-                LocStr = LocStr.ToUpper()
-            End If
-            LocStrings.Add(LocStr)
-        End While
-        RetString = CmdString
-        Dim moveDirection As Integer = 1
-        If backWards Then moveDirection = -1
-        savLine = CurLine ' last line in case we restart locate from TOP
-        fromLine = savLine + moveDirection
-        If backWards Then
-            toLine = 1
         Else
-            toLine = CurrEdtSession.SourceList.Count()
+            lineSets.Add(CStr(CurLine - 1) + " " + "1")
+            If CurrEdtSession.Wrap AndAlso CurLine > 1 Then
+                lineSets.Add(CStr(nLines) + " " + CStr(CurLine + 1))
+            End If
         End If
-        LocOper.Add("|")
-        iPass = 1
-        While iPass <= 2 ' curline to bot, top to curline-1 if wrap on
-            found = False
-            FinalLine = 9999999
-            PartFnd = True
-            While PartFnd AndAlso FinalLine = 9999999 ' found partially, but not each string
-                PartFndLine = fromLine
-                PartFnd = False
-                For l = 1 To LocStrings.Count()
-                    'now each string:
-                    Dim locString As String = DirectCast(LocStrings.Item(l), String)
-                    If DirectCast(LocOper.Item(l), String) = "|" Then
-                        fl = fromLine
-                        tL = toLine
-                    Else
-                        fl = ixLineFound ' on same line where text was found 
-                        tL = ixLineFound
-                    End If
-                    bestLFound = 9999999
-                    ixPosFound = Locate1String(locString, OnLinenr, fl, tL, ZoneL, ZoneR, 0, backWards)
-                    If CancelCmd Then Exit For
-                    If ixPosFound > 0 Then
-                        ixLineFound = OnLinenr
-                        PartFnd = True
-                        If PartFndLine = fromLine Or (OnLinenr < PartFndLine And PartFndLine > fromLine) Then
-                            PartFndLine = OnLinenr ' best partial line nr, where to restart after
-                        End If
-                    Else
-                        ixLineFound = 0
-                    End If
-                    If ixPosFound > 0 Then
-                        If OnLinenr < bestLFound Then
-                            bestLFound = ixLineFound
-                            If bestPosFound = 0 OrElse DirectCast(LocOper.Item(l), String) = "|" Then
-                                bestPosFound = ixPosFound
-                            End If
-                        End If
-                    Else
-                        bestLFound = 9999999
-                        bestPosFound = 0
-                    End If
-                    If DirectCast(LocOper.Item(l + 1), String) = "|" Then
-                        If bestLFound < FinalLine Then
-                            FinalLine = bestLFound
-                            FinalPos = bestPosFound
-                        End If
-                    End If
-                Next
-                If CancelCmd Then Exit While
-                fromLine = PartFndLine + moveDirection
-                If iPass = 1 AndAlso savLine > 0 AndAlso CurrEdtSession.Wrap AndAlso FinalLine = 9999999 Then ' wrap if not found
-                    DoCmd1("MSG Wrap", False)
-                    If backWards Then
-                        fromLine = CurrEdtSession.SourceList.Count()
-                    Else
-                        fromLine = 1
-                    End If
-                    toLine = savLine
+        Dim locElements As New Collection ' strings to be located, with & | operator thet follows
+        Dim state As Integer = 0 ' 0: before separator, 1: before element, 2: before operator 
+        Dim sep, oper As Char
+        Dim elem As String = ""
+        Do While CmdString <> ""
+            If (state = 0 Or state = 2) AndAlso CmdString(0) = " "c Then
+                ' skip
+            ElseIf state = 0 Then
+                sep = CmdString(0)
+                state = 1
+            ElseIf state = 1 Then
+                If CmdString(0) = sep Then
+                    state = 2
                 Else
-                    iPass = 2
+                    elem += CmdString(0)
                 End If
-            End While
-            iPass += 1
-        End While
-        LocStrings.Clear()
-        LocOper.Clear()
-        If bestLFound = 9999999 Then rc = 3
-        Return RetString
+            ElseIf state = 2 Then
+                oper = CmdString(0)
+                locElements.Add(oper + LocateStringElem(elem))
+                elem = ""
+                state = 0
+            End If
+            If CmdString.Length > 0 Then CmdString = CmdString.Substring(1)
+        Loop
+        If elem <> "" Then
+            locElements.Add("|" + LocateStringElem(elem))
+        End If
+        ' per lineset search for strings
+        For Each lset As String In lineSets
+            Dim i As Integer = lset.IndexOf(" ")
+            Dim forst = CInt(lset.Substring(0, i))
+            Dim tost = CInt(lset.Substring(i))
+            Dim stepst = 1
+            Dim ssd As SourceLine
+            If forst > tost Then stepst = -1
+            For linenr As Integer = forst To tost Step stepst
+                ssd = DirectCast(CurrEdtSession.SourceList.Item(linenr), SourceLine)
+                If (ssd.SrcSelect <= CurrEdtSession.EditDisplayMax And ssd.SrcSelect >= CurrEdtSession.EditDisplayMin) Or CurrEdtSession.ScopeAllDisplay Then
+                    Dim src As String = ReadOneSourceLine(ssd)
+                    If CurrEdtSession.CaseIR Then
+                        src = src.ToUpper()
+                    End If
+                    Dim zoneLen As Integer = CurrEdtSession.EditZoneRight - CurrEdtSession.EditZoneLeft + 1
+                    If zoneLen > src.Length - CurrEdtSession.EditZoneLeft Then zoneLen = Math.Max(0, src.Length - CurrEdtSession.EditZoneLeft)
+                    src = src.Substring(CurrEdtSession.EditZoneLeft - 1, zoneLen) ' text to be examined
+                    Dim srchRes As Boolean = True
+                    For Each locElem As String In locElements
+                        oper = locElem(0)
+                        elem = locElem.Substring(1)
+                        Dim pos As Integer = src.IndexOf(elem)
+                        If pos > -1 And oper = "|" And srchRes Then
+                            FinalLine = linenr
+                            FinalPos = pos + CurrEdtSession.EditZoneLeft - 1
+                            Return ""
+                        End If
+                        srchRes = (srchRes And pos > -1) Or oper = "|"
+                    Next
+                End If
+            Next
+        Next
+
+
+        ' return values
+        FinalLine = CurLine
+        FinalPos = 1
+        rc = 3
+        Return ""
+    End Function
+    Private Function LocateStringElem(ByVal elem As String) As String
+        If CurrEdtSession.HexM AndAlso elem.Length() >= 5 Then
+            Dim TmpStr As String = elem.ToUpper()
+            If TmpStr.Substring(0, 2) = "X'" And TmpStr.Substring(TmpStr.Length() - 1, 1) = "'" Then
+                elem = X2C(elem.Substring(2, elem.Length() - 3))
+            End If
+        End If
+        If CurrEdtSession.CaseIR Then
+            elem = elem.ToUpper()
+        End If
+        Return elem
     End Function
     Private Function Locate1String(ByVal LocString As String, ByRef OnLineNr As Integer, ByVal fromLine As Integer, ByVal toLine As Integer, ByVal ZoneL As Integer, ByVal ZoneR As Integer, NrOcc As Integer, Optional ByVal Backwards As Boolean = False) As Integer
         Dim found, curLine, Leng As Integer
@@ -3142,7 +3123,7 @@ FileDeleteErrorRes:
                 File.Delete(fn)
             End If
         Catch ex As Exception
-            Msg = SysMsg(8) & fn
+            Msg = SysMsg(8) & fn & vbCrLf & ex.Message
             Response = MsgBox(Msg, MsgBoxStyle.RetryCancel, Msg)
             If Response = MsgBoxResult.Retry Then ' user requests RETRY.
                 GoTo FileDeleteErrorRes
@@ -3156,7 +3137,7 @@ FileDeleteErrorRes:
             'Debug.WriteLine("RenameFile move " + Fo + " to " + fn)
             File.Move(Fo, fn)
         Catch ex As Exception
-            Msg = SysMsg(1) & Fo
+            Msg = SysMsg(1) & Fo & vbCrLf & ex.Message
             Response = MsgBox(Msg, MsgBoxStyle.RetryCancel, Msg)
             If Response = MsgBoxResult.Retry Then ' user requests RETRY.
                 GoTo FileDeleteErrorRes
@@ -3356,13 +3337,16 @@ FileDeleteErrorRes:
             MoveToSourceLine(retline)
         End If
     End Sub
+    Dim numberOfVscreenObjects As Integer = 0
     Sub VSCREENProcs(Commandline As String)
+        Dim TypeField As Char = "U"
         Dim cmd As String = NxtWordFromStr(Commandline, "")
         Select Case cmd
             Case "DEFINE"
                 VSCREENname = NxtWordFromStr(Commandline, "screen")
                 VSCREENlines = NxtNumFromStr(Commandline, "24")
                 VSCREENcols = NxtNumFromStr(Commandline, "80")
+                numberOfVscreenObjects = 0
             Case "WRITE"
                 VSCREENname = NxtWordFromStr(Commandline, "screen")
                 Dim ln As Integer = NxtNumFromStr(Commandline, "1") - 1
@@ -3375,10 +3359,26 @@ FileDeleteErrorRes:
                     Dim op As String = NxtWordFromStr(options, " ").ToUpper()
                     If Abbrev(op, "UNPROT", 4) Then
                         VSCREENarea(ln, cl, 1) = "U" ' attr unprot
+                        TypeField = "U"
                     ElseIf Abbrev(op, "PROT", 2) Then
                         VSCREENarea(ln, cl, 1) = "P" ' attr prot
+                        TypeField = "P"
                     ElseIf op = "FIELD" Then
-                        For i = 1 To options.Length
+                        numberOfVscreenObjects += 1
+                        Dim nm As String = "Txtb" + CStr(numberOfVscreenObjects)
+                        If VSCREENfieldText.ContainsKey(nm) Then
+                            VSCREENfieldText(nm) = options
+                        Else
+                            VSCREENfieldText.Add(nm, options)
+                            VSCREENfieldTextInitial.Add(nm, options) ' tbv ESC
+                        End If
+                        Dim MaxChrsOnScreen As Integer
+                        If TypeField = "P" Then
+                            MaxChrsOnScreen = options.Length
+                        Else
+                            MaxChrsOnScreen = Math.Min(options.Length, nc) ' te lange ingevoerde waarden afkappen op het scherm
+                        End If
+                        For i = 1 To MaxChrsOnScreen
                             If cl + i <= VSCREENarea.GetUpperBound(1) Then
                                 VSCREENarea(ln, cl + i, 0) = options.Substring(i - 1, 1) 'character on screen in this position
                                 VSCREENarea(ln, cl + i, 1) = "T"c ' attrbyte: processing a field 
@@ -3703,10 +3703,13 @@ FileDeleteErrorRes:
                 Else
                     ForegrBrush(0) = linenrBrush
                 End If
+                If Not dsScr.CurSrcRead Then
+                    ReadSourceInScrBuf(dsScr)
+                End If
                 StrToShow = dsScr.CurLinSrc
                 If dsScr.CurLinType = "L"c Then
                     If CurrEdtSession.ShowEol Then
-                        StrToShow = StrToShow & Chr(182)
+                        StrToShow = StrToShow & "¶"
                     End If
                     StrToShowExp = StrToShow ' with tabs expanded, if tabs on 
                     StrToShowTabs = StrToShow ' with tabs original for display hex in U8 and Unicode files
@@ -4503,13 +4506,14 @@ FileDeleteErrorRes:
             CurrEdtSession.CursorDisplayColumn += 1S
         Else
             If CurrEdtSession.CursorDisplayLine < LinesScreenVisible Then
-                CurrEdtSession.CursorDisplayColumn = 0
-                CurrEdtSession.CursorDisplayLine += 1S
+                ' CurrEdtSession.CursorDisplayColumn = 0
+                ' CurrEdtSession.CursorDisplayLine += 1S
+                DoCmd1("RIGHT 1", False) ' shift screen left instead of cursor position
             Else
                 CurrEdtSession.CursorDisplayColumn = 0
                 CurrEdtSession.CursorDisplayLine = 1
+                KeyArrowRight(DirectCast(ScrList.Item(CurrEdtSession.CursorDisplayLine), ScreenLine))
             End If
-            KeyArrowRight(DirectCast(ScrList.Item(CurrEdtSession.CursorDisplayLine), ScreenLine))
         End If
     End Sub
     Private Sub KeyArrowLeft(ByRef dsScr As ScreenLine)
@@ -5244,7 +5248,7 @@ FileDeleteErrorRes:
         If QuitPgm Then
             Logg("KeyDown quitpgm")
             CurrEdtSession = Nothing
-            EdtSessions.Remove(1)
+            If EdtSessions.Count > 0 Then EdtSessions.Remove(1)
             FormAlreadyClosed = True
             Me.Close()
         End If
@@ -5697,7 +5701,7 @@ FileDeleteErrorRes:
         If TimerEnabled Then
             TimerEnabled = False
             Thread.Sleep(TimerInterval)
-            Form1_MouseMove(Me, New System.Windows.Forms.MouseEventArgs(Windows.Forms.MouseButtons.Left, 0, tMdX, tMdY, 0)) ' simulate mousemove, to continue selecting
+            Form1_MouseMove(Me, New System.Windows.Forms.MouseEventArgs(System.Windows.Forms.MouseButtons.Left, 0, tMdX, tMdY, 0)) ' simulate mousemove, to continue selecting
             If TimerInterval > 3 Then TimerInterval = TimerInterval - 1 ' scroll a bit faster! but not to fast
         End If
     End Sub
@@ -6119,6 +6123,7 @@ FileDeleteErrorRes:
         Logg("FormClosing")
         If Not FormAlreadyClosed Then
             FormAlreadyClosed = True
+
             While EdtSessions.Count > 1
                 DoCmd("QUIT", True)
                 If rc = 32 Then ' user chose RETURN TO EDIT

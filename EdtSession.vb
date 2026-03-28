@@ -1,6 +1,6 @@
 Public Class EdtSession
     Public EditFileName As String
-    Public EditFile As FileStream
+    Public EditFile As IO.FileStream
     Public BakfileAlreadyCreated As Boolean ' Created .BAK (on first SAVE only)
     Public CursorDisplayColumn, PrevEditPosScr, prevPressPos As Integer ' of cursor
     Public CursorDisplayLine, PrevEditLineScr, prevPressLine As Integer ' of cursor
@@ -44,6 +44,9 @@ Public Class EdtSession
     Public MsgMode As Boolean ' from SET MSGMode
     Public ExpTabs As Boolean ' from SET EXPANDTAB 
     Public StreamsOn As Boolean ' from SET STREAM ON/OFF 
+    Public ArbChar As Char ' from SET ARBCHAR ON char 
+    Public ArbCharLen As Integer ' from SET ARBCHAR ON char maxlen
+    Public ArbCharOO As Boolean ' from SET ARBCHAR ON char 
     Public TabChar As Char ' from SET STREAM ON/OFF 
 
     Public EditTextHeight, EditTextWidth As Single, mMouseDown, mMouseDownCmd As Boolean, RectHeight As Double
