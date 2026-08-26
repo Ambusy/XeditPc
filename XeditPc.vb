@@ -1,10 +1,12 @@
-﻿Imports VB = Microsoft.VisualBasic
-Imports System.Drawing.Printing
-Imports System.Xml.Schema
+﻿Imports System.Drawing.Printing
+Imports System.Formats.Tar
 Imports System.Globalization
 Imports System.IO
 Imports System.Text.RegularExpressions
 Imports System.Threading
+Imports System.Xml.Schema
+Imports Microsoft.VisualBasic.FileIO
+Imports VB = Microsoft.VisualBasic
 #Const CreLogFile = False
 '#Const tracen = True
 Public Class XeditPc
@@ -605,7 +607,7 @@ opn:
                     If FromKb Then
                         CurrEdtSession.CursorDisplayLine = CurrEdtSession.CurLineNr 'cursor on current line
                     End If
-                    If ixPosFound > 0 Then ' visible? (copy from MoveToSourcePos proc)
+                    If ixPosFound >= 0 Then ' visible? (copy from MoveToSourcePos proc)
                         Dim p, ln, fac As Integer
                         Dim vp As VerifyPair, ok As Boolean
                         ok = False
@@ -1579,7 +1581,6 @@ opn:
             Next
             CurrEdtSession.LineCommands.Clear()
         ElseIf Abbrev(FirstWord, "VMFCLEAR", 8) Then
-            'VSCREENarea.Initialize()
             Array.Clear(VSCREENarea, 0, VSCREENarea.Length())
         ElseIf Abbrev(FirstWord, "VSCREEN", 4) Then
             VSCREENProcs(CommandLine)
@@ -1602,6 +1603,10 @@ opn:
                 prevRexxCmdActive = RexxCmdActive
                 RexxCmdActive = True
                 rrc = RunRexx(FirstWord, CommandLine)
+                If FromKb AndAlso TracingSayFile <> "" Then
+                    TracingSayFile = ""
+                    sayFile.Close()
+                End If
                 RexxCmdActive = prevRexxCmdActive
                 If QuitPgm Then
                     Exit Sub
@@ -2699,9 +2704,13 @@ opn:
                     If CurrEdtSession.CaseIR Then
                         src = src.ToUpper()
                     End If
-                    Dim zoneLen As Integer = CurrEdtSession.EditZoneRight - CurrEdtSession.EditZoneLeft + 1
-                    If zoneLen > src.Length - CurrEdtSession.EditZoneLeft Then zoneLen = Math.Max(0, src.Length - CurrEdtSession.EditZoneLeft)
-                    src = src.Substring(CurrEdtSession.EditZoneLeft - 1, zoneLen) ' text to be examined
+                    If src.Length >= CurrEdtSession.EditZoneLeft AndAlso CurrEdtSession.EditZoneLeft > 1 Then
+                        src = src.Substring(CurrEdtSession.EditZoneLeft - 1)
+                    End If
+                    Dim lsrc As Integer = CurrEdtSession.EditZoneRight - CurrEdtSession.EditZoneLeft + 1
+                    If src.Length > lsrc Then
+                        src = src.Substring(0, lsrc)
+                    End If
                     Dim srchRes As Boolean = True
                     For Each locElem As String In locElements
                         oper = locElem(0)
@@ -2709,7 +2718,7 @@ opn:
                         Dim pos As Integer = src.IndexOf(elem)
                         If pos > -1 And oper = "|" And srchRes Then
                             FinalLine = linenr
-                            FinalPos = pos + CurrEdtSession.EditZoneLeft - 1
+                            FinalPos = pos + CurrEdtSession.EditZoneLeft
                             Return ""
                         End If
                         srchRes = (srchRes And pos > -1) Or oper = "|"
@@ -2717,8 +2726,6 @@ opn:
                 End If
             Next
         Next
-
-
         ' return values
         FinalLine = CurLine
         FinalPos = 1
@@ -3352,7 +3359,7 @@ FileDeleteErrorRes:
                 Dim ln As Integer = NxtNumFromStr(Commandline, "1") - 1
                 Dim cl As Integer = NxtNumFromStr(Commandline, "1") - 1
                 Dim nc As Integer = NxtNumFromStr(Commandline, "0")
-                VSCREENarea(ln, cl, 1) = "U" ' attrbyte: unprot
+                VSCREENarea(ln, cl, 1) = "U" ' attrbyte: unprot is default
                 VSCREENarea(ln, cl, 2) = "7" ' colorbyte: black
                 Dim options As String = Commandline.Substring(Commandline.IndexOf("(") + 1)
                 While options.Length > 0
@@ -3363,11 +3370,29 @@ FileDeleteErrorRes:
                     ElseIf Abbrev(op, "PROT", 2) Then
                         VSCREENarea(ln, cl, 1) = "P" ' attr prot
                         TypeField = "P"
+                    ElseIf Abbrev(op, "BUTTON", 2) Then
+                        VSCREENarea(ln, cl, 1) = "B" ' attr prot Button
+                        TypeField = "B"
+                        Dim nm As String = "ScrOb" + CStr(numberOfVscreenObjects)
+                        Dim PosOnScreen As Integer = nc
+                        Dim butText As String = LSet(options, nc)
+                        options = ""
+                        For i = 1 To PosOnScreen
+                            If cl + i <= VSCREENarea.GetUpperBound(1) Then
+                                VSCREENarea(ln, cl + i, 0) = butText.Substring(i - 1, 1) 'character in name in this position
+                                VSCREENarea(ln, cl + i, 1) = "T"c ' attrbyte: processing a button 
+                                VSCREENarea(ln, cl + i, 2) = " "c ' colorByte: none
+                            End If
+                        Next
+                        If nc < VSCREENarea.GetUpperBound(1) AndAlso (VSCREENarea(ln, cl + nc + 1, 1) = vbNullChar OrElse VSCREENarea(ln, cl + nc + 1, 1) = " "c) Then
+                            VSCREENarea(ln, cl + nc + 1, 1) = "E" ' end of field attribute byte, if next position is not occupied
+                        End If
                     ElseIf op = "FIELD" Then
                         numberOfVscreenObjects += 1
-                        Dim nm As String = "Txtb" + CStr(numberOfVscreenObjects)
+                        Dim nm As String = "ScrOb" + CStr(numberOfVscreenObjects)
                         If VSCREENfieldText.ContainsKey(nm) Then
                             VSCREENfieldText(nm) = options
+                            VSCREENfieldTextInitial(nm) = options
                         Else
                             VSCREENfieldText.Add(nm, options)
                             VSCREENfieldTextInitial.Add(nm, options) ' tbv ESC
@@ -3402,11 +3427,11 @@ FileDeleteErrorRes:
                     ElseIf Abbrev(op, "YELLOW", 1) Then
                         VSCREENarea(ln, cl, 2) = "6" ' color
                     ElseIf Abbrev(op, "WHITE", 1) Then
-                        VSCREENarea(ln, cl, 2) = "7" ' color BLACK
+                        VSCREENarea(ln, cl, 2) = "7" ' color white
                     ElseIf Abbrev(op, "BLACK", 2) Then
-                        VSCREENarea(ln, cl, 2) = "7" ' color BLACK
+                        VSCREENarea(ln, cl, 2) = "7" ' color white
                     ElseIf Abbrev(op, "DEFAULT", 1) Then
-                        VSCREENarea(ln, cl, 2) = "7" ' color
+                        VSCREENarea(ln, cl, 2) = "7" ' color default
                     End If
                 End While
             Case "CURSOR"
@@ -3440,6 +3465,19 @@ FileDeleteErrorRes:
             If Not dsScr.CurSrcRead Then s = "not read ........"
             Debug.WriteLine(CStr(i) & ": " & CStr(dsScr.CurLinType) & " " & CStr(dsScr.CurSrcNr) & " " & CStr(dsScr.CurRepaint) & " " & dsScr.CurLinNr & " " & s)
             Logg(CStr(i) & ": " & CStr(dsScr.CurLinType) & " " & CStr(dsScr.CurSrcNr) & " " & CStr(dsScr.CurRepaint) & " " & dsScr.CurLinNr & " " & s)
+        Next
+    End Sub
+    Sub DumpArea(Optional ix As Integer = 0)
+        For ln As Integer = 1 To VSCREENlines
+            Dim lne As String = ""
+            For cl As Integer = 1 To VSCREENcols
+                If VSCREENarea(ln - 1, cl - 1, ix) = vbNullChar Then
+                    lne += " "
+                Else
+                    lne += VSCREENarea(ln - 1, cl - 1, ix)
+                End If
+            Next
+            Debug.WriteLine(lne)
         Next
     End Sub
 #End If
@@ -5268,7 +5306,12 @@ FileDeleteErrorRes:
         Dim ps, nChrAft, nChrBef, j As Integer, KeyAlreadyProcessed As Boolean
         Dim chBef, chAft As String
         Dim WasSel As Boolean, f As Boolean, lCmd As String
-        Dim KeyAscii As Integer = Asc(eventArgs.KeyChar)
+        Dim KeyAscii As Integer
+        Try
+            KeyAscii = Asc(eventArgs.KeyChar) ' strange shift+ctrl.letter combinations
+        Catch e As Exception
+            KeyAscii = 32
+        End Try
         Logg("KeyPress start " & CStr(KeyAscii))
         If ScrList.Count = 0 Then
             eventArgs.Handled = True

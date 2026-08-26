@@ -13,12 +13,6 @@
     <Compile Update="OptionsScreen.vb">
       <SubType>Form</SubType>
     </Compile>
-    <Compile Update="Recent.vb">
-      <SubType>Form</SubType>
-    </Compile>
-    <Compile Update="TBox3270.vb">
-      <SubType>Component</SubType>
-    </Compile>
     <Compile Update="Vscreen.vb">
       <SubType>Form</SubType>
     </Compile>

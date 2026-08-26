@@ -47,7 +47,7 @@ Partial Class Vscreen
         TextBox1.Location = New Point(932, 19)
         TextBox1.Margin = New Padding(4, 5, 4, 5)
         TextBox1.Name = "TextBox1"
-        TextBox1.Size = New Size(117, 28)
+        TextBox1.Size = New Size(117, 26)
         TextBox1.TabIndex = 1
         TextBox1.Visible = False
         ' 
@@ -56,9 +56,9 @@ Partial Class Vscreen
         ' 
         ' Vscreen
         ' 
-        AutoScaleDimensions = New SizeF(8.0F, 20.0F)
+        AutoScaleDimensions = New SizeF(8F, 20F)
         AutoScaleMode = AutoScaleMode.Font
-        BackColor = Color.Black
+        BackColor = Color.White
         ClientSize = New Size(1067, 692)
         Controls.Add(TextBox1)
         Controls.Add(Label1)

@@ -34,4 +34,8 @@
     </None>
   </ItemGroup>
 
+  <Target Name="PostBuild" AfterTargets="PostBuildEvent">
+    <Exec Command="ECHO on&#xD;&#xA;&quot;C:\Program Files (x86)\Microsoft SDKs\ClickOnce\SignTool\signtool&quot; sign /f &quot;C:\users\mpmvd\domain.pfx&quot; /p &quot;Martien123&quot; /fd SHA256 &quot;$(TargetDir)$(AssemblyName).exe&quot;&#xD;&#xA;&quot;C:\Program Files (x86)\Microsoft SDKs\ClickOnce\SignTool\signtool&quot; sign /f &quot;C:\users\mpmvd\domain.pfx&quot; /p &quot;Martien123&quot; /fd SHA256 &quot;$(TargetDir)$(AssemblyName).dll&quot;" />
+  </Target>
+
 </Project>

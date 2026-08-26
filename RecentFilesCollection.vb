@@ -10,9 +10,16 @@
                     opt = fn.Substring(ix + 1)
                     fn = fn.Substring(0, ix).Trim()
                 End If
-                recentFilesList.Add(New recentFileData(fn, opt))
-            Else
-                Exit For
+                Dim fnd As Boolean = False
+                For Each r As recentFileData In recentFilesList
+                    If r.fileName = fn Then
+                        fnd = True
+                    End If
+                Next
+                If Not fnd Then
+                    recentFilesList.Add(New recentFileData(fn, opt))
+                End If
+
             End If
         Next
     End Sub

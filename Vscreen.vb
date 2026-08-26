@@ -1,25 +1,30 @@
-﻿Public Class Vscreen
+﻿Imports System.Threading
+
+Public Class Vscreen
     Dim Tboxes As New Collection
     Dim textboxWithFocus As TextBox = Nothing
     Dim cursorLine, cursorCol As Integer
     Public ClickToEnter As Boolean = False
+    Dim measureWidth As Integer = 8
+    Dim measureHeight As Integer = 24
+    Dim measureHeightB As Integer = 21
+    Dim myBackColor As System.Drawing.Color = System.Drawing.Color.White
 
     Private Sub Vscreen_Load(sender As Object, e As EventArgs) Handles MyBase.Load
         Dim Height = 10
         Dim Width = 10
-        Dim measureWidth As Integer = 12
-        Dim measureHeight As Integer = 21
         Dim TypObj As Char = " "c
-        Dim protectedField As Label
+        Dim protectedField As New Label
         Dim textField As TextBox
+        Dim buttonField As Button
         Dim numberOfFields As Integer = 0
         Dim numberOfTextboxes As Integer = 0
         Dim numberOfChars As Integer
+        Dim numberOfButtons As Integer = 0
 
         cursorLine = 0
-
+        protectedField.Text = "" ' anders waarschuwing
         For ln As Integer = 1 To VSCREENlines
-            'Dim fieldnr As Integer = 0
             For cl As Integer = 1 To VSCREENcols
                 If VSCREENarea(ln - 1, cl - 1, 1) = vbNullChar Then
                     VSCREENarea(ln - 1, cl - 1, 1) = " "c
@@ -34,20 +39,20 @@
                         End If
                     Next
                     numberOfFields += 1
-                    Debug.WriteLine(CStr((cl - 1) * measureWidth) + " " + CStr((ln - 1) * measureHeight))
                     protectedField = New Label With {
                         .AutoSize = True,
                         .Location = New System.Drawing.Point((cl - 1) * measureWidth, (ln - 1) * measureHeight),
                         .Name = "Labl" & CStr(numberOfFields),
-                        .Size = New System.Drawing.Size(measureWidth * numberOfChars, measureHeight - 3),
+                        .Size = New System.Drawing.Size(measureWidth * numberOfChars, measureHeightB),
                         .TabIndex = numberOfFields - 1,
                         .Text = "",
                         .Tag = CStr(ln) + " " + CStr(cl),
                         .Font = Label1.Font,
                         .Visible = True,
                         .ForeColor = getColor(VSCREENarea(ln - 1, cl - 1, 2)),
-                        .BackColor = System.Drawing.Color.Black
+                        .BackColor = Color.White
                     }
+                    ' Debug.WriteLine("L " + CStr(cl - 1) & " " & CStr(protectedField.Left) + " " + CStr(protectedField.Width) + " " + CStr(numberOfChars))
                     TypObj = "L"c
                     Dim w = protectedField.Width + protectedField.Left ' totale omvang venster bepalen
                     Dim h = protectedField.Height + protectedField.Top
@@ -60,7 +65,7 @@
                     Me.Controls.Add(protectedField)
                     'If ClickToEnter Then AddHandler protectedField.MouseClick, AddressOf TLbl3270_Click
                 ElseIf VSCREENarea(ln - 1, cl - 1, 1) = "T"c AndAlso TypObj = "L"c Then
-                    protectedField.Text += VSCREENarea(ln - 1, cl - 1, 0)
+                    protectedField.Text += VSCREENarea(ln - 1, cl - 1, 0) ' kopieer litteral text
                 ElseIf VSCREENarea(ln - 1, cl - 1, 1) = "U"c Then
                     numberOfChars = 0
                     For icl As Integer = cl To VSCREENcols - 1
@@ -74,16 +79,17 @@
                     numberOfTextboxes += 1
                     textField = New TextBox With {
                         .Location = New System.Drawing.Point((cl - 1) * measureWidth, (ln - 1) * measureHeight),
-                        .Name = "Txtb" & CStr(numberOfFields),
-                        .Size = New System.Drawing.Size(measureWidth * numberOfChars, measureHeight - 3),
+                        .Name = "ScrOb" & CStr(numberOfFields),
+                        .Size = New System.Drawing.Size(measureWidth * numberOfChars, measureHeightB),
                         .TabIndex = numberOfFields - 1,
                         .Tag = CStr(ln) + " " + CStr(cl) + " " + CStr(numberOfTextboxes),
                         .Text = "",
                         .Font = TextBox1.Font,
                         .BorderStyle = BorderStyle.FixedSingle,
                         .ForeColor = getColor(VSCREENarea(ln - 1, cl - 1, 2)),
-                        .BackColor = Color.Black
+                        .BackColor = myBackColor
                     }
+                    'Debug.WriteLine("T " + CStr(cl - 1) & " " & CStr(textField.Left) + " " + CStr(textField.Width) + " " + CStr(numberOfChars))
                     If cursorLine = 0 Then
                         cursorCol = cl + 1
                         cursorLine = ln + 1
@@ -105,6 +111,8 @@
                     AddHandler textField.KeyPress, AddressOf TBox_KeyPress
                     AddHandler textField.TextChanged, AddressOf TBox_textChanged
                     AddHandler textField.KeyDown, AddressOf TBox_Keydown
+                    AddHandler textField.GotFocus, AddressOf tbox_GotFocus
+                    AddHandler textField.LostFocus, AddressOf tbox_LostFocus
                     Tboxes.Add(textField)
                     If VSCREENfieldText.ContainsKey(textField.Name) Then
                         textField.Text = VSCREENfieldText(textField.Name)
@@ -117,11 +125,48 @@
                         VSCREENfieldTextInitial.Add(textField.Name, str)
                         textField.Text = str
                     End If
+                ElseIf VSCREENarea(ln - 1, cl - 1, 1) = "B"c Then
+                    numberOfChars = 0
+                    Dim butText As String = ""
+                    For icl As Integer = cl To VSCREENcols - 1
+                        If VSCREENarea(ln - 1, icl, 1) = "T"c Then
+                            numberOfChars += 1
+                            butText += VSCREENarea(ln - 1, icl, 0)
+                        Else
+                            Exit For
+                        End If
+                    Next
+                    numberOfFields += 1
+                    numberOfButtons += 1
+                    buttonField = New Button With {
+                        .Location = New System.Drawing.Point((cl - 1) * measureWidth, (ln - 1) * measureHeight),
+                        .Name = "ScrOb" & CStr(numberOfFields),
+                        .Size = New System.Drawing.Size(measureWidth * numberOfChars, measureHeightB),
+                        .TabIndex = numberOfFields - 1,
+                        .Tag = "PFKEYx",
+                        .Text = butText,
+                        .Font = TextBox1.Font,
+                        .ForeColor = getColor(VSCREENarea(ln - 1, cl - 1, 2)),
+                        .BackColor = myBackColor,
+                        .Visible = True
+                    }
+                    TypObj = "B"c
+                    Dim w = buttonField.Width + buttonField.Left
+                    Dim h = buttonField.Height + buttonField.Top
+                    If w > Width Then
+                        Width = w
+                    End If
+                    If h > Height Then
+                        Height = h
+                    End If
+                    Me.Controls.Add(buttonField)
+                    AddHandler buttonField.Click, AddressOf TBox_buttonclick
+                    'Tboxes.Add(buttonField)
                 End If
             Next
-            For Each box As TextBox In Tboxes
-                box.Text = box.Text.TrimEnd
-            Next
+        Next
+        For Each box As TextBox In Tboxes
+            box.Text = box.Text.TrimEnd
         Next
         Me.Height = Height + 25 + measureHeight ' for message line
         Me.Width = Width + 25
@@ -146,7 +191,7 @@
         If typ = "4"c Then fc = Color.Green
         If typ = "5"c Then fc = Color.Turquoise
         If typ = "6"c Then fc = Color.Yellow
-        If typ = "7"c Then fc = Color.White
+        If typ = "7"c Then fc = Color.Black
         Return fc
     End Function
     Private Sub Vscreen_FormClosing(sender As Object, e As FormClosingEventArgs) Handles MyBase.FormClosing
@@ -166,7 +211,7 @@
             If eventArgs.KeyCode = 13 Then KeyPfTxt = "ENTER"
             Select Case eventArgs.KeyCode
                 Case System.Windows.Forms.Keys.F1 To System.Windows.Forms.Keys.F12
-                    KeyPfTxt = "PFKEY " + CStr(eventArgs.KeyCode - 111)
+                    KeyPfTxt = "F" + CStr(eventArgs.KeyCode - 111)
             End Select
         End If
         If KeyPfTxt <> "" Then
@@ -204,11 +249,22 @@
     End Sub
     Private Sub TBox_textChanged(myBox As TextBox, e As EventArgs)
         If VSCREENfieldText.ContainsKey(myBox.Name) Then
-            VSCREENfieldText(myBox.Name) = myBox.Text
-        End If
+            If VSCREENfieldText(myBox.Name).TrimEnd <> myBox.Text.TrimEnd Then
+                VSCREENfieldText(myBox.Name) = myBox.Text
+                If myBox.Width / measureWidth = myBox.Text.TrimEnd.Length - 1 Then '
+                    'Beep()
+                    Dim freq As Integer = 400
+                    Dim duration As Integer = 50
+                    System.Console.Beep(freq, duration)
+                End If
+            End If
+            End If
     End Sub
     Private isOverwriteMode As Boolean = False
     Private Sub TBox_Keydown(myBox As TextBox, e As KeyEventArgs)
+        If myBox.BackColor <> Color.White Then
+            myBox.BackColor = Color.White
+        End If
         If e.KeyCode = Keys.Down Then ' escape
             Dim elems As String() = myBox.Tag.split(" ")
             Dim ln As Integer = Convert.ToInt32(elems(0))
@@ -262,5 +318,31 @@
             End If
         End If
     End Sub
+    Private Sub TBox_buttonclick(myBox As Button, e As EventArgs)
+        If myBox.Text <> "" Then
+            CloseScreen(myBox.Text)
+        End If
+    End Sub
+    Private Sub tbox_GotFocus(sender As Object, e As EventArgs)
+        sender.BackColor = Color.Linen
+    End Sub
 
+    Private Sub tbox_LostFocus(sender As Object, e As EventArgs)
+        sender.BackColor = Color.White
+    End Sub
+#If DEBUG Or tracen Then
+    Sub DumpArea(Optional ix As Integer = 0)
+        For ln As Integer = 1 To VSCREENlines
+            Dim lne As String = ""
+            For cl As Integer = 1 To VSCREENcols
+                If VSCREENarea(ln - 1, cl - 1, ix) = vbNullChar Then
+                    lne += " "
+                Else
+                    lne += VSCREENarea(ln - 1, cl - 1, ix)
+                End If
+            Next
+            Debug.WriteLine(lne)
+        Next
+    End Sub
+#End If
 End Class

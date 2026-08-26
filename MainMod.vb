@@ -1,6 +1,7 @@
 ﻿Imports System.Globalization
 Imports System.IO
 Imports System.Reflection
+Imports System.Text
 Imports VB = Microsoft.VisualBasic
 #Const CreLogFile = False
 
@@ -13,6 +14,9 @@ Module MainMod
     Public FormAlreadyClosed As Boolean ' Form has closed already
     Public CancelCmd As Boolean ' Return to user input
     Public HelpCmd As Boolean ' user pressed help
+    Friend TracingSay As Boolean = False
+    Friend TracingSayFile As String = ""
+    Friend sayFile As StreamWriter ' name for each execution
     Public SaveFileExisted As Boolean ' did save create a new file?
     Public nrCyclesEv As Integer ' controls call to doevents in long loops
     Public rc As Integer  ' Returncode of last command
@@ -54,7 +58,6 @@ Module MainMod
     Public WrkFileName As String ' name
     Public WrkMaxWritePos As Long ' used up to pos
     Public RexxTrace As Boolean = False
-    Friend TracingSay As Boolean = False
     Public RexxPath As String = ""
     Public RexxFilePath As String = ""
     Public ExecutablePath As String
@@ -132,6 +135,7 @@ Module MainMod
      LoggO()
 #End If
         Logg("XEDIT start")
+        Encoding.RegisterProvider(CodePagesEncodingProvider.Instance)
         ExecutablePath = System.IO.Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location)
         If ExecutablePath(ExecutablePath.Length() - 1) <> "\" Then ExecutablePath += "\"
         Dim i As Integer = ExecutablePath.LastIndexOf(":"c)
@@ -299,6 +303,7 @@ Module MainMod
             Dim str As aStream
             str = DirectCast(Streams.Item(fn), aStream)
             Try
+                str.FileStr.Flush()
                 str.FileStr.Close()
                 str.FileStr.Dispose()
                 Streams.Remove(fn)
