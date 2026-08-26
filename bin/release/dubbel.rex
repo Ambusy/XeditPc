@@ -11,6 +11,7 @@ end
 if from="" then from=1
 if upto="" then upto=255
 trace n
+"extract /case/" 
 v = ""
 'top' 
 'down 1' 
@@ -22,6 +23,7 @@ do while rc=0
   if f3 <> "" then  l = l || substr(c,f3,u3)
   if f4 <> "" then  l = l || substr(c,f4,u4)
   if f5 <> "" then  l = l || substr(c,f5,u5)
+  if case.2 = "IGNORE" then upper l
   if l = v
   then 'del 1'
   else do

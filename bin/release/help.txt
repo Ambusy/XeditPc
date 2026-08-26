@@ -8,7 +8,6 @@ ADD [n]
 ALTER c/XX c/XX [target [no [fo]]] 
 BOTTOM       
 CAPPEND text
-	Leggerartikel_ZLD02_457_REEKS1	457	11		-0160				2460	3-4					221					234-21	1416-11						
 CFIRST
 CINSERT text
 CLAST
@@ -382,12 +381,13 @@ Not all functions are present. Available:
                    QUERY EXIST
                          SIZE
                          DATETIME
-   SPLIT("compoundVariable", string [, separator]) returns number of split elements, elements in compoundVariable.index
-   JOIN("compoundVariable", number_of_elements_in_variable [separator])
 Extra:
+   n = SPLIT("compoundVariable", string [, separator]) returns number of split elements, elements in compoundVariable.index  (1, 2, 3, ...)
+   s = JOIN("compoundVariable", number_of_elements_in_variable [, separator])    elements must be in compoundVariable.index  (1, 2, 3, ...)
+   rc = DOTCOPY("origin", "duplicates" [, "indices")   :  Duplicates all values of a compound variable to a new variable
+           optionally creates an list of found indices.
+   Names are presented as strings, to avoid substitution
    Trace SAY : writes all lines produced by Say to a file named like the rexx source filename extended by Say.Log.txt
-   SPLIT(arrayName, string, splitchar) returns number of elements in arrayName 
-           rc=SPLIT("a,b,c,d", "ELEM", ",") returns rc=4, elem.1="a", elem.2="b", etc
    REGEXP(arrayName, string, regularExpression) 
    string=CLIPBOARD()    : textual contents of clipboard goes into string
    rc=CLIPBOARD(string)  : string goes to clipboard as text

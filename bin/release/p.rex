@@ -7,7 +7,7 @@ if pn = 0 then do
   exit 4
 end
 bestFrom = 9999999
-BestTo = 9999999
+BestTo =   9999999
 type = ""
 'EXTRACT /PENDING BLOCK C/CURSOR/LINE/LINEND/'
 "SET LINEND OFF"
@@ -46,7 +46,7 @@ if pending.0 > 1 then
         type = "M"
      end 
   end 
-if BestFrom <> 9999999 then do
+if BestFrom <> 9999999  & bestTo <> 9999999 then do
   ":" BestFrom
   "SET PENDING OFF"
   if BestFrom <> BestTo then do

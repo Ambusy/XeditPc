@@ -47,7 +47,7 @@ if pending.0 > 1 then
         type = "M"
      end 
   end 
-if BestFrom <> 9999999 then do
+if BestFrom <> 9999999 & BestTo <> 9999999 then do
   ":" BestFrom
   "SET PENDING OFF"
   if BestFrom <> BestTo then do
